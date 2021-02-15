@@ -1,0 +1,11 @@
+/build/
+/edited*.txt
+
+pixtro.pnproj
+*.pnps
+*.elf
+*.gba
+
+audio/Ambulance.wav
+audio/Boom.wav
+audio/FlatOutLies.mod
