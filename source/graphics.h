@@ -26,8 +26,10 @@ extern int drawing_flags;
 #define SPRITE_16x32	10
 #define SPRITE_32x64	11
 
+#define FLIP_NONE		0
 #define FLIP_X			0x1000
 #define FLIP_Y			0x2000
+#define FLIP_XY			0x3000
 
 void load_sprite(unsigned short *_sprite, int _index, int _shape);
 void load_obj_palette(unsigned short *_pal, int _palIndex);

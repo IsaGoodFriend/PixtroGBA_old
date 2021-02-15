@@ -1,24 +1,9 @@
-#include "game_data.h"
 #include "sprites.h"
 
 #include "load_data.h"
 
-#include "physics.h"
-#include "zip.h"
-#include "strawb.h"
-#include "dialogue.h"
-
-#define RANDOM_FLIP(x, y) (((x) ^ (y >> 2)) & ((x >> 2) ^ (x ^ y)))
-#define RANDOM_TILE(x, y) ((((x ^ y) << 3) ^ (y << 2)) | ((x << 2) ^ (y << 3)))
 #define VIS_BLOCK_POS(x, y) (((x) & 0x1F) + (((y) & 0x1F) << 5))
-#define BLOCK_FIXED_SIZE = 1 << (ACC + BLOCK_SHIFT)
 
-// Pseudo code.
-
-// Have an array of chars for collision information, probably best to have a static length.
-// -- This is pure collision data.  Not visual data.
-// Have values for roomOffset(X,Y), room width/height,
-// Have an array of unsigned shorts
 
 #define YSHIFT_1W 5
 #define YSHIFT_2W 6
@@ -32,17 +17,14 @@
 const unsigned short *fgVisuals = (unsigned short*)0x2001000, *bgVisuals = (unsigned short*)0x2003000;
 unsigned char *lvlInfo;
 
+/*
 void LoadCollisionData(unsigned char *levelInfo){
 	
 	lvlInfo = levelInfo;
 	
-	levelFlags &= ~LEVELFLAG_RAINY;
-	
-	
 	yShift = lvlInfo[0];
 	width =  lvlInfo[1];
 	height = lvlInfo[2];
-	
 	
 	PHYS_actors[0].x = BLOCK2FIXED(lvlInfo[3]);
 	PHYS_actors[0].y = BLOCK2FIXED(lvlInfo[4]) - 0xB00;
@@ -589,7 +571,6 @@ void FillCam(int x, int y){
 			
 		}
 	}
-}	
+}
 
-
-
+//*/

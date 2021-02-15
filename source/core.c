@@ -41,7 +41,7 @@ void pixtro_init() {
 }
 
 void pixtro_update() {
-
+	
 	GAME_life++;
 	
 	if (custom_update)
