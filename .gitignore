@@ -1,7 +1,7 @@
 /build/
 /edited*.txt
 
-pixtro.pnproj
+pixtro_develop.pnproj
 *.pnps
 *.elf
 *.gba
