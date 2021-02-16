@@ -1,9 +1,6 @@
 #ifndef __LOAD__
 #define __LOAD__
 
-#include "math.h"
-
-void Test_Thumb();
 
 /*
 void LoadCollisionData();

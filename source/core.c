@@ -20,7 +20,6 @@ unsigned int levelFlags, visualFlags;
 char save_data[SAVEFILE_LEN - 1], settings_file[SETTING_LEN - 1];
 int save_file_number;
 
-Actor PHYS_actors[ACTOR_LIMIT];
 
 void (*custom_update)(void);
 void (*custom_render)(void);

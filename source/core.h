@@ -8,6 +8,7 @@
 
 #include "engine.h"
 
+// ---- ACTORS ----
 typedef struct Actor
 {
 	int x, y, velX, velY;
@@ -19,7 +20,15 @@ typedef struct Actor
 	
 } Actor;
 
+#define ACTOR_PERSISTENT_FLAG		0x0001
+#define ACTOR_PERSISTENT(n)			(n & ACTOR_PERSISTENT_FLAG)
+
+extern unsigned int maxEntities;
+
+extern int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
 extern Actor PHYS_actors[ACTOR_LIMIT];
+
+// ---- ENGINE ----
 
 //#define START_FADE()		0//GAME_fading = 1; GAME_fadeAmount = 0; GAME_loadIndex = 0
 #define TRANSITION_CAP		16
@@ -28,9 +37,21 @@ extern unsigned int GAME_freeze, GAME_life;
 
 extern unsigned short* transition_style;
 
-extern unsigned int maxEntities;
-
 extern unsigned int visualFlags;
+
+// The size of blocks in a level.
+#ifdef LARGE_TILES
+
+#define BLOCK_SIZE			16
+#define BLOCK_SHIFT			4
+
+#else
+
+#define BLOCK_SIZE			8
+#define BLOCK_SHIFT			3
+
+#endif
+
 
 
 extern unsigned int levelFlags;
