@@ -1,5 +1,8 @@
 Engine/build/
+/GBA Compiler/GBA Compiler/bin/
+/GBA Compiler/GBA Compiler/obj/
 
+Engine/source/sprites.c
 pixtro_develop.pnproj
 
 *.pnps
@@ -10,9 +13,5 @@ pixtro_develop.pnproj
 *.exe
 *.pdb
 *.csproj
-
 *.wav
 *.mod
-
-/GBA Compiler/GBA Compiler/bin/
-/GBA Compiler/GBA Compiler/obj/

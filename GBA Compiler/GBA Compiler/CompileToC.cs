@@ -66,8 +66,19 @@ namespace GBA_Compiler
 
             arrayValues.AddRange(_value.Select(x => (long)x).ToArray());
         }
+        public void AddRange(uint[] _value)
+        {
+            if (!inArray)
+                throw new Exception();
+
+            arrayValues.AddRange(_value.Select(x => (long)x).ToArray());
+        }
 
         public void AddValueDefine(string _name, int _value)
+        {
+            AddValueDefine(_name, _value.ToString());
+        }
+        public void AddValueDefine(string _name, string _value)
         {
             string def = $"#define {_name}";
 
@@ -182,15 +193,15 @@ namespace GBA_Compiler
                     retval = (obj).ToString("X4");
                     break;
                 case ArrayType.UShort:
-                    obj = (short)obj & 0xFFFF;
+                    obj = (ushort)obj & 0xFFFF;
                     retval = (obj).ToString("X4");
                     break;
                 case ArrayType.Int:
-                    obj = (short)obj & 0x7FFFFFFF;
+                    obj = (int)obj & 0x7FFFFFFF;
                     retval = (obj).ToString("X8");
                     break;
                 case ArrayType.UInt:
-                    obj = (short)obj & 0xFFFFFFFF;
+                    obj = (uint)obj & 0xFFFFFFFF;
                     retval = (obj).ToString("X8");
                     break;
             }

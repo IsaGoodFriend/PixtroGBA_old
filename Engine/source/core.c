@@ -15,7 +15,8 @@ typedef struct Layer{
 	int pos[8]; // The offsets of the lerp, excluding camera
 	int lerp[8]; // combines both x and y, ranging from 0 - 0x100.
 	
-	unsigned int meta; // depth, visual size, and tileset size/index
+	unsigned int tile_meta; // the size and offset of the tiles used
+	unsigned int *tile_ptr;
 	
 } Layer;
 
@@ -101,6 +102,13 @@ void set_layer_visible(int layer, bool visible) {
 	layer = 1 << (layer + 8);
 	
 	REG_DISPCNT = (REG_DISPCNT & ~layer) | (layer * visible);
+}
+void load_background(int index, unsigned int *tiles, unsigned short *){
+	int i;
+	
+	if (layers[index].tile_ptr != tiles) {
+	
+	}
 }
 void set_layer_priority(int layer, int prio) {
 	// If the layer already has that priority, don't change anything

@@ -10,11 +10,15 @@ namespace GBA_Compiler
 {
     public static class Compiler
     {
-        public static ushort ToGBA(this Color _color)
+        public static ushort ToGBA(this Color _color, ushort _transparent = 0x8000)
         {
+            if (_color.R == 0 && _color.G == 0 && _color.B == 0)
+                return _transparent;
+
             int r = (_color.R & 0xF8) >> 3;
             int g = (_color.G & 0xF8) >> 3;
             int b = (_color.B & 0xF8) >> 3;
+
 
             return (ushort)(r | (g << 5) | (b << 10));
         }
@@ -32,7 +36,9 @@ namespace GBA_Compiler
             Arguments = _args;
             Path = Directory.GetCurrentDirectory().Replace('/', '\\');
 
-            Path = @"C:\Users\IsaGoodFriend\OneDrive\Documents\DevKitPro\Projects\PixtroGBA";
+#if DEBUG
+            Path = @"C:\Users\IsaGoodFriend\OneDrive\Documents\DevKitPro\Projects\PixtroGBA\Engine";
+#endif
 
             if (Path.EndsWith("\\"))
                 Path = Path.Substring(0, Path.Length - 1);
@@ -40,6 +46,12 @@ namespace GBA_Compiler
             GameName = System.IO.Path.GetFileName(Path);
 
             CompileArt.Compile(Path + "\\art");
+
+#if DEBUG
+            Console.WriteLine("Finished");
+            Console.ReadLine();
+            return;
+#endif
 
             Process cmd = new Process();
             ProcessStartInfo info = new ProcessStartInfo();

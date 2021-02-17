@@ -33,6 +33,7 @@ extern int drawing_flags;
 
 void load_sprite(unsigned short *_sprite, int _index, int _shape);
 void load_obj_palette(unsigned short *_pal, int _palIndex);
+void load_bg_palette(unsigned short *_pal, int _palIndex);
 
 void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal);
 

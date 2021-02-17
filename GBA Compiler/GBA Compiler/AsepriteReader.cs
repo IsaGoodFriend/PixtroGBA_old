@@ -64,8 +64,11 @@ namespace GBA_Compiler
             return color;
         }
 
-        public ushort ToGBA()
+        public ushort ToGBA(ushort _transparent = 0x8000)
         {
+            if (A <= 0)
+                return _transparent;
+
             int r = (int)(R * 255);
             int g = (int)(G * 255);
             int b = (int)(B * 255);
@@ -355,7 +358,7 @@ namespace GBA_Compiler
             }
         }
 
-        public IEnumerable<ushort[]> GetSprites(string _tag = null, string _layer = null, bool _readBackwards = false, bool _pal0IsClear = true)
+        public IEnumerable<uint[]> GetSprites(string _tag = null, string _layer = null, bool _readBackwards = false, bool _pal0IsClear = true)
         {
             int startFrame = 0, endFrame = frameCount - 1;
 
@@ -430,20 +433,20 @@ namespace GBA_Compiler
                 if (pal == null)
                     continue;
 
-                int foreward(int x, int y) { return Array.IndexOf(pal, rawArt[x, y].ToGBA()); };
-                int backward(int x, int y)
+                uint foreward(int x, int y) { return (uint)Array.IndexOf(pal, rawArt[x, y].ToGBA()); };
+                uint backward(int x, int y)
                 {
                     x = (x & 7) | (Width  - (x & ~0x7) - 8);
                     y = (y & 7) | (Height - (y & ~0x7) - 8);
 
-                    return Array.IndexOf(pal, rawArt[x, y].ToGBA());
+                    return (uint)Array.IndexOf(pal, rawArt[x, y].ToGBA());
                 };
 
-                List<ushort> retval;
+                List<uint> retval;
                 if (_readBackwards)
-                    retval = new List<ushort>(CompileArt.GetArrayFromSprite(Width, Height, backward));
+                    retval = new List<uint>(CompileArt.GetArrayFromSprite(Width, Height, backward));
                 else
-                    retval = new List<ushort>(CompileArt.GetArrayFromSprite(Width, Height, foreward));
+                    retval = new List<uint>(CompileArt.GetArrayFromSprite(Width, Height, foreward));
 
 
                 yield return retval.ToArray();
