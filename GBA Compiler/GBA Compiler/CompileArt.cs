@@ -494,7 +494,7 @@ namespace GBA_Compiler
                         bool separateTags = true;
                         using (AsepriteReader read = new AsepriteReader(s))
                         {
-                            if (separateTags)
+                            if (separateTags && read.TagNames.Length > 0)
                             {
                                 foreach (var tag in read.Tags)
                                 {

@@ -4,6 +4,8 @@ Engine/build/
 
 Engine/source/sprites.c
 Engine/source/sprites.h
+Engine/source/levels.c
+Engine/source/levels.h
 pixtro_develop.pnproj
 
 *.pnps

@@ -424,7 +424,7 @@ namespace GBA_Compiler
                     add[j] = filePalette[i + j].ToGBA();
                 }
                 if (_pal0IsClear)
-                    add[0] = 0;
+                    add[0] = 0x8000;
                 palettes.Add(add);
             }
 
