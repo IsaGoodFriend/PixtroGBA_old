@@ -1,11 +1,18 @@
-/build/
-/edited*.txt
+Engine/build/
 
 pixtro_develop.pnproj
+
 *.pnps
 *.elf
 *.gba
+*.suo
+*.sln
+*.exe
+*.pdb
+*.csproj
 
-audio/Ambulance.wav
-audio/Boom.wav
-audio/FlatOutLies.mod
+*.wav
+*.mod
+
+/GBA Compiler/GBA Compiler/bin/
+/GBA Compiler/GBA Compiler/obj/

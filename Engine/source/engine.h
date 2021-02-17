@@ -14,6 +14,7 @@
 // Amount of audio channels in maxmod audio engine
 #define AUDIO_CHANNELS		16
 
+// The max amount of entities in the game at one time
 #define ACTOR_LIMIT 		16
 
 void init();

@@ -5,10 +5,39 @@
 
 #include "core.h"
 #include "graphics.h"
+#include "load_data.h"
 #include "math.h"
 
 #define SAVE_INDEX (save_file_number * SAVEFILE_LEN) + SETTING_LEN
 
+// Layers
+typedef struct Layer{
+	int pos[8]; // The offsets of the lerp, excluding camera
+	int lerp[8]; // combines both x and y, ranging from 0 - 0x100.
+	
+	unsigned int meta; // depth, visual size, and tileset size/index
+	
+} Layer;
+
+#define LAYER_SIZE(n)			((layers[n].meta & 0x3) << 1)
+#define LAYER_BLOCKSIZE(n)		((layers[n].meta & 0x3) >> 0)
+
+#define FG_TILESET		0
+#define BG_TILESET		1
+
+int layer_count, layer_line[7], layer_index;
+int bg_tile_allowance;
+
+Layer layers[4];
+int foreground_count;
+
+// Entities
+unsigned int maxEntities;
+
+int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
+Actor PHYS_actors[ACTOR_LIMIT];
+
+// Engine stuff
 unsigned int GAME_freeze, GAME_life;
 unsigned int fadeAmount, fading, loadIndex;
 
@@ -20,6 +49,7 @@ unsigned int levelFlags, visualFlags;
 char save_data[SAVEFILE_LEN - 1], settings_file[SETTING_LEN - 1];
 int save_file_number;
 
+int camX, camY, prevCamX, prevCamY;
 
 void (*custom_update)(void);
 void (*custom_render)(void);
@@ -29,7 +59,14 @@ void interrupt();
 
 void pixtro_init() {
 	
-	REG_DISPCNT = DCNT_BG0 | DCNT_OBJ | DCNT_OBJ_1D;
+	REG_DISPCNT = DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
+	
+	set_layer_priority(1, 1);
+	set_layer_priority(2, 2);
+	set_layer_priority(3, 3);
+	
+	set_foreground_count(0);
+	finalize_layers();
 	
 	irq_add( II_HBLANK, interrupt );
 	
@@ -49,12 +86,71 @@ void pixtro_update() {
 
 void pixtro_render() {
 	
+	layer_index = 0;
+	
 	if (custom_render)
 		custom_render();
 	
 	end_drawing();
+	
+	move_cam();
 }
 
+// Layer functions that don't need to be finalized
+void set_layer_visible(int layer, bool visible) {
+	layer = 1 << (layer + 8);
+	
+	REG_DISPCNT = (REG_DISPCNT & ~layer) | (layer * visible);
+}
+void set_layer_priority(int layer, int prio) {
+	// If the layer already has that priority, don't change anything
+	if ((REG_BGCNT[layer] & BG_PRIO_MASK) == prio)
+		return;
+	
+	int i;
+	
+	// Find the layer that has the same priority
+	for (i = 0; i < 4; ++i) {
+		if (i == layer)
+			continue;
+		
+		if ((REG_BGCNT[i] & BG_PRIO_MASK) == prio){
+			REG_BGCNT[i] = (REG_BGCNT[i] & ~BG_PRIO_MASK) | (REG_BGCNT[layer] & BG_PRIO_MASK);
+			break;
+		}
+	}
+	
+	REG_BGCNT[layer] = (REG_BGCNT[layer] & ~BG_PRIO_MASK) | prio;
+}
+
+// Layer functions that require finalization
+void set_foreground_count(int count) {
+	foreground_count = count & 0x3;
+}
+// Finalize Layers
+void finalize_layers() {
+	int i;
+	int sbb = 32;
+	
+	for (i = 0; i < 4; ++i) {
+		REG_BGCNT[i] &= BG_PRIO_MASK; // Keep original priority, remove all other values
+		
+		if (i >= foreground_count) {
+			sbb -= LAYER_SIZE(i);
+			
+			REG_BGCNT[i] |= LAYER_SIZE(i) | sbb | BG_CBB(BG_TILESET);
+		}
+		else {
+			--sbb;
+			
+			REG_BGCNT[i] |= sbb | BG_CBB(FG_TILESET);
+		}
+		
+	}
+	
+	sbb -= 8;
+	bg_tile_allowance = sbb << 5;
+}
 
 void interrupt(){
 	

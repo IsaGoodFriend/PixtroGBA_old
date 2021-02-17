@@ -60,14 +60,17 @@ extern char gamestate, nextGamestate;
 #define IS_FADING 0//(GAME_fading || GAME_fadeAmount)
 extern int GAME_fadeAmount, GAME_fading, GAME_loadIndex;
 
-extern int camX, camY, prevCamX, prevCamY;
-
 extern void (*custom_update)(void);
 extern void (*custom_render)(void);
 
 void pixtro_init();
 void pixtro_update();
 void pixtro_render();
+
+void set_layer_visible(int layer, bool vis);
+void set_layer_priority(int layer, int prio);
+void set_foreground_count(int _count);
+void finalize_layers();
 
 void open_file(int _file);
 void save_file();
