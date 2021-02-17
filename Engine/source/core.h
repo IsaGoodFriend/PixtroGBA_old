@@ -8,8 +8,8 @@
 
 #include "engine.h"
 
-// ---- ACTORS ----
-typedef struct Actor
+// ---- Entities ----
+typedef struct Entity
 {
 	int x, y, velX, velY;
 	unsigned short width, height;
@@ -18,19 +18,21 @@ typedef struct Actor
 	unsigned int flags;
 	
 	
-} Actor;
+} Entity;
 
-#define ACTOR_FLAG(name, n)			((entities[n].ID & ACTOR_##name##_FLAG) >> ACTOR_##name##_SHIFT)
+#define ENT_TYPE(n)				(entities[n].ID & 0xFF)
 
-#define ACTOR_PERSISTENT_FLAG		0x00000100
-#define ACTOR_PERSISTENT_SHIFT		8
-#define ACTOR_ACTIVE_FLAG			0x00000200
-#define ACTOR_ACTIVE_SHIFT			9
+#define ENT_FLAG(name, n)		((entities[n].ID & ENT_##name##_FLAG) >> ENT_##name##_SHIFT)
+
+#define ENT_PERSISTENT_FLAG		0x00000100
+#define ENT_PERSISTENT_SHIFT		8
+#define ENT_ACTIVE_FLAG			0x00000200
+#define ENT_ACTIVE_SHIFT			9
 
 extern unsigned int max_entities;
 
 extern int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
-extern Actor entities[ACTOR_LIMIT];
+extern Entity entities[ENTITY_LIMIT];
 
 // ---- LAYERS ----
 

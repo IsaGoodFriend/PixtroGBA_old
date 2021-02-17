@@ -46,7 +46,7 @@ int foreground_count;
 unsigned int max_entities;
 
 int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
-Actor entities[ACTOR_LIMIT];
+Entity entities[ENTITY_LIMIT];
 void (*entity_update[32])(int index);
 
 // Engine stuff
@@ -96,11 +96,11 @@ void pixtro_update() {
 	
 	int i;
 	
-	for (i = 0; i < ACTOR_LIMIT; ++i){
-		if (!ACTOR_FLAG(ACTIVE, i))
+	for (i = 0; i < ENTITY_LIMIT; ++i){
+		if (!ENT_FLAG(ACTIVE, i))
 			continue;
 		
-		//entities[i]
+		entity_update[ENT_TYPE(i)];
 	}
 	
 	if (custom_update)

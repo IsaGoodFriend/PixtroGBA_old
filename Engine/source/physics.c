@@ -34,36 +34,36 @@ unsigned int GetBlock(int x, int y){
 // Physics Collision for any entity
 // Returns y collision data on 0x00007FFF, and x collision data on 0x7FFF0000.
 // 0x80000000 is set if x velocity was positive, and 0x00008000 is set if y velocity was positive
-unsigned int collide_char(Actor *actor, int hitMask, int detectMask) {
+unsigned int collide_char(Entity *ent, int hitMask, int detectMask) {
 	
 	
 	// Get the sign (-/+) of the velocity components
-	int signX = (actor->velX >> 31) | 1, signY = (actor->velY >> 31) | 1;
-	int yIsPos= -(~(actor->velY) >> 31); // If y is positive, equals 1, else 0;
-	int yIsNeg = actor->velY >> 31; // If y is negative, equals -1, else 0;
-	int xIsPos= -(~(actor->velX) >> 31); // If x is positive, equals 1, else 0;
-	int xIsNeg = actor->velX >> 31; // If x is negative, equals -1, else 0;
+	int signX = (ent->velX >> 31) | 1, signY = (ent->velY >> 31) | 1;
+	int yIsPos= -(~(ent->velY) >> 31); // If y is positive, equals 1, else 0;
+	int yIsNeg = ent->velY >> 31; // If y is negative, equals -1, else 0;
+	int xIsPos= -(~(ent->velX) >> 31); // If x is positive, equals 1, else 0;
+	int xIsNeg = ent->velX >> 31; // If x is negative, equals -1, else 0;
 	
 	// Box collision indexes - Tile values;
 	int index = 0, index2 = 0;
 	
-	int top = actor->y,
-		bot = actor->y + INT2FIXED(height),
-		lef = actor->x					 - xIsNeg * (actor->velX),
-		rgt = actor->x + INT2FIXED(width)  + xIsPos * (actor->velX);
+	int top = ent->y,
+		bot = ent->y + INT2FIXED(height),
+		lef = ent->x					 - xIsNeg * (ent->velX),
+		rgt = ent->x + INT2FIXED(width)  + xIsPos * (ent->velX);
 	
 	//Get the start and end of the base collisionbox
-	int yMin = actor->y - yIsNeg * (INT2FIXED(height) - 1),
-		yMax = actor->y + yIsPos * (INT2FIXED(height) - 1),
-		xMin = actor->x - xIsNeg * (INT2FIXED(width)  - 1),
-		xMax = actor->x + xIsPos * (INT2FIXED(width)  - 1);
+	int yMin = ent->y - yIsNeg * (INT2FIXED(height) - 1),
+		yMax = ent->y + yIsPos * (INT2FIXED(height) - 1),
+		xMin = ent->x - xIsNeg * (INT2FIXED(width)  - 1),
+		xMax = ent->x + xIsPos * (INT2FIXED(width)  - 1);
 	
 	// Block values that were hit - flag
 	int hitValueX = 0, hitValueY = 0;
 	
 	int offsetX = 0xFFFFFF, offsetY = 0xFFFFFF;
 	
-	for (index = FIXED2BLOCK(xMin); index != FIXED2BLOCK(xMax + actor->velX) + signX; index += signX){
+	for (index = FIXED2BLOCK(xMin); index != FIXED2BLOCK(xMax + ent->velX) + signX; index += signX){
 		for (index2 = FIXED2BLOCK(yMin); index2 != FIXED2BLOCK(yMax) + signY; index2 += signY){
 			
 			int shape = GetBlock(index, index2);
@@ -82,7 +82,7 @@ unsigned int collide_char(Actor *actor, int hitMask, int detectMask) {
 				continue;
 			}
 			
-			int tempOffset = (BLOCK2FIXED(index - xIsNeg) - INT2FIXED(width * xIsPos)) - actor->x; // Get offsets to align to grid
+			int tempOffset = (BLOCK2FIXED(index - xIsNeg) - INT2FIXED(width * xIsPos)) - ent->x; // Get offsets to align to grid
 			
 			if (INT_ABS(tempOffset) < INT_ABS(offsetX)) { // If new movement is smaller, set collision data.
 				offsetX = tempOffset; // Set offset
@@ -93,7 +93,7 @@ unsigned int collide_char(Actor *actor, int hitMask, int detectMask) {
 				hitValueX |= mask;
 			}
 			
-			tempOffset = (BLOCK2FIXED(index + xIsPos) - INT2FIXED(width * -xIsNeg)) - actor->x; 
+			tempOffset = (BLOCK2FIXED(index + xIsPos) - INT2FIXED(width * -xIsNeg)) - ent->x; 
 			if (INT_ABS(tempOffset) < INT_ABS(offsetX)) { // If new movement is smaller, set collision data.
 				offsetX = tempOffset; // Set offset
 				hitValueX = mask;
@@ -107,22 +107,22 @@ unsigned int collide_char(Actor *actor, int hitMask, int detectMask) {
 				break;
 		}
 		if (hitValueX & detectMask){
-			actor->x += offsetX;
-			offsetX += actor->velX;
+			ent->x += offsetX;
+			offsetX += ent->velX;
 			
-			if (actor->velX != 0 && signX == INT_SIGN((BLOCK2FIXED(index) + 0x400) - (actor->x + (width >> 1))))
-				actor->velX = 0;
+			if (ent->velX != 0 && signX == INT_SIGN((BLOCK2FIXED(index) + 0x400) - (ent->x + (width >> 1))))
+				ent->velX = 0;
 			else
 				hitValueX = 0;
 			break;
 		}
 	}
-	actor->x += actor->velX * !(hitValueX & detectMask);
+	ent->x += ent->velX * !(hitValueX & detectMask);
 	
-	xMin = actor->x - xIsNeg * (INT2FIXED(width) - 1);
-	xMax = actor->x + xIsPos * (INT2FIXED(width) - 1);
+	xMin = ent->x - xIsNeg * (INT2FIXED(width) - 1);
+	xMax = ent->x + xIsPos * (INT2FIXED(width) - 1);
 	
-	for (index = FIXED2BLOCK(yMin); index != FIXED2BLOCK(yMax + actor->velY) + signY; index += signY){
+	for (index = FIXED2BLOCK(yMin); index != FIXED2BLOCK(yMax + ent->velY) + signY; index += signY){
 		for (index2 = FIXED2BLOCK(xMin); index2 != FIXED2BLOCK(xMax) + signX; index2 += signX){
 			
 			int shape = GetBlock(index, index2);
@@ -138,14 +138,14 @@ unsigned int collide_char(Actor *actor, int hitMask, int detectMask) {
 			case SHAPE_FULL:
 				break;
 			case SHAPE_PLATFORM:
-				if (actor->velY < 0)
+				if (ent->velY < 0)
 					continue;
 				break;
 			default:
 				continue;
 			}
 			
-			int tempOffset = (BLOCK2FIXED(index - yIsNeg) - INT2FIXED(height * yIsPos)) - actor->y;
+			int tempOffset = (BLOCK2FIXED(index - yIsNeg) - INT2FIXED(height * yIsPos)) - ent->y;
 			
 			if (INT_ABS(tempOffset) < INT_ABS(offsetY)) { // If new movement is smaller, set collision data.
 				offsetY = tempOffset; // Set offset
@@ -156,7 +156,7 @@ unsigned int collide_char(Actor *actor, int hitMask, int detectMask) {
 				hitValueY |= mask;
 			}
 			
-			tempOffset = (BLOCK2FIXED(index + yIsPos) - INT2FIXED(height * -yIsNeg)) - actor->y;
+			tempOffset = (BLOCK2FIXED(index + yIsPos) - INT2FIXED(height * -yIsNeg)) - ent->y;
 			if (INT_ABS(tempOffset) < INT_ABS(offsetY)) { // If new movement is smaller, set collision data.
 				offsetY = tempOffset; // Set offset
 				hitValueY = mask;
@@ -170,17 +170,17 @@ unsigned int collide_char(Actor *actor, int hitMask, int detectMask) {
 				break;
 		}
 		if (hitValueY & detectMask){
-			actor->y += offsetY;
-			offsetY += actor->velY;
+			ent->y += offsetY;
+			offsetY += ent->velY;
 			
-			if (actor->velY != 0 && signY == INT_SIGN((BLOCK2FIXED(index) + 0x400) - (actor->y + (height >> 1))))
-				actor->velY = 0;
+			if (ent->velY != 0 && signY == INT_SIGN((BLOCK2FIXED(index) + 0x400) - (ent->y + (height >> 1))))
+				ent->velY = 0;
 			else
 				hitValueY = 0;
 			break;
 		}
 	}
-	actor->y += actor->velY * !(hitValueY & detectMask);
+	ent->y += ent->velY * !(hitValueY & detectMask);
 	
 	return (hitValueX << 16) | hitValueY;
 }
@@ -227,12 +227,12 @@ unsigned int collide_rect(int x, int y, int width, int height){
 				}
 				break;
 			case BLOCK_SPIKELEFT:
-				if (PHYS_actors[0].velX > 0 || FIXED2BLOCK(xMin + 0x500) > xCoor)
+				if (entities[0].velX > 0 || FIXED2BLOCK(xMin + 0x500) > xCoor)
 					break;
 				hitValue |= COLLISION_HARM | COLLISION_WALLBLOCK;
 				break;
 			case BLOCK_SPIKERIGHT:
-				if (PHYS_actors[0].velX < 0 || FIXED2BLOCK(xMax - 0x500) < xCoor)
+				if (entities[0].velX < 0 || FIXED2BLOCK(xMax - 0x500) < xCoor)
 					break;
 				hitValue |= COLLISION_HARM | COLLISION_WALLBLOCK;
 				break;
@@ -250,7 +250,7 @@ unsigned int collide_rect(int x, int y, int width, int height){
 unsigned int collide_entity(unsigned int ID){
 	int i = 0;
 	
-	Actor *id = &PHYS_actors[ID], *iterP;
+	Entity *id = &entities[ID], *iterP;
 	
 	int id_LX = FIXED2INT(id->x);
 	int id_LY = FIXED2INT(id->y);
@@ -263,7 +263,7 @@ unsigned int collide_entity(unsigned int ID){
 		if (i == ID)
 			continue;
 		
-		iterP = &PHYS_actors[i];
+		iterP = &entities[i];
 		
 		if (!ACTOR_ENABLED(iterP->flags) || !ACTOR_CAN_COLLIDE(iterP->flags))
 			continue;

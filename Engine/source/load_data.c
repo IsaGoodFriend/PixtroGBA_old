@@ -133,9 +133,9 @@ void load_entities() {
 	// unload entities
 	{
 		int index = 0;
-		for (; index < ACTOR_LIMIT; ++index){
+		for (; index < ENTITY_LIMIT; ++index){
 			
-			if (ACTOR_FLAG(PERSISTENT, entities[index].flags))
+			if (ENT_FLAG(PERSISTENT, entities[index].flags))
 			{
 				entities[max_entities] = entities[index];
 				
