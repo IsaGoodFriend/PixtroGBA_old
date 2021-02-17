@@ -7,9 +7,6 @@ using System.Text;
 
 namespace GBA_Compiler
 {
-    /// <summary>
-    /// Created using this guide https://github.com/aseprite/aseprite/blob/master/docs/ase-file-specs.md
-    /// </summary>
 
     public enum BlendType : ushort
     {
@@ -58,6 +55,7 @@ namespace GBA_Compiler
                     color.R = colorB.R;
                     color.G = colorB.G;
                     color.B = colorB.B;
+                    color.A = Math.Max(colorA.A, colorB.A);
                     break;
             }
 
@@ -81,8 +79,34 @@ namespace GBA_Compiler
         }
     }
 
+    /// <summary>
+    /// Created using this guide https://github.com/aseprite/aseprite/blob/master/docs/ase-file-specs.md
+    /// </summary>
     public class AsepriteReader : BinaryReader
     {
+        private class Layer
+        {
+            public bool visible = true;
+            public BlendType blending;
+            public string name;
+
+            public Cel[] cels;
+
+            public Layer(ushort flags, ushort blend, string _name, int celCount)
+            {
+                visible = (flags & 0x1) != 0;
+                blending = (BlendType)blend;
+                name = _name;
+                cels = new Cel[celCount];
+            }
+
+        }
+        public class Tag
+        {
+            public string name;
+            public int start, end;
+
+        }
         public class Cel
         {
             public int X, Y, width, height;
@@ -145,36 +169,14 @@ namespace GBA_Compiler
                 }
             }
         }
-        private class Layer
-        {
-
-            public bool visible = true;
-            public BlendType blending;
-            public string name;
-
-            public Cel[] cels;
-
-            public Layer(ushort flags, ushort blend, string _name, int celCount)
-            {
-                visible = (flags & 0x1) != 0;
-                blending = (BlendType)blend;
-                name = _name;
-                cels = new Cel[celCount];
-            }
-
-        }
-        public class Tag
-        {
-            public string name;
-            public int start, end;
-
-        }
 
         int frameCount;
         int BPP;
 
         public int Width { get; private set; }
         public int Height { get; private set; }
+
+        private int transparent;
 
         private List<FloatColor> filePalette;
         private List<Layer> layers = new List<Layer>();
@@ -192,6 +194,16 @@ namespace GBA_Compiler
             }
         }
         public Tag[] Tags { get { return tags.ToArray(); } }
+        public string[] LayerNames
+        {
+            get
+            {
+                string[] retval = new string[layers.Count];
+                for (int i = 0; i < layers.Count; ++i) retval[i] = layers[i].name;
+                return retval;
+            }
+        }
+        public FloatColor[] Colors { get { return filePalette.ToArray(); } }
 
         public override float ReadSingle()
         {
@@ -204,6 +216,28 @@ namespace GBA_Compiler
             byte[] array = ReadBytes(ReadUInt16());
 
             return Encoding.UTF8.GetString(array);
+        }
+        public FloatColor ReadColor(int _x, int _y, int _frame = 0, string _layer = null)
+        {
+            FloatColor retval = new FloatColor();
+
+            foreach (var layer in layers)
+            {
+                if (_layer != null && layer.name != _layer)
+                    continue;
+
+                var cel = layer.cels[_frame];
+
+                if (!layer.visible || cel == null)
+                    continue;
+
+                if (_x < cel.X || _x >= cel.X + cel.width || _y < cel.Y || _y >= cel.Y + cel.height)
+                    continue;
+
+                retval = FloatColor.FlattenColor(retval, cel.colors[(_x - cel.X) + (_y - cel.Y) * cel.width], layer.blending); 
+            }
+
+            return retval;
         }
 
         public AsepriteReader(string _filePath) : base(File.Open(_filePath, FileMode.Open))
@@ -218,8 +252,11 @@ namespace GBA_Compiler
 
             BPP = ReadUInt16();
 
-            // Skipping Flags and other unused/empty data
-            BaseStream.Seek(18, SeekOrigin.Current);
+            BaseStream.Seek(14, SeekOrigin.Current);
+
+            int transparent = ReadByte();
+
+            BaseStream.Seek(3, SeekOrigin.Current);
 
             filePalette = new List<FloatColor>(new FloatColor[ReadUInt16()]);
 
@@ -238,7 +275,7 @@ namespace GBA_Compiler
                 if (chunkCount == 0xFFFF)
                     chunkCount = ReadUInt32();
                 else
-                    ReadUInt32();
+                    BaseStream.Seek(4, SeekOrigin.Current);
 
                 bool usesNewPal = false;
 
@@ -258,6 +295,7 @@ namespace GBA_Compiler
                     BaseStream.Seek(pos + size, SeekOrigin.Begin);
                 }
             }
+
         }
 
         private void ReadChunk(uint type, int frameIndex, uint size)
@@ -353,6 +391,7 @@ namespace GBA_Compiler
 
                         }
 
+                        filePalette[transparent] = new FloatColor();
                     }
                     break;
             }
@@ -395,6 +434,9 @@ namespace GBA_Compiler
 
                 foreach (var layer in layers)
                 {
+                    if (_layer != null && layer.name != _layer)
+                        continue;
+
                     var cel = layer.cels[startFrame];
 
                     if (!layer.visible || cel == null)

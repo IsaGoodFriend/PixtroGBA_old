@@ -70,13 +70,14 @@ void interrupt();
 
 void pixtro_init() {
 	
-	REG_DISPCNT = DCNT_BG0 | DCNT_OBJ | DCNT_OBJ_1D;
+	REG_DISPCNT = DCNT_BG0 | DCNT_BG1 | DCNT_OBJ | DCNT_OBJ_1D;
 	
 	set_layer_priority(1, 1);
 	set_layer_priority(2, 2);
 	set_layer_priority(3, 3);
 	
-	LOAD_BG(sample_bmp, 0); // => load_background(0, &BGT_sample_bmp, BGT_sample_bmp_len, BG_sample_bmp);
+	LOAD_BG(sample_ase, 0);
+	LOAD_BG(sample_bmp, 1); // => load_background(1, &BGT_sample_bmp, BGT_sample_bmp_len, BG_sample_bmp);
 	
 	load_bg_palette(PAL_test, 0);
 	
@@ -140,6 +141,9 @@ void set_layer_priority(int layer, int prio) {
 
 // Layer functions that require finalization
 void load_background(int index, unsigned int *tiles, unsigned int tile_len, unsigned short *mapping) {
+	if (index < foreground_count)
+		return;
+	
 	load_background_tiles(index, tiles, tile_len);
 	
 	layers[index].map_ptr = mapping;
@@ -150,8 +154,19 @@ void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len
 	
 	if (layers[index].tile_ptr != tiles) {
 		
-		TILESET_SET(index, 0, tile_len);
+		if (index == 0)
+			TILESET_SET(index, 0, tile_len);
+		else
+			TILESET_SET(index, TILESET_SIZE(index - 1) + TILESET_OFFSET(index - 1), tile_len);
+		
 		layers[index].tile_ptr = tiles;
+		
+		for (int i = index + 1; i < 4; ++i){
+			
+			TILESET_SET(i, TILESET_SIZE(i - 1) + TILESET_OFFSET(i - 1), TILESET_SIZE(i));
+			layers[i].tile_meta |= MAPPING_CHANGED;
+		}
+		
 	}
 }
 void set_foreground_count(int count) {
@@ -186,7 +201,8 @@ void finalize_layers() {
 			
 			if (layers[i].tile_meta & TILES_CHANGED) {
 				
-				memcpy(tile_mem[BG_TILESET], layers[i].tile_ptr, TILESET_SIZE(i) << 5);
+				memcpy(&tile_mem[BG_TILESET][TILESET_OFFSET(i)], layers[i].tile_ptr, TILESET_SIZE(i) << 5);
+				
 			}
 			if (layers[i].tile_meta & MAPPING_CHANGED) {
 				int index = 32 * 32 * size;
@@ -201,6 +217,7 @@ void finalize_layers() {
 					block[index] = mapping[index] + offset;
 					
 				}
+				
 			}
 			
 			layers[i].tile_meta &= 0xFFFF;

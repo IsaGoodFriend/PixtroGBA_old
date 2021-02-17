@@ -76,8 +76,6 @@ namespace GBA_Compiler
                 {
                     rawData[i] = _GBA[i + _index];
 
-                    string t = _GBA[i + _index].ToString("X8");
-
                     bitData[i << 3] =       (byte) (_GBA[i + _index] & 0x0000000F);
                     bitData[(i << 3) + 1] = (byte)((_GBA[i + _index] & 0x000000F0) >> 4);
                     bitData[(i << 3) + 2] = (byte)((_GBA[i + _index] & 0x00000F00) >> 8);
@@ -279,7 +277,42 @@ namespace GBA_Compiler
             }
             public Background(AsepriteReader _read, BGTileSet _tiles, string _layer)
             {
+                width = _read.Width >> 3;
+                height = _read.Height >> 3;
 
+                tiles = new Tile[width, height];
+
+                rawData = new ushort[_read.Width, _read.Height];
+
+                for (int y = 0; y < _read.Height; ++y)
+                    for (int x = 0; x < _read.Width; ++x)
+                        rawData[x, y] = _read.ReadColor(x, y, _layer: _layer).ToGBA();
+
+                palettesBase = new List<ushort[]>();
+                List<FloatColor> palette = new List<FloatColor>(_read.Colors);
+
+                for (int i = 0; i < palette.Count; i += 16)
+                {
+                    List<ushort> pal = new List<ushort>();
+
+                    bool hasColor = false;
+
+                    for (int j = 0; j < 16; ++j)
+                    {
+                        ushort color = palette[i + j].ToGBA();
+                        pal.Add(color);
+
+                        hasColor |= color != 0;
+                    }
+
+                    if (!hasColor) break;
+
+                    palettesBase.Add(pal.ToArray());
+                }
+
+                tileset = _tiles ?? new BGTileSet();
+
+                SetTiles();
             }
 
 
@@ -717,8 +750,6 @@ namespace GBA_Compiler
 
                         List<Color> palette = new List<Color>(map.Palette.Entries);
 
-                        palettesFromSprites.Add(name, palette.ToArray());
-
                         Background bg = new Background(map, tiles);
 
                         string tileName = $"BGT_{name}";
@@ -749,6 +780,54 @@ namespace GBA_Compiler
                         if (read.Width % 256 != 0 || read.Height % 256 != 0)
                             break;
 
+                        // Only mark a background 
+                        if (_saveTiles)
+                            backgroundsCompiled.Add(name);
+
+                        List<FloatColor> palette = new List<FloatColor>(read.Colors);
+
+                        if (otherTileset == null)
+                        {
+                            otherTileset = $"BGT_{name}";
+
+                            if (read.LayerNames.Length > 1)
+                                otherTileset += "_" + read.LayerNames[0];
+                        }
+
+                        BGTileSet tileset = null;
+
+                        foreach (var layer in read.LayerNames)
+                        {
+                            string tileName = $"BGT_{name}";
+
+                            if (read.LayerNames.Length > 1)
+                                tileName += "_" + layer.Replace(" ", "");
+
+                            Background bg = new Background(read, tiles, layer);
+                            tileset = bg.tileset;
+
+                            if (otherTileset != name)
+                            {
+                                _compiler.AddValueDefine(tileName, otherTileset);
+                            }
+
+                            if (_saveTiles)
+                            {
+                                string exName = $"BG_{name}";
+                                if (read.LayerNames.Length > 1)
+                                    exName += "_" + layer.Replace(" ", "");
+
+                                _compiler.BeginArray(CompileToC.ArrayType.UShort, exName);
+
+                                _compiler.AddRange(Enumerable.ToArray(bg.Data()));
+
+                                _compiler.EndArray();
+                            }
+                        }
+
+                        tilesets.Add(otherTileset, tileset);
+
+                        break;
 
                     }
                     break;
