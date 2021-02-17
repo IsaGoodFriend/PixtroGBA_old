@@ -3,6 +3,7 @@ Engine/build/
 /GBA Compiler/GBA Compiler/obj/
 
 Engine/source/sprites.c
+Engine/source/sprites.h
 pixtro_develop.pnproj
 
 *.pnps
