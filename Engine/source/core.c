@@ -95,7 +95,7 @@ void pixtro_update() {
 	
 	int i;
 	
-	for (i = 0; i < ENTITY_LIMIT; ++i){
+	for (i = 0; i < max_entities; ++i){
 		if (!ENT_FLAG(ACTIVE, i) || !entity_update[ENT_TYPE(i)])
 			continue;
 		
@@ -112,7 +112,7 @@ void pixtro_render() {
 	
 	int i;
 	
-	for (i = 0; i < ENTITY_LIMIT; ++i){
+	for (i = 0; i < max_entities; ++i){
 		if (!ENT_FLAG(VISIBLE, i) || !entity_render[ENT_TYPE(i)])
 			continue;
 		

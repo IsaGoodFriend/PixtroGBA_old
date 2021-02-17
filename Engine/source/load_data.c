@@ -165,7 +165,7 @@ void load_entities() {
 		
 		entities[max_entities].x = BLOCK2FIXED(x);
 		entities[max_entities].y = BLOCK2FIXED(y);
-		entities[max_entities].ID = type;
+		entities[max_entities].ID = type | ENT_VISIBLE_FLAG;
 		
 		lvlInfo += entity_inits[type](&max_entities, lvlInfo);
 		

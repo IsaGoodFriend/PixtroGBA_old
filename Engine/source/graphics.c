@@ -140,10 +140,10 @@ void load_anim_sprite(unsigned short *_sprites, int _index, int _frames, int _sh
 	load_sprite(_sprites, _index, _shape);
 	
 }
-void load_obj_palette(unsigned short *_pal, int _palIndex) {
+void load_obj_pal(unsigned short *_pal, int _palIndex) {
 	memcpy(&pal_obj_mem[_palIndex << 4], _pal, copyPalette);
 }
-void load_bg_palette(unsigned short *_pal, int _palIndex) {
+void load_bg_pal(unsigned short *_pal, int _palIndex) {
 	memcpy(&pal_bg_mem[_palIndex << 4], _pal, copyPalette);
 }
 
@@ -160,7 +160,8 @@ void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal) {
 	
 	int shape = shapes[_sprite];
 	
-	if (_x + shape_width[shape] <= 0)
+	if (_x + shape_width [shape] <= 0 || _x > 240 ||
+		_y + shape_height[shape] <= 0 || _y > 160)
 		return;
 	
 	obj_set_attr(sprite_pointer,
