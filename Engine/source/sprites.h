@@ -5,6 +5,7 @@
 extern const unsigned short PAL_test[16];
 extern const unsigned int particles[0];
 extern const unsigned short BG_sample_bmp[1024];
-extern const unsigned int BGT_sample_bmp[704];
+#define BGT_sample_bmp_len				96
+extern const unsigned int BGT_sample_bmp[768];
 
 #endif

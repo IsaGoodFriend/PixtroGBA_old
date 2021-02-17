@@ -28,6 +28,11 @@ extern unsigned int maxEntities;
 extern int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
 extern Actor PHYS_actors[ACTOR_LIMIT];
 
+// ---- LAYERS ----
+
+// Macro to help load backgrounds easier.  
+#define LOAD_BG(bg, n) load_background(n, BGT_##bg, BGT_##bg##_len, BG_##bg)
+
 // ---- ENGINE ----
 
 //#define START_FADE()		0//GAME_fading = 1; GAME_fadeAmount = 0; GAME_loadIndex = 0
@@ -70,6 +75,7 @@ void pixtro_render();
 void set_layer_visible(int layer, bool vis);
 void set_layer_priority(int layer, int prio);
 void set_foreground_count(int _count);
+void load_background(int index, unsigned int *tiles, unsigned int tile_len, unsigned short *mapping);
 void finalize_layers();
 
 void open_file(int _file);

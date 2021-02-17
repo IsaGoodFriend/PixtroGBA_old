@@ -78,14 +78,14 @@ namespace GBA_Compiler
 
                     string t = _GBA[i + _index].ToString("X8");
 
-                    bitData[i << 2] =       (byte) (_GBA[i + _index] & 0x0000000F);
-                    bitData[(i << 2) + 1] = (byte)((_GBA[i + _index] & 0x000000F0) >> 4);
-                    bitData[(i << 2) + 2] = (byte)((_GBA[i + _index] & 0x00000F00) >> 8);
-                    bitData[(i << 2) + 3] = (byte)((_GBA[i + _index] & 0x0000F000) >> 12);
-                    bitData[(i << 2) + 4] = (byte)((_GBA[i + _index] & 0x000F0000) >> 16);
-                    bitData[(i << 2) + 5] = (byte)((_GBA[i + _index] & 0x00F00000) >> 20);
-                    bitData[(i << 2) + 6] = (byte)((_GBA[i + _index] & 0x0F000000) >> 24);
-                    bitData[(i << 2) + 7] = (byte)((_GBA[i + _index] & 0xF0000000) >> 28);
+                    bitData[i << 3] =       (byte) (_GBA[i + _index] & 0x0000000F);
+                    bitData[(i << 3) + 1] = (byte)((_GBA[i + _index] & 0x000000F0) >> 4);
+                    bitData[(i << 3) + 2] = (byte)((_GBA[i + _index] & 0x00000F00) >> 8);
+                    bitData[(i << 3) + 3] = (byte)((_GBA[i + _index] & 0x0000F000) >> 12);
+                    bitData[(i << 3) + 4] = (byte)((_GBA[i + _index] & 0x000F0000) >> 16);
+                    bitData[(i << 3) + 5] = (byte)((_GBA[i + _index] & 0x00F00000) >> 20);
+                    bitData[(i << 3) + 6] = (byte)((_GBA[i + _index] & 0x0F000000) >> 24);
+                    bitData[(i << 3) + 7] = (byte)((_GBA[i + _index] & 0xF0000000) >> 28);
                 }
             }
 
@@ -156,7 +156,7 @@ namespace GBA_Compiler
             public ushort GetFlipOffset(Tile _other)
             {
                 if (EqualTo(_other, FlipStyle.X | FlipStyle.Y))
-                    return (ushort)((ushort)_other.flipped << 1);
+                    return (ushort)flipped;
 
                 return 0;
             }
@@ -181,9 +181,9 @@ namespace GBA_Compiler
 
             public IEnumerable<uint> Data(string _name)
             {
-                if (tiles.Count > 384)
-                    throw new Exception();
                 if (tiles.Count > 192)
+                    throw new Exception();
+                if (tiles.Count > 128)
                     Console.WriteLine($"WARNING -- Background {_name} has a lot of tiles ({tiles.Count}).  It's recommended that you lower tile count");
 
                 foreach (var tile in tiles)
@@ -657,10 +657,12 @@ namespace GBA_Compiler
 
                 unique.Add(tilesets[str]);
 
+                var array = tilesets[str].Data(str).ToArray();
+
+                _compiler.AddValueDefine(str + "_len", array.Length >> 3);
+
                 _compiler.BeginArray(CompileToC.ArrayType.UInt, str);
-
-                _compiler.AddRange(tilesets[str].Data(str).ToArray());
-
+                _compiler.AddRange(array);
                 _compiler.EndArray();
             }
         }
@@ -721,15 +723,7 @@ namespace GBA_Compiler
 
                         string tileName = $"BGT_{name}";
 
-                        if (otherTileset == null)
-                        {
-
-                        }
-                        else if (otherTileset == name)
-                        {
-
-                        }
-                        else
+                        if (otherTileset != null && otherTileset != name)
                         {
                             _compiler.AddValueDefine(tileName, otherTileset);
                         }
