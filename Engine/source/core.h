@@ -35,6 +35,8 @@ extern unsigned int max_entities;
 
 extern int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
 extern Entity entities[ENTITY_LIMIT];
+extern void (*entity_update[32])(int index);
+extern void (*entity_render[32])(int index);
 
 // ---- LAYERS ----
 
