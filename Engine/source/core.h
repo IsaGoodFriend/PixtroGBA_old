@@ -20,14 +20,16 @@ typedef struct Entity
 	
 } Entity;
 
-#define ENT_TYPE(n)				(entities[n].ID & 0xFF)
+#define ENT_TYPE(n)					(entities[n].ID & 0xFF)
 
-#define ENT_FLAG(name, n)		((entities[n].ID & ENT_##name##_FLAG) >> ENT_##name##_SHIFT)
+#define ENT_FLAG(name, n)			((entities[n].ID & ENT_##name##_FLAG) >> ENT_##name##_SHIFT)
 
-#define ENT_PERSISTENT_FLAG		0x00000100
+#define ENT_PERSISTENT_FLAG			0x00000100
 #define ENT_PERSISTENT_SHIFT		8
-#define ENT_ACTIVE_FLAG			0x00000200
+#define ENT_ACTIVE_FLAG				0x00000200
 #define ENT_ACTIVE_SHIFT			9
+#define ENT_VISIBLE_FLAG			0x00000400
+#define ENT_VISIBLE_SHIFT			10
 
 extern unsigned int max_entities;
 

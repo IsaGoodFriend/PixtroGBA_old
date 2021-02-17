@@ -48,6 +48,7 @@ unsigned int max_entities;
 int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
 Entity entities[ENTITY_LIMIT];
 void (*entity_update[32])(int index);
+void (*entity_render[32])(int index);
 
 // Engine stuff
 unsigned int GAME_freeze, GAME_life;
@@ -71,13 +72,11 @@ void interrupt();
 
 void pixtro_init() {
 	
-	REG_DISPCNT = DCNT_BG0 | DCNT_BG1 | DCNT_OBJ | DCNT_OBJ_1D;
+	REG_DISPCNT = DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
 	
 	set_layer_priority(1, 1);
 	set_layer_priority(2, 2);
 	set_layer_priority(3, 3);
-	
-	load_bg_palette(PAL_test, 0);
 	
 	set_foreground_count(0);
 	finalize_layers();
@@ -97,10 +96,10 @@ void pixtro_update() {
 	int i;
 	
 	for (i = 0; i < ENTITY_LIMIT; ++i){
-		if (!ENT_FLAG(ACTIVE, i))
+		if (!ENT_FLAG(ACTIVE, i) || !entity_update[ENT_TYPE(i)])
 			continue;
 		
-		entity_update[ENT_TYPE(i)];
+		entity_update[ENT_TYPE(i)](i);
 	}
 	
 	if (custom_update)
@@ -110,6 +109,15 @@ void pixtro_update() {
 void pixtro_render() {
 	
 	layer_index = 0;
+	
+	int i;
+	
+	for (i = 0; i < ENTITY_LIMIT; ++i){
+		if (!ENT_FLAG(VISIBLE, i) || !entity_render[ENT_TYPE(i)])
+			continue;
+		
+		entity_render[ENT_TYPE(i)](i);
+	}
 	
 	if (custom_render)
 		custom_render();
