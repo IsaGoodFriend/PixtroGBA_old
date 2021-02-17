@@ -11,6 +11,7 @@ void init() {
 }
 
 void init_settings() {
+	
 }
 
 void update() {

@@ -20,13 +20,17 @@ typedef struct Actor
 	
 } Actor;
 
-#define ACTOR_PERSISTENT_FLAG		0x0001
-#define ACTOR_PERSISTENT(n)			(n & ACTOR_PERSISTENT_FLAG)
+#define ACTOR_FLAG(name, n)			((entities[n].ID & ACTOR_##name##_FLAG) >> ACTOR_##name##_SHIFT)
 
-extern unsigned int maxEntities;
+#define ACTOR_PERSISTENT_FLAG		0x00000100
+#define ACTOR_PERSISTENT_SHIFT		8
+#define ACTOR_ACTIVE_FLAG			0x00000200
+#define ACTOR_ACTIVE_SHIFT			9
+
+extern unsigned int max_entities;
 
 extern int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
-extern Actor PHYS_actors[ACTOR_LIMIT];
+extern Actor entities[ACTOR_LIMIT];
 
 // ---- LAYERS ----
 

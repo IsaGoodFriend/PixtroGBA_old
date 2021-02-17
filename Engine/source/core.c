@@ -43,10 +43,11 @@ Layer layers[4];
 int foreground_count;
 
 // Entities
-unsigned int maxEntities;
+unsigned int max_entities;
 
 int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
-Actor PHYS_actors[ACTOR_LIMIT];
+Actor entities[ACTOR_LIMIT];
+void (*entity_update[32])(int index);
 
 // Engine stuff
 unsigned int GAME_freeze, GAME_life;
@@ -76,9 +77,6 @@ void pixtro_init() {
 	set_layer_priority(2, 2);
 	set_layer_priority(3, 3);
 	
-	LOAD_BG(sample_ase, 0);
-	LOAD_BG(sample_bmp, 1); // => load_background(1, &BGT_sample_bmp, BGT_sample_bmp_len, BG_sample_bmp);
-	
 	load_bg_palette(PAL_test, 0);
 	
 	set_foreground_count(0);
@@ -95,6 +93,15 @@ void pixtro_init() {
 void pixtro_update() {
 	
 	GAME_life++;
+	
+	int i;
+	
+	for (i = 0; i < ACTOR_LIMIT; ++i){
+		if (!ACTOR_FLAG(ACTIVE, i))
+			continue;
+		
+		//entities[i]
+	}
 	
 	if (custom_update)
 		custom_update();
@@ -230,11 +237,9 @@ void finalize_layers() {
 
 void interrupt(){
 	
-	return;
-		
 	int line = REG_VCOUNT;
 	
-	if (fadeAmount != TRANSITION_CAP && (line == 228 || line <= 160)) {
+	if (fadeAmount != TRANSITION_CAP && (line == 228 || line < 160)) {
 		if (IS_FADING) {
 			if (line >= 160) {
 				REG_WIN0H = transition_style[(fadeAmount >> 1) * 160];

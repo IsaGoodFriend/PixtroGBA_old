@@ -128,21 +128,21 @@ void load_midground(int index) {
 }
 void load_entities() {
 	
-	maxEntities = 0;
+	max_entities = 0;
 	
 	// unload entities
 	{
 		int index = 0;
 		for (; index < ACTOR_LIMIT; ++index){
 			
-			if (ACTOR_PERSISTENT(PHYS_actors[index].flags))
+			if (ACTOR_FLAG(PERSISTENT, entities[index].flags))
 			{
-				PHYS_actors[maxEntities] = PHYS_actors[index];
+				entities[max_entities] = entities[index];
 				
-				++maxEntities;
+				++max_entities;
 			}
 			else{
-				PHYS_actors[index].flags = 0;
+				entities[index].flags = 0;
 			}
 			
 		}
@@ -160,16 +160,16 @@ void load_entities() {
 		
 		lvlInfo += 2;
 		
-		PHYS_actors[maxEntities].velX = 0;
-		PHYS_actors[maxEntities].velY = 0;
+		entities[max_entities].velX = 0;
+		entities[max_entities].velY = 0;
 		
-		PHYS_actors[maxEntities].x = BLOCK2FIXED(x);
-		PHYS_actors[maxEntities].y = BLOCK2FIXED(y);
-		PHYS_actors[maxEntities].ID = type;
+		entities[max_entities].x = BLOCK2FIXED(x);
+		entities[max_entities].y = BLOCK2FIXED(y);
+		entities[max_entities].ID = type;
 		
-		lvlInfo += entity_inits[type](&maxEntities, lvlInfo);
+		lvlInfo += entity_inits[type](&max_entities, lvlInfo);
 		
-		++maxEntities;
+		++max_entities;
 		
 		type = lvlInfo[0];
 		
