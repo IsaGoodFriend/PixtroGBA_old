@@ -1,8 +1,8 @@
 #include "engine.h"
 
-#include "sprites.h"
-#include "core.h"
-#include "graphics.h"
+#include "engine/sprites.h"
+#include "engine/core.h"
+#include "engine/graphics.h"
 
 void update();
 void render();

@@ -1,12 +1,11 @@
-#ifndef _PIX_CORE
-#define _PIX_CORE
+#pragma once
 
 #define __DEBUG__
 
 #include <tonc.h>
 #include <string.h>
 
-#include "engine.h"
+#include "../engine.h"
 
 // ---- Entities ----
 typedef struct Entity
@@ -118,4 +117,3 @@ INLINE void key_mod(u32 key)
 INLINE void key_mod2(u32 key)
 {	__key_prev= key & KEY_MASK;	}
 
-#endif

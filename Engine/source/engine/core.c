@@ -1,9 +1,9 @@
 #include <tonc.h>
 #include <string.h>
 
-#include "sprites.h"
-
 #include "core.h"
+
+#include "sprites.h"
 #include "graphics.h"
 #include "load_data.h"
 #include "math.h"

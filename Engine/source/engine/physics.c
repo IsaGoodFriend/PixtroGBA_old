@@ -3,7 +3,7 @@
 
 #include "physics.h"
 #include "math.h"
-#include "engine.h"
+#include "core.h"
 
 #define FIXED2BLOCK(n) ((n) >> (ACC + BLOCK_SHIFT))
 #define BLOCK2FIXED(n) ((n) << (ACC + BLOCK_SHIFT))
