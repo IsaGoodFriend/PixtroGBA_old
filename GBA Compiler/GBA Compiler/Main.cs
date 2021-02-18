@@ -7,7 +7,36 @@ using System.Text;
 using System.Drawing;
 
 namespace GBA_Compiler {
+	public struct Point {
+		public int X, Y;
+
+		public Point(int x, int y) { X = x; Y = y; }
+	}
 	public static class Compiler {
+		public static uint GetWrapping<T>(this T[,] array, int x, int y, T[] check, params Point[] points) {
+
+			int width = array.GetLength(0);
+			int height = array.GetLength(1);
+
+			uint retval = 0;
+
+			foreach (var p in points) {
+				retval <<= 1;
+
+				Point ex = new Point(Clamp(x + p.X, 0, width), Clamp(y + p.Y, 0, height));
+
+				if (check.Contains(array[ex.X, ex.Y]))
+					retval |= 1;
+			}
+
+			return retval;
+		}
+		public static T GetRandom<T>(this T[] array, Random random) {
+			return array[random.Next(0, array.Length)];
+		}
+		public static int Clamp(int value, int min, int max) {
+			return Math.Min(Math.Max(value, min), max);
+		}
 		public static ushort ToGBA(this Color _color, ushort _transparent = 0x8000) {
 			if (_color.R == 0 && _color.G == 0 && _color.B == 0)
 				return _transparent;

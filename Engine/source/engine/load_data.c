@@ -36,12 +36,15 @@ extern int foreground_count;
 
 extern int camX, camY, prevCamX, prevCamY;
 
+extern char level_meta[128];
+
 void load_collision(unsigned char *levelInfo){
 	
 	lvlInfo = levelInfo;
 	
 	width =  lvlInfo[0];
 	height = lvlInfo[1];
+	lvlInfo += 2;
 	
 	int index = width - 1;
 	yShift = 0;
@@ -51,10 +54,16 @@ void load_collision(unsigned char *levelInfo){
 		++yShift;
 	}
 	
-	unsigned int count = (lvlInfo[2]);
-	unsigned int value = (lvlInfo[3]);
+	while (lvlInfo[0] < 128) {
+		level_meta[lvlInfo[0]] = lvlInfo[1];	
+		lvlInfo += 2;
+	}
+	lvlInfo++;
 	
-	lvlInfo += 4;
+	unsigned int count = (lvlInfo[0]);
+	unsigned int value = (lvlInfo[1]);
+	
+	lvlInfo += 2;
 	
 	unsigned char* cpyColl = (unsigned char*)&collisionData;
 	

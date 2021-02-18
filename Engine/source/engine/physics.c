@@ -9,7 +9,7 @@
 #define BLOCK2FIXED(n) ((n) << (ACC + BLOCK_SHIFT))
 
 #define TILE_TYPE_SHIFT		4
-#define TILE_TYPE_MASK 		0xFFFFFFF0
+#define TILE_TYPE_MASK 		0x000000F0
 #define TILE_SHAPE_MASK		0x0000000F
 
 #define SHAPE_FULL			0
@@ -21,7 +21,7 @@ unsigned char yShift;
 unsigned int width, height;
 unsigned char collisionData[4096];
 
-unsigned int GetBlock(int x, int y){
+int GetBlock(int x, int y){
 	x -= x * (x < 0);
 	y -= y * (y < 0);
 	x += ((width  - 1) - x) * (x >= width);
@@ -34,7 +34,7 @@ unsigned int GetBlock(int x, int y){
 // Physics Collision for any entity
 // Returns y collision data on 0x00007FFF, and x collision data on 0x7FFF0000.
 // 0x80000000 is set if x velocity was positive, and 0x00008000 is set if y velocity was positive
-unsigned int collide_char(Entity *ent, int hitMask, int detectMask) {
+unsigned int entity_physics(Entity *ent, int hitMask, int detectMask) {
 	
 	
 	// Get the sign (-/+) of the velocity components

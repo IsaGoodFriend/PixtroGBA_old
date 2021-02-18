@@ -7,7 +7,7 @@ extern unsigned char yShift;
 extern unsigned int width, height;
 extern unsigned char collisionData[4096];
 
-extern unsigned int collide_char(Entity *ent, int hitMask, int detectMask);
+extern unsigned int entity_physics(Entity *ent, int hitMask, int detectMask);
 //extern unsigned int collide_rect(int x, int y, int width, int height);
 //extern unsigned int collide_entity(unsigned int ID);
 

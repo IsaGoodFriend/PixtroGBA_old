@@ -6,14 +6,225 @@ using System.Linq;
 
 namespace GBA_Compiler {
 	public delegate uint IndexOnSprite(int x, int y);
+	public class Tileset {
+
+		int width;
+		private Tile[,] originalLayout;
+
+		public Tileset() {
+
+		}
+		public Tileset(int x, int y) {
+			width = x;
+			originalLayout = new Tile[x, y];
+		}
+
+		private class CompareTiles : IEqualityComparer<Tile> {
+			public bool Equals(Tile x, Tile y) {
+				return x.EqualTo(y, Tile.FlipStyle.X | Tile.FlipStyle.Y);
+			}
+
+			public int GetHashCode(Tile obj) {
+				return obj.GetHashCode();
+			}
+		}
+
+		internal List<Tile> tiles = new List<Tile>();
+
+		public Tile AddTile(Tile _tile) {
+			if (!tiles.Contains(_tile, new CompareTiles())) {
+				tiles.Add(_tile);
+				return _tile;
+			}
+			else {
+				foreach (var t in tiles) {
+					if (t.EqualTo(_tile, Tile.FlipStyle.X | Tile.FlipStyle.Y))
+						return t;
+				}
+
+				throw new Exception();
+			}
+		}
+		public void AddTiles(IEnumerator<uint> _tileData) {
+			int x = 0, y = 0;
+			do {
+				List<uint> tileRaw = new List<uint>();
+
+				for (int i = 0; i < 8 && _tileData.MoveNext(); ++i) {
+					tileRaw.Add(_tileData.Current);
+				}
+
+				if (tileRaw.Count < 8)
+					break;
+
+				var tile = new Tile(tileRaw.ToArray(), 0);
+
+				AddTile(tile);
+				if (originalLayout != null) {
+					originalLayout[x, y] = tile;
+
+					x = (++x)% width;
+					if (x == 0)
+						++y;
+				}
+					
+
+			} while (true);
+		}
+
+		public Tile GetTile(Tile _version) {
+			foreach (var t in tiles) {
+				if (t.EqualTo(_version, Tile.FlipStyle.X | Tile.FlipStyle.Y))
+					return t;
+			}
+
+			return null;
+		}
+		public Tile GetTile(int x, int y) {
+			if (originalLayout == null)
+				return null;
+
+			return GetTile(GetOGTile(x, y));
+		}
+		public Tile GetOGTile(int x, int y) {
+			if (originalLayout == null)
+				return null;
+
+			return originalLayout[x, y];
+		}
+		public virtual ushort GetIndex(Tile _version) {
+			return (ushort)tiles.IndexOf(GetTile(_version));
+		}
+		public virtual IEnumerable<uint> Data(string _name) {
+			foreach (var tile in tiles)
+				foreach (var v in tile.RawData)
+					yield return v;
+		}
+	}
+	public class LevelTileset : Tileset {
+		public override IEnumerable<uint> Data(string _name) {
+
+			foreach (var tile in tiles)
+				if (!tile.IsAir)
+					foreach (var v in tile.RawData)
+						yield return v;
+		}
+	}
+	public class Tile {
+		public enum FlipStyle { X = 1, Y = 2, None = 0 }
+		private byte[] bitData;
+		private uint[] rawData;
+		private FlipStyle flipped;
+
+		public bool IsAir { get; private set; }
+
+		public uint[] RawData => rawData;
+
+		public Tile(uint[] _GBA, int _index) {
+			bitData = new byte[64];
+			rawData = new uint[8];
+
+			IsAir = true;
+
+			for (int i = 0; i < 8; ++i) {
+				rawData[i] = _GBA[i + _index];
+
+				IsAir &= rawData[i] == 0;
+
+				bitData[i << 3] =      (byte)(_GBA[i + _index] & 0x0000000F);
+				bitData[(i << 3) + 1] = (byte)((_GBA[i + _index] & 0x000000F0) >> 4);
+				bitData[(i << 3) + 2] = (byte)((_GBA[i + _index] & 0x00000F00) >> 8);
+				bitData[(i << 3) + 3] = (byte)((_GBA[i + _index] & 0x0000F000) >> 12);
+				bitData[(i << 3) + 4] = (byte)((_GBA[i + _index] & 0x000F0000) >> 16);
+				bitData[(i << 3) + 5] = (byte)((_GBA[i + _index] & 0x00F00000) >> 20);
+				bitData[(i << 3) + 6] = (byte)((_GBA[i + _index] & 0x0F000000) >> 24);
+				bitData[(i << 3) + 7] = (byte)((_GBA[i + _index] & 0xF0000000) >> 28);
+			}
+		}
+
+		public void Flip(FlipStyle _x) {
+			if (_x == FlipStyle.X) {
+				flipped ^= FlipStyle.X;
+				bitData.Flip(true, 8);
+			}
+			else if (_x == FlipStyle.Y) {
+				flipped ^= FlipStyle.Y;
+				bitData.Flip(false, 8);
+			}
+			else if (_x != FlipStyle.None) {
+				Flip(FlipStyle.X);
+				Flip(FlipStyle.Y);
+			}
+		}
+		public void Unflip() {
+			if (flipped != FlipStyle.None)
+				Flip(flipped);
+		}
+
+		public bool EqualTo(Tile _other, FlipStyle flippable) {
+			Unflip();
+			_other.Unflip();
+
+			if (Enumerable.SequenceEqual(bitData, _other.bitData))
+				return true;
+
+			if ((flippable & FlipStyle.X) != FlipStyle.None) {
+				Flip(FlipStyle.X);
+
+				if (Enumerable.SequenceEqual(bitData, _other.bitData))
+					return true;
+
+				if ((flippable & FlipStyle.Y) != FlipStyle.None) {
+					Flip(FlipStyle.Y);
+
+					if (Enumerable.SequenceEqual(bitData, _other.bitData))
+						return true;
+
+					Flip(FlipStyle.X);
+
+					if (Enumerable.SequenceEqual(bitData, _other.bitData))
+						return true;
+				}
+
+			}
+			else if ((flippable & FlipStyle.Y) != FlipStyle.None) {
+				Flip(FlipStyle.Y);
+
+				if (Enumerable.SequenceEqual(bitData, _other.bitData))
+					return true;
+			}
+
+			return false;
+		}
+
+		public ushort GetFlipOffset(Tile _other) {
+			if (EqualTo(_other, FlipStyle.X | FlipStyle.Y))
+				return (ushort)flipped;
+
+			return 0;
+		}
+
+	}
 	public static class ArtCompiler {
-		private static T GetXY<T>(this T[] _array, int x, int y, int width) {
+		private class BGTileSet : Tileset {
+
+			public override IEnumerable<uint> Data(string _name) {
+				if (tiles.Count > 192)
+					throw new Exception();
+				if (tiles.Count > 128)
+					Console.WriteLine($"WARNING -- Background {_name} has a lot of tiles ({tiles.Count}).  It's recommended that you lower tile count");
+
+				return base.Data(_name);
+			}
+		}
+
+		public static T GetXY<T>(this T[] _array, int x, int y, int width) {
 			return _array[x + (y * width)];
 		}
-		private static void SetXY<T>(this T[] _array, int x, int y, int width, T value) {
+		public static void SetXY<T>(this T[] _array, int x, int y, int width, T value) {
 			_array[x + (y * width)] = value;
 		}
-		private static void Flip<T>(this T[] _array, bool X, int width) {
+		public static void Flip<T>(this T[] _array, bool X, int width) {
 			int height = _array.Length / width;
 
 			if (height * width != _array.Length)
@@ -47,147 +258,6 @@ namespace GBA_Compiler {
 			}
 		}
 
-		private class Tile {
-			public enum FlipStyle { X = 1, Y = 2, None = 0 }
-			private byte[] bitData;
-			private uint[] rawData;
-			private FlipStyle flipped;
-
-			public uint[] RawData => rawData;
-
-			public Tile(uint[] _GBA, int _index) {
-				bitData = new byte[64];
-				rawData = new uint[8];
-
-				for (int i = 0; i < 8; ++i) {
-					rawData[i] = _GBA[i + _index];
-
-					bitData[i << 3] =      (byte)(_GBA[i + _index] & 0x0000000F);
-					bitData[(i << 3) + 1] = (byte)((_GBA[i + _index] & 0x000000F0) >> 4);
-					bitData[(i << 3) + 2] = (byte)((_GBA[i + _index] & 0x00000F00) >> 8);
-					bitData[(i << 3) + 3] = (byte)((_GBA[i + _index] & 0x0000F000) >> 12);
-					bitData[(i << 3) + 4] = (byte)((_GBA[i + _index] & 0x000F0000) >> 16);
-					bitData[(i << 3) + 5] = (byte)((_GBA[i + _index] & 0x00F00000) >> 20);
-					bitData[(i << 3) + 6] = (byte)((_GBA[i + _index] & 0x0F000000) >> 24);
-					bitData[(i << 3) + 7] = (byte)((_GBA[i + _index] & 0xF0000000) >> 28);
-				}
-			}
-
-			public void Flip(FlipStyle _x) {
-				if (_x == FlipStyle.X) {
-					flipped ^= FlipStyle.X;
-					bitData.Flip(true, 8);
-				}
-				else if (_x == FlipStyle.Y) {
-					flipped ^= FlipStyle.Y;
-					bitData.Flip(false, 8);
-				}
-				else if (_x != FlipStyle.None) {
-					Flip(FlipStyle.X);
-					Flip(FlipStyle.Y);
-				}
-			}
-			public void Unflip() {
-				if (flipped != FlipStyle.None)
-					Flip(flipped);
-			}
-
-			public bool EqualTo(Tile _other, FlipStyle flippable) {
-				Unflip();
-				_other.Unflip();
-
-				if (Enumerable.SequenceEqual(bitData, _other.bitData))
-					return true;
-
-				if ((flippable & FlipStyle.X) != FlipStyle.None) {
-					Flip(FlipStyle.X);
-
-					if (Enumerable.SequenceEqual(bitData, _other.bitData))
-						return true;
-
-					if ((flippable & FlipStyle.Y) != FlipStyle.None) {
-						Flip(FlipStyle.Y);
-
-						if (Enumerable.SequenceEqual(bitData, _other.bitData))
-							return true;
-
-						Flip(FlipStyle.X);
-
-						if (Enumerable.SequenceEqual(bitData, _other.bitData))
-							return true;
-					}
-
-				}
-				else if ((flippable & FlipStyle.Y) != FlipStyle.None) {
-					Flip(FlipStyle.Y);
-
-					if (Enumerable.SequenceEqual(bitData, _other.bitData))
-						return true;
-				}
-
-				return false;
-			}
-
-			public ushort GetFlipOffset(Tile _other) {
-				if (EqualTo(_other, FlipStyle.X | FlipStyle.Y))
-					return (ushort)flipped;
-
-				return 0;
-			}
-
-		}
-		private class BGTileSet {
-			private class CompareTiles : IEqualityComparer<Tile> {
-				public bool Equals(Tile x, Tile y) {
-					return x.EqualTo(y, Tile.FlipStyle.X | Tile.FlipStyle.Y);
-				}
-
-				public int GetHashCode(Tile obj) {
-					return obj.GetHashCode();
-				}
-			}
-
-			private List<Tile> tiles = new List<Tile>();
-
-			public IEnumerable<uint> Data(string _name) {
-				if (tiles.Count > 192)
-					throw new Exception();
-				if (tiles.Count > 128)
-					Console.WriteLine($"WARNING -- Background {_name} has a lot of tiles ({tiles.Count}).  It's recommended that you lower tile count");
-
-				foreach (var tile in tiles)
-					foreach (var v in tile.RawData)
-						yield return v;
-			}
-
-			public Tile AddTile(Tile _tile) {
-				if (!tiles.Contains(_tile, new CompareTiles())) {
-					tiles.Add(_tile);
-					return _tile;
-				}
-				else {
-					foreach (var t in tiles) {
-						if (t.EqualTo(_tile, Tile.FlipStyle.X | Tile.FlipStyle.Y))
-							return t;
-					}
-
-					throw new Exception();
-				}
-			}
-
-			public Tile GetTile(Tile _version) {
-				foreach (var t in tiles) {
-					if (t.EqualTo(_version, Tile.FlipStyle.X | Tile.FlipStyle.Y))
-						return t;
-				}
-
-				return null;
-			}
-			public ushort GetIndex(Tile _version) {
-
-				return (ushort)tiles.IndexOf(GetTile(_version));
-			}
-		}
 		private class Background {
 			public BGTileSet tileset { get; private set; }
 
@@ -310,6 +380,8 @@ namespace GBA_Compiler {
 
 				AddTiles(GetArrayFromSprite(width << 3, height << 3, getOffset).GetEnumerator());
 			}
+
+
 			public void AddTiles(IEnumerator<uint> _tileData) {
 				int x = 0, y = 0;
 				do {
@@ -353,6 +425,8 @@ namespace GBA_Compiler {
 
 		private static Dictionary<string, Color[]> palettesFromSprites = new Dictionary<string, Color[]>();
 
+		public static Dictionary<string, LevelTileset> LevelTilesets;
+
 		private static Dictionary<string, BGTileSet> tilesets = new Dictionary<string, BGTileSet>();
 		private static List<string> backgroundsCompiled = new List<string>();
 
@@ -381,6 +455,7 @@ namespace GBA_Compiler {
 
 			tilesets = new Dictionary<string, BGTileSet>();
 			backgroundsCompiled = new List<string>();
+			LevelTilesets = new Dictionary<string, LevelTileset>();
 
 			var compiler = new CompileToC();
 
@@ -398,10 +473,68 @@ namespace GBA_Compiler {
 			Compiler.Log("Compiling backgrounds");
 			CompileBackgrounds(Path.Combine(_path, "backgrounds"), compiler);
 
+			Compiler.Log("Compiling tilesets");
+			CompileTilesets(Path.Combine(_path, "tilesets"), compiler);
+
 			Compiler.Log("Saving art to file");
 			compiler.SaveTo(toSavePath, "sprites");
 		}
 
+		private static void CompileTilesets(string _path, CompileToC _compiler) {
+			string[] getFiles = Directory.GetFiles(_path);
+
+			foreach (string s in getFiles) {
+				string ext = Path.GetExtension(s);
+
+				string name = "TILE_" + Path.GetFileNameWithoutExtension(s);
+
+				switch (ext) {
+					case ".bmp": {
+						Bitmap map = new Bitmap(s);
+
+						List<Color> palette = new List<Color>(map.Palette.Entries);
+
+						palettesFromSprites.Add(name, palette.ToArray());
+
+						LevelTileset tileset = new LevelTileset();
+
+						tileset.AddTiles(GetArrayFromSprite(map.Width, map.Height,
+							(x, y) => { return (uint)palette.IndexOf(map.GetPixel(x, y)); }).GetEnumerator());
+
+						LevelTilesets.Add(name, tileset);
+
+						_compiler.BeginArray(CompileToC.ArrayType.UInt, name);
+						_compiler.AddRange(Enumerable.ToArray(tileset.Data("asdf")));
+						_compiler.EndArray();
+
+						map.Dispose();
+
+						break;
+					}
+					case ".ase":
+
+						using (AsepriteReader read = new AsepriteReader(s)) {
+
+							int index = 0;
+
+							foreach (var array in read.GetSprites()) {
+								string tName =  $"{name}_{index++}";
+
+								var tileset = new LevelTileset();
+								tileset.AddTiles(array.Cast<uint>().GetEnumerator());
+
+								_compiler.BeginArray(CompileToC.ArrayType.UInt, tName);
+								_compiler.AddRange(array);
+								_compiler.EndArray();
+							}
+						}
+						break;
+				}
+
+
+			}
+
+		}
 		private static void CompileSprites(string _path, CompileToC _compiler) {
 			string[] getFiles = Directory.GetFiles(_path);
 

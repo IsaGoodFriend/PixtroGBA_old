@@ -50,6 +50,9 @@ Entity entities[ENTITY_LIMIT];
 void (*entity_update[32])(int index);
 void (*entity_render[32])(int index);
 
+// Level data
+char level_meta[128];
+
 // Engine stuff
 unsigned int GAME_freeze, GAME_life;
 unsigned int fadeAmount, fading, loadIndex;
