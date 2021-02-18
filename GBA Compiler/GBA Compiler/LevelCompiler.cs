@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
+using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
 
@@ -31,8 +31,8 @@ namespace GBA_Compiler {
 #endif
 			var compiler = new CompileToC();
 
-			List<LevelParse> parseData = new List<LevelParse>();
-			LevelParse parse = null;
+			List<LevelParse> parseData = JsonConvert.DeserializeObject<List<LevelParse>>(File.ReadAllText(_path + "\\meta_level.json"));
+			CompressedLevel.Randomizer = new Random();
 
 			foreach (var level in Directory.GetFiles(_path, "*", SearchOption.AllDirectories)) {
 				var ext = Path.GetExtension(level);
@@ -48,7 +48,7 @@ namespace GBA_Compiler {
 
 				switch (ext) {
 					case ".txt":
-						CompileLevelTxt(level);
+						compressed = CompileLevelTxt(level);
 						break;
 					case ".json": // Ogmo editor
 						throw new NotImplementedException();
@@ -59,16 +59,15 @@ namespace GBA_Compiler {
 
 				if (compressed == null)
 					continue;
-
-
+				
 				foreach (var p in parseData) {
 					if (p.Matches(localPath)) {
-						parse = p;
+						CompressedLevel.DataParse = p;
 						break;
 					}
 				}
 
-				compiler.BeginArray(CompileToC.ArrayType.Char, $"LVL_{localPath}");
+				compiler.BeginArray(CompileToC.ArrayType.Char, $"LVL_{Path.GetFileNameWithoutExtension(localPath)}");
 
 				compiler.AddRange(compressed.BinaryData());
 

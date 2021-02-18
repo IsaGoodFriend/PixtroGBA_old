@@ -5,8 +5,21 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Drawing;
+using Newtonsoft.Json;
 
 namespace GBA_Compiler {
+	public class PointConverter : JsonConverter<Point> {
+		public override Point ReadJson(JsonReader reader, Type objectType, Point existingValue, bool hasExistingValue, JsonSerializer serializer) {
+			
+			var points = (reader.Value as string).Split(',');
+
+			return new Point(int.Parse(points[0].Trim()), int.Parse(points[1].Trim()));
+		}
+
+		public override void WriteJson(JsonWriter writer, Point value, JsonSerializer serializer) {
+		}
+	}
+	[JsonConverter(typeof(PointConverter))]
 	public struct Point {
 		public int X, Y;
 
@@ -23,7 +36,7 @@ namespace GBA_Compiler {
 			foreach (var p in points) {
 				retval <<= 1;
 
-				Point ex = new Point(Clamp(x + p.X, 0, width), Clamp(y + p.Y, 0, height));
+				Point ex = new Point(Clamp(x + p.X, 0, width - 1), Clamp(y + p.Y, 0, height - 1));
 
 				if (check.Contains(array[ex.X, ex.Y]))
 					retval |= 1;
@@ -73,9 +86,9 @@ namespace GBA_Compiler {
 			LevelCompiler.Compile(RootPath + "\\levels");
 
 #if DEBUG
-			//Console.WriteLine("Finished");
-			//Console.ReadLine();
-			//return;
+			Console.WriteLine("Finished");
+			Console.ReadLine();
+			return;
 #endif
 
 			Process cmd = new Process();
@@ -92,15 +105,14 @@ namespace GBA_Compiler {
 				sw.WriteLine("cd " + RootPath);
 #endif
 
-				sw.Write(@"C:\devkitPro\tools\bin\bin2s -H test.h ");
+				//sw.Write(@"C:\devkitPro\tools\bin\bin2s -H test.h ");
 
 				foreach (var file in Directory.GetFiles(Path.Combine(RootPath, "art", "bin"))) {
-					sw.Write(Path.Combine("art\\bin", Path.GetFileName(file)) + " ");
+					//sw.Write(Path.Combine("art\\bin", Path.GetFileName(file)) + " ");
 				}
 
-				sw.WriteLine();
-
-				Console.ReadLine();
+				//sw.WriteLine();
+				//return;
 
 				sw.WriteLine("cd " + RootPath);
 

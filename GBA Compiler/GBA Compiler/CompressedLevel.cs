@@ -8,9 +8,10 @@ namespace GBA_Compiler {
 	public class LevelParse {
 		public class TileWrapping {
 
+			public int[] Palettes;
 			public byte CollisionType;
 			public string Tileset;
-			public string[] Connections;
+			public char[] Connections;
 			public Point[] Mapping;
 			public Dictionary<string, Point[]> TileOffsets;
 		}
@@ -153,12 +154,12 @@ namespace GBA_Compiler {
 			foreach (var b in Header())
 				yield return b;
 
+			for (int i = 0; i < layers; ++i)
+				foreach (var b in VisualLayer(i))
+					yield return b;
+
 			foreach (var b in Entities())
 				yield return b;
-
-			for (int i = 0; i < layers; ++i)
-				foreach (var b in VisualLayer(i)) 
-					yield return b;
 			
 			yield break;
 		}
@@ -186,7 +187,7 @@ namespace GBA_Compiler {
 
 			for (int y = 0; y < height; ++y)
 				for (int x = 0; x < width; ++x)
-					data[i++] = DataParse.Wrapping[levelData[0, x, y]].CollisionType;
+					data[i++] = (byte)(levelData[0, x, y] == ' ' ? 0 : DataParse.Wrapping[levelData[0, x, y]].CollisionType);
 
 			byte last = data[0], count = 0;
 
@@ -208,74 +209,79 @@ namespace GBA_Compiler {
 		}
 		private IEnumerable<byte> VisualLayer(int layer) {
 
-			List<string> tilesets = new List<string>();
+			List<char> characters = new List<char>(DataParse.Wrapping.Keys);
 			Dictionary<char, uint[]> connect = new Dictionary<char, uint[]>();
 			List<Tile> fullTileset = new List<Tile>();
 
 			foreach (var name in ArtCompiler.LevelTilesets.Keys) {
-				tilesets.Add(name);
 				fullTileset.AddRange(ArtCompiler.LevelTilesets[name].tiles);
 			}
 
 			foreach (var tile in DataParse.Wrapping.Keys) {
 
 				List<uint> conns = new List<uint>();
-				List<Point> map = new List<Point>();
 
 				foreach (var name in DataParse.Wrapping[tile].Connections)
-					conns.Add((uint)tilesets.IndexOf(name));
+					conns.Add((uint)characters.IndexOf(name) + 1);
 
 				connect.Add(tile, conns.ToArray());
 			}
 
 			uint[,] data = new uint[width, height];
+			ushort[] retvals = new ushort[width * height];
+			int i = 0;
 
 			for (int y = 0; y < height; ++y) {
 				for (int x = 0; x < width; ++x) {
-					data[x, y] = data.GetWrapping(x, y, connect[levelData[layer, x, y]], DataParse.Wrapping[levelData[layer, x, y]].Mapping);
+					data[x, y] = levelData[layer, x, y] == ' ' ? 0 : (uint)characters.IndexOf(levelData[layer, x, y]) + 1;
 				}
 			}
 			for (int y = 0; y < height; ++y) {
 				for (int x = 0; x < width; ++x) {
+					if (levelData[layer, x, y] == ' ') {
+						retvals[i++] = 0;
+						continue;
+					}
+
 					var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
 
 					Tile tile = null;
 					LevelTileset tileset = ArtCompiler.LevelTilesets[wrapping.Tileset];
-					uint value = data[x, y], testValue;
+					uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping), testValue;
 
 					foreach (var key in wrapping.TileOffsets.Keys) {
-						testValue = Convert.ToUInt32(key.Replace("X", "0"), 2);
+						testValue = Convert.ToUInt32(key.Replace("*", "0"), 2);
 
 						if ((testValue & value) != testValue)
 							continue;
 
-						testValue = ~Convert.ToUInt32(key.Replace("X", "1"), 2);
+						testValue = ~Convert.ToUInt32(key.Replace("*", "1"), 2);
 
 						if ((testValue & (value)) != 0)
 							continue;
-
+						
 						var point = wrapping.TileOffsets[key].GetRandom(Randomizer);
 
 						tile = tileset.GetOGTile(point.X, point.Y);
+						break;
 					}
 
 					Tile mappedTile = tileset.GetTile(tile);
 
-					data[x, y] = (uint)(fullTileset.IndexOf(mappedTile) | (mappedTile.GetFlipOffset(tile) << 10));
+					retvals[i++] = (ushort)((fullTileset.IndexOf(mappedTile) + 1) | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
 				}
 			}
 
-			uint last = data[0, 0];
+			ushort last = retvals[0];
 			byte count = 0;
 
-			foreach (var tile in data) {
-
-				if (tile != last || count == 255) {
+			foreach (var v in retvals) {
+				if (v != last || count == 255) {
 					yield return count;
 					yield return (byte)(last       & 0xFF);
-					yield return (byte)((last >> 8) & 0xFF);
+					yield return (byte)((last >> 8));
 
-					last = tile;
+					last = v;
 					count = 0;
 				}
 				++count;
@@ -283,18 +289,20 @@ namespace GBA_Compiler {
 
 			yield return count;
 			yield return (byte)(last       & 0xFF);
-			yield return (byte)((last >> 8) & 0xFF);
+			yield return (byte)((last >> 8));
 
 			yield break;
 		}
 		private IEnumerable<byte> Entities() {
-			foreach (var ent in entities){
+			foreach (var ent in entities) {
+				yield return (byte)ent.type;
 				yield return (byte)ent.x;
 				yield return (byte)ent.y;
-				yield return (byte)ent.type;
 
 				foreach (var b in ent.data)
 					yield return b;
+
+				yield return 0xFF;
 			}
 			yield break;
 		}

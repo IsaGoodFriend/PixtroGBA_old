@@ -102,6 +102,9 @@ namespace GBA_Compiler {
 		}
 	}
 	public class LevelTileset : Tileset {
+		public LevelTileset(int x, int y) : base(x, y) {
+
+		}
 		public override IEnumerable<uint> Data(string _name) {
 
 			foreach (var tile in tiles)
@@ -431,7 +434,9 @@ namespace GBA_Compiler {
 		private static List<string> backgroundsCompiled = new List<string>();
 
 		public static void Compile(string _path) {
-			string toSavePath = Path.Combine(Compiler.RootPath, "art\\bin");
+			string toSavePath = Path.Combine(Compiler.RootPath, "source\\engine");
+
+			LevelTilesets = new Dictionary<string, LevelTileset>();
 
 #if !DEBUG
 			bool needsRecompile = false;
@@ -449,13 +454,13 @@ namespace GBA_Compiler {
 			if (!needsRecompile)
 			{
 				Compiler.Log("Skipping sprite compiling");
+				CompileTilesets(Path.Combine(_path, "tilesets"), new CompileToC());
 				return;
 			}
 #endif
 
 			tilesets = new Dictionary<string, BGTileSet>();
 			backgroundsCompiled = new List<string>();
-			LevelTilesets = new Dictionary<string, LevelTileset>();
 
 			var compiler = new CompileToC();
 
@@ -496,12 +501,14 @@ namespace GBA_Compiler {
 
 						palettesFromSprites.Add(name, palette.ToArray());
 
-						LevelTileset tileset = new LevelTileset();
+						LevelTileset tileset = new LevelTileset(map.Width >> 3, map.Height >> 3);
 
 						tileset.AddTiles(GetArrayFromSprite(map.Width, map.Height,
 							(x, y) => { return (uint)palette.IndexOf(map.GetPixel(x, y)); }).GetEnumerator());
 
 						LevelTilesets.Add(name, tileset);
+
+						_compiler.AddValueDefine(name + "_len", tileset.tiles.Count);
 
 						_compiler.BeginArray(CompileToC.ArrayType.UInt, name);
 						_compiler.AddRange(Enumerable.ToArray(tileset.Data("asdf")));
@@ -520,7 +527,7 @@ namespace GBA_Compiler {
 							foreach (var array in read.GetSprites()) {
 								string tName =  $"{name}_{index++}";
 
-								var tileset = new LevelTileset();
+								var tileset = new LevelTileset(read.Width >> 3, read.Height >> 3);
 								tileset.AddTiles(array.Cast<uint>().GetEnumerator());
 
 								_compiler.BeginArray(CompileToC.ArrayType.UInt, tName);
