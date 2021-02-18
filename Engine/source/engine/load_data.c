@@ -1,4 +1,5 @@
 #include "load_data.h"
+#include <string.h>
 
 #include "sprites.h"
 #include "core.h"
@@ -29,8 +30,11 @@
 
 #endif
 
-unsigned short *visuals = (unsigned short*)0x2001000;
+unsigned short *uncmp_visuals = (unsigned short*)0x02002000;
 unsigned char *lvlInfo;
+
+extern width, height, yShift;
+extern unsigned char collisionData[4096];
 
 extern int foreground_count;
 
@@ -98,14 +102,14 @@ void load_collision(unsigned char *levelInfo){
 	}
 }
 void load_midground(int index) {
-
+	
 	int r1 = (1 << yShift) - width, indexX, indexY;
 	unsigned int count = lvlInfo[0], countT;
 	unsigned int value = (lvlInfo[2] << 8) | lvlInfo[1];
 	
 	lvlInfo += 3;
 	
-	unsigned short* cpyColl = &visuals[0x2000 * index];
+	unsigned short* cpyColl = &uncmp_visuals[0x2000 * index];
 	
 	for (indexY = 0; indexY < height; ++indexY){// by row
 		countT = (count > width) ? width : count; // get the mem set count value.  if larger than the width
@@ -115,7 +119,6 @@ void load_midground(int index) {
 			while (--a >= 0)
 				cpyColl[a] = value;
 			
-			//memset(cpyColl, value, countT);
 			count -= countT;
 			indexX += countT;
 			cpyColl += countT;
@@ -176,7 +179,8 @@ void load_entities() {
 		entities[max_entities].y = BLOCK2FIXED(y);
 		entities[max_entities].ID = type | ENT_VISIBLE_FLAG;
 		
-		lvlInfo += entity_inits[type](&max_entities, lvlInfo);
+		if (entity_inits[type])
+			lvlInfo += entity_inits[type](&max_entities, lvlInfo);
 		
 		++max_entities;
 		
@@ -242,11 +246,11 @@ void move_cam() {
 			for (; min != max; min += dirY){
 				position = VIS_BLOCK_POS(startX, min);
 				
-				foreground[position] = visuals[startX + (min << yShift)];
+				foreground[position] = uncmp_visuals[startX + (min << yShift)];
 				if (midground)
-					midground[position]  = visuals[startX + (min << yShift) + 0x2000];
+					midground[position]  = uncmp_visuals[startX + (min << yShift) + 0x2000];
 				if (background)
-					background[position] = visuals[startX + (min << yShift) + 0x4000];
+					background[position] = uncmp_visuals[startX + (min << yShift) + 0x4000];
 			}
 			startX += dirX;
 		}
@@ -259,11 +263,11 @@ void move_cam() {
 			for (; min != max; min += dirX){
 				position = VIS_BLOCK_POS(min, startY);
 				
-				foreground[position] = visuals[min + (startY << yShift)];
+				foreground[position] = uncmp_visuals[min + (startY << yShift)];
 				if (midground)
-					midground[position] = visuals[min + (startY << yShift) + 0x2000];
+					midground[position] = uncmp_visuals[min + (startY << yShift) + 0x2000];
 				if (background)
-					background[position] = visuals[min + (startY << yShift) + 0x4000];
+					background[position] = uncmp_visuals[min + (startY << yShift) + 0x4000];
 			}
 			startY += dirY;
 		}
@@ -275,6 +279,9 @@ void move_cam() {
 void reset_cam() {
 	if (foreground_count == 0)
 		return;
+	
+	camX = 0x8;
+	camY = 0x8;
 	
 	int x = INT2BLOCK(camX);
 	int y = INT2BLOCK(camY);
@@ -288,37 +295,36 @@ void reset_cam() {
 	unsigned int position;
 	unsigned int pos;
 	
-	unsigned short *foreground = &se_mem[31][0];
+	unsigned short *foreground = se_mem[31];
 	unsigned short *midground  = &se_mem[30][0];
 	unsigned short *background = &se_mem[29][0];
 	
-	if (foreground_count <= 2)
-		background = NULL;
-	if (foreground_count <= 1)
-		midground = NULL;
+	if (foreground_count < 3)
+		background = 0;
+	if (foreground_count < 2)
+		midground = 0;
 	
 	int val = 32;
-	while (val > 0){
-		--val;
+	while (val-- > 0){
 		
 		int p1 = VIS_BLOCK_POS(x, y);
 		int p2 = (y << yShift) + x;
 		++y;
 		
-		memcpy(&foreground[p1], &visuals[p2], 64 - (x << 1));
+		memcpy(&foreground[p1], &uncmp_visuals[p2], 64 - (x << 1));
 		if (midground)
-			memcpy(&midground[p1], &visuals[p2], 64 - (x << 1));
+			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], 64 - (x << 1));
 		if (background)
-			memcpy(&background[p1], &visuals[p2], 64 - (x << 1));
+			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], 64 - (x << 1));
 		
 		p1 &= 0xFE0;
 		p2 += 32 - x;
 		
-		memcpy(&foreground[p1], &visuals[p2], (x << 1));
+		memcpy(&foreground[p1], &uncmp_visuals[p2], x << 1);
 		if (midground)
-			memcpy(&midground[p1], &visuals[p2], (x << 1));
+			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], (x << 1));
 		if (background)
-			memcpy(&background[p1], &visuals[p2], (x << 1));
+			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], (x << 1));
 		
 	}
 	

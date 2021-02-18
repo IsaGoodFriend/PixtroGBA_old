@@ -42,6 +42,9 @@ extern void (*entity_render[32])(int index);
 // Macro to help load backgrounds easier.  
 #define LOAD_BG(bg, n) load_background(n, BGT_##bg, BGT_##bg##_len, BG_##bg)
 
+#define FG_TILESET		0
+#define BG_TILESET		1
+
 // ---- ENGINE ----
 
 //#define START_FADE()		0//GAME_fading = 1; GAME_fadeAmount = 0; GAME_loadIndex = 0

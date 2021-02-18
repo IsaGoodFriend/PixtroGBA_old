@@ -7,6 +7,8 @@
 #include "graphics.h"
 #include "load_data.h"
 #include "math.h"
+#include "levels.h"
+#include "physics.h"
 
 #define SAVE_INDEX (save_file_number * SAVEFILE_LEN) + SETTING_LEN
 
@@ -32,9 +34,6 @@ typedef struct Layer{
 #define TILES_CHANGED			0x10000
 #define MAPPING_CHANGED			0x20000
 #define LAYER_VIS_UPDATE		0x30000
-
-#define FG_TILESET		0
-#define BG_TILESET		1
 
 int layer_count, layer_line[7], layer_index;
 int bg_tile_allowance;
@@ -73,21 +72,56 @@ void (*custom_render)(void);
 void load_settings();
 void interrupt();
 
+extern unsigned int tileTypes[32];
+
+void test_update(int index) {
+	Entity *ent = &entities[index];
+	ent->velY += 0x10;
+	
+	entity_physics(ent, 0x1, 0x1);
+	
+}
+void test_render(int index) {
+	Entity ent = entities[index];
+	
+	draw(ent.x, ent.y, 0, 0, 0, 0);
+}
+
 void pixtro_init() {
 	
+	init_drawing();
+	load_settings();
+	
+	tileTypes[0] = 0x10;
+	
+	entity_update[0] = &test_update;
+	entity_render[0] = &test_render;
+	
+	load_tileset(TILE_test, TILE_test_len);
+	
 	REG_DISPCNT = DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
+	
+	load_bg_pal(PAL_test, 0);
+	load_obj_pal(PAL_test, 0);
+	
+	load_sprite(SPR_test, 0, SPRITE16x16);
 	
 	set_layer_priority(1, 1);
 	set_layer_priority(2, 2);
 	set_layer_priority(3, 3);
 	
-	set_foreground_count(0);
+	set_foreground_count(1);
 	finalize_layers();
 	
-	irq_add( II_HBLANK, interrupt );
+	load_collision(LVL_test);
+	load_midground(0);
+	load_entities();
+	reset_cam();
 	
-	init_drawing();
-	load_settings();
+	
+	entities[0].ID |= ENT_ACTIVE_FLAG;
+	
+	irq_add( II_HBLANK, interrupt );
 	
 	init();
 }
@@ -112,6 +146,7 @@ void pixtro_update() {
 void pixtro_render() {
 	
 	layer_index = 0;
+	
 	
 	int i;
 	
@@ -201,9 +236,8 @@ void finalize_layers() {
 		int size;
 		
 		if (i >= foreground_count) {
-			sbb -= LAYER_SIZE(i) + 1;
-			
 			size = LAYER_SIZE(i) + 1;
+			sbb -= size;
 			
 			REG_BGCNT[i] |= LAYER_SIZE(i) | BG_SBB(sbb) | BG_CBB(BG_TILESET);
 		}
@@ -215,7 +249,7 @@ void finalize_layers() {
 			REG_BGCNT[i] |= BG_SBB(sbb) | BG_CBB(FG_TILESET);
 		}
 		
-		if (layers[i].tile_meta & LAYER_VIS_UPDATE) {
+		if (i >= foreground_count && layers[i].tile_meta & LAYER_VIS_UPDATE) {
 			
 			if (layers[i].tile_meta & TILES_CHANGED) {
 				
@@ -237,9 +271,9 @@ void finalize_layers() {
 				}
 				
 			}
-			
-			layers[i].tile_meta &= 0xFFFF;
 		}
+		
+		layers[i].tile_meta &= 0xFFFF;
 	}
 	
 	sbb -= 8;

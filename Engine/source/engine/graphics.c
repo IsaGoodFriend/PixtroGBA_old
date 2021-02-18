@@ -138,7 +138,9 @@ void load_sprite(unsigned short *_sprite, int _index, int _shape) {
 }
 void load_anim_sprite(unsigned short *_sprites, int _index, int _frames, int _shape) {
 	load_sprite(_sprites, _index, _shape);
-	
+}
+void load_tileset(unsigned short *_tiles, int _count) {
+	memcpy(&tile_mem[FG_TILESET][1], _tiles, _count << 5);
 }
 void load_obj_pal(unsigned short *_pal, int _palIndex) {
 	memcpy(&pal_obj_mem[_palIndex << 4], _pal, copyPalette);
