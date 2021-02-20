@@ -176,8 +176,8 @@ void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal) {
 	
 	if (drawing_flags & DFLAG_CAM_FOLLOW)
 	{
-		_x -= cam_x;
-		_y -= cam_y;
+		_x -= cam_x - 120;
+		_y -= cam_y - 80;
 	}
 	
 	int shape = shapes[_sprite];

@@ -6,3 +6,5 @@
 #include "physics.h"
 #include "particles.h"
 #include "core.h"
+#include "input.h"
+#include "math.h"

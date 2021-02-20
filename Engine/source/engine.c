@@ -1,11 +1,9 @@
 #include "engine.h"
 #include <tonc.h>
 
-#include "core.h"
-#include "graphics.h"
+#include "pixtro_basic.h"
+
 #include "levels.h"
-#include "physics.h"
-#include "particles.h"
 #include "load_data.h"
 
 void update();
@@ -18,8 +16,9 @@ void test_update(int index) {
 	ent->velY += 0x20;
 	ent->velX = key_tri_horz() * 0x180;
 	
-	if (key_hit(KEY_A)){
+	if (key_pressed(KEY_A, 20)){
 		ent->velY = -0x280;
+		clear_buffer(KEY_A);
 	}
 	
 	entity_physics(ent, 0x1, 0x1);
@@ -32,7 +31,8 @@ void test_render(int index) {
 }
 
 void on_update() {
-	
+	cam_x = FIXED2INT(entities[0].x);
+	cam_y = FIXED2INT(entities[0].y);
 }
 
 void init() {
@@ -52,6 +52,8 @@ void init() {
 	set_layer_priority(1, 1);
 	set_layer_priority(2, 2);
 	set_layer_priority(3, 3);
+	
+	LOAD_BG(sample_ase, 1);
 	
 	set_foreground_count(1);
 	finalize_layers();

@@ -34,6 +34,8 @@ extern int drawing_flags;
 
 #define LOAD_TILESET(name)		load_tileset((unsigned short*)TILE_##name, TILE_##name##_len)
 
+extern int cam_x, cam_y;
+
 void load_sprite(unsigned int *_sprite, int _index, int _shape);
 void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, int speed);
 void load_obj_pal(unsigned short *_pal, int _palIndex);

@@ -13,16 +13,6 @@
 #define SAVE_INDEX (save_file_number * SAVEFILE_LEN) + SETTING_LEN
 
 // Layers
-typedef struct Layer{
-	int pos[8]; // The offsets of the lerp, excluding camera
-	int lerp[8]; // combines both x and y, ranging from 0 - 0x100.
-	
-	unsigned int meta;
-	unsigned int tile_meta; // the size and offset of the tiles used.  8 bits for offset, 8 bits for size
-	unsigned int *tile_ptr;
-	unsigned short *map_ptr;
-	
-} Layer;
 
 #define LAYER_SIZE(n)			((layers[n].meta & 0x3) << 1)
 #define LAYER_BLOCKSIZE(n)		((layers[n].meta & 0x3) >> 0)
@@ -74,6 +64,7 @@ void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len
 extern void rng_seed(unsigned int _s1, unsigned int _s2, unsigned int _s3);
 extern void update_particles();
 extern void update_anims();
+extern void update_presses();
 
 // Initialize the game
 void pixtro_init() {
@@ -98,11 +89,13 @@ void pixtro_init() {
 
 // The game's update loop
 void pixtro_update() {
+	int i;
 	
 	// Increment game's life counter
 	game_life++;
 	
-	int i;
+	// Update inputs
+	update_presses();
 	
 	// Run over every active entity and run it's custom update
 	for (i = 0; i < max_entities; ++i){

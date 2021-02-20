@@ -39,8 +39,6 @@ unsigned char *lvlInfo;
 extern int width, height, yShift;
 extern unsigned char *collisionData;
 
-extern int foreground_count;
-
 extern int cam_x, cam_y, prev_cam_x, prev_cam_y;
 
 extern char level_meta[128];
@@ -150,14 +148,15 @@ void load_entities() {
 		int index = 0;
 		for (; index < ENTITY_LIMIT; ++index){
 			
-			if (ENT_FLAG(PERSISTENT, entities[index].flags))
+			if (ENT_FLAG(PERSISTENT, index))
 			{
 				entities[max_entities] = entities[index];
 				
 				++max_entities;
 			}
 			else{
-				entities[index].flags = 0;
+				entities[index].flags[0] = 0;
+				entities[index].flags[1] = 0;
 			}
 			
 		}
@@ -193,18 +192,52 @@ void load_entities() {
 	} 
 }
 
+void protect_cam(){
+	
+	if (foreground_count) {// TODO: add a flag that can disable this feature
+		
+		if (cam_x < BLOCK_SIZE)
+			cam_x = BLOCK_SIZE;
+		if (cam_y < BLOCK_SIZE)
+			cam_y = BLOCK_SIZE;
+			
+		if (cam_x + 240 + BLOCK_SIZE > BLOCK2INT(width))
+			cam_x = BLOCK2INT(width) - 240 - BLOCK_SIZE;
+		if (cam_y + 160 + BLOCK_SIZE > BLOCK2INT(height))
+			cam_y = BLOCK2INT(height) - 160 - BLOCK_SIZE;
+	}
+	
+	int i;
+	for (i = 0; i < foreground_count; ++i) {
+		BGOFS[(i << 1) + 0] = cam_x;
+		BGOFS[(i << 1) + 1] = cam_y;
+	}
+	for (; i < 4; ++i) {
+		BGOFS[(i << 1) + 0] = FIXED_MULT(cam_x, layers[i].lerp[0]);
+		BGOFS[(i << 1) + 1] = FIXED_MULT(cam_y, layers[i].lerp[0]);
+	}
+}
 #ifdef LARGE_TILES
 
 #else
 void move_cam() {
+	
+	cam_x -= 120;
+	cam_y -= 80;
+	
+	protect_cam();
+	
 	if (foreground_count == 0)
-		return;
+		goto skip_loadcam;
 	
 	int moveX = INT2BLOCK(cam_x) - INT2BLOCK(prev_cam_x),
 		moveY = INT2BLOCK(cam_y) - INT2BLOCK(prev_cam_y);
 	
 	if (!moveX && !moveY)
-		return;
+		goto skip_loadcam;
+	
+	cam_x -= BLOCK2INT(X_TILE_BUFFER);
+	cam_y -= BLOCK2INT(Y_TILE_BUFFER);
 	
 	int xMin = INT2BLOCK(SIGNED_MIN(prev_cam_x, cam_x)) - 1;
 	int xMax = INT2BLOCK(SIGNED_MAX(prev_cam_x, cam_x)) + BLOCK_X + 1;
@@ -277,14 +310,24 @@ void move_cam() {
 	}
 	while (startX != endX || startY != endY);
 	
+	cam_x += BLOCK2INT(X_TILE_BUFFER);
+	cam_y += BLOCK2INT(Y_TILE_BUFFER);
+	
+	skip_loadcam:
+	
+	cam_x += 120;
+	cam_y += 80;
 }
 //*
 void reset_cam() {
-	if (foreground_count == 0)
-		return;
 	
-	cam_x = 0x8;
-	cam_y = 0x8;
+	cam_x -= 120;
+	cam_y -= 80;
+	
+	protect_cam();
+	
+	if (foreground_count == 0)
+		goto skip_loadcam;
 	
 	int val;
 	for (val = 0; val < foreground_count << 1; val += 2) {
@@ -333,6 +376,12 @@ void reset_cam() {
 		
 	}
 	
+	skip_loadcam:
+	
+	cam_x += 120;
+	cam_y += 80;
+	prev_cam_x = cam_x;
+	prev_cam_y = cam_y;
 }
 //*/
 #endif

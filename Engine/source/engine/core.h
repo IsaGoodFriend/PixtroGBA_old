@@ -14,10 +14,10 @@ typedef struct Entity
 	unsigned short width, height;
 	unsigned int ID;
 	
-	unsigned int flags;
+	unsigned int flags[2];
 	
 	
-} Entity;
+} ALIGN4 Entity;
 
 #define ENT_TYPE(n)					(entities[n].ID & 0xFF)
 
@@ -38,6 +38,23 @@ extern void (*entity_update[32])(int index);
 extern void (*entity_render[32])(int index);
 
 // ---- LAYERS ----
+
+typedef struct Layer{
+	int pos[8]; // The offsets of the lerp, excluding camera
+	int lerp[8]; // combines both x and y, ranging from 0 - 0x100.
+	
+	unsigned int meta;
+	unsigned int tile_meta; // the size and offset of the tiles used.  8 bits for offset, 8 bits for size
+	unsigned int *tile_ptr;
+	unsigned short *map_ptr;
+	
+} Layer;
+
+extern int layer_count, layer_line[7], layer_index;
+extern int bg_tile_allowance;
+
+extern Layer layers[4];
+extern int foreground_count;
 
 // Macro to help load backgrounds easier.  
 #define LOAD_BG(bg, n) load_background(n, BGT_##bg, BGT_##bg##_len, BG_##bg)
