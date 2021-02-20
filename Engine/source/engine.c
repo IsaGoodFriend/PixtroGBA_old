@@ -33,9 +33,6 @@ void test_render(int index) {
 
 void on_update() {
 	
-	if (!(game_life & 0x3)) {
-		add_particle_basic(0x20, 0x20, PART_basic, 10, 0, 0);
-	}
 }
 
 void init() {
@@ -50,7 +47,7 @@ void init() {
 	load_bg_pal(PAL_test, 0);
 	load_obj_pal(PAL_test, 0);
 	
-	load_sprite(SPR_test, 0, SPRITE16x16);
+	load_anim_sprite(&SPR_test_anim[0], 0, SPRITE16x16, 4, SPR_test_anim_len);
 	
 	set_layer_priority(1, 1);
 	set_layer_priority(2, 2);

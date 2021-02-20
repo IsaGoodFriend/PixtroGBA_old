@@ -573,6 +573,7 @@ namespace GBA_Compiler {
 					case ".ase":
 						bool separateTags = true;
 						using (AsepriteReader read = new AsepriteReader(s)) {
+
 							if (separateTags && read.TagNames.Length > 0) {
 								foreach (var tag in read.Tags) {
 									_compiler.BeginArray(CompileToC.ArrayType.UInt, $"{name}_{tag.name}");
@@ -581,7 +582,7 @@ namespace GBA_Compiler {
 										_compiler.AddRange(array);
 									}
 
-									_compiler.AddValueDefine($"{name}_{tag.name}__L", tag.end - tag.start + 1);
+									_compiler.AddValueDefine($"{name}_{tag.name}_len", tag.end - tag.start + 1);
 									_compiler.EndArray();
 								}
 							}
@@ -593,8 +594,8 @@ namespace GBA_Compiler {
 								}
 
 								foreach (var tag in read.Tags) {
-									_compiler.AddValueDefine($"{name}_{tag.name}__S", tag.start * ((read.Width * read.Height) >> 2));
-									_compiler.AddValueDefine($"{name}_{tag.name}__L", tag.end - tag.start + 1);
+									_compiler.AddValueDefine($"{name}_{tag.name}_size", tag.start * ((read.Width * read.Height) >> 2));
+									_compiler.AddValueDefine($"{name}_{tag.name}_len", tag.end - tag.start + 1);
 								}
 
 								_compiler.EndArray();

@@ -50,7 +50,7 @@ extern void (*entity_render[32])(int index);
 //#define START_FADE()		0//GAME_fading = 1; GAME_fadeAmount = 0; GAME_loadIndex = 0
 #define TRANSITION_CAP		16
 
-extern unsigned int GAME_freeze, GAME_life;
+extern unsigned int game_freeze, game_life;
 
 extern unsigned short* transition_style;
 

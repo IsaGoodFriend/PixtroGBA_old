@@ -76,14 +76,16 @@ int sprite_count, prev_sprite_count;
 // Sprite bank information
 int shapes[BANK_LIMIT], indexes[BANK_LIMIT], ordered[BANK_LIMIT];
 
-unsigned int *anims[BANK_LIMIT];
+unsigned int *anim_bank[BANK_LIMIT], anim_meta[BANK_LIMIT];
 
 OBJ_ATTR obj_buffer[SPRITE_LIMIT];
 OBJ_ATTR *sprite_pointer;
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
 
-void load_sprite(unsigned short *_sprite, int _index, int _shape) {
+void load_sprite(unsigned int *_sprite, int _index, int _shape) {
+
+	anim_bank[_index] = NULL;
 	
 	int bankLoc, size = shape2size[_shape];
 	
@@ -139,8 +141,23 @@ void load_sprite(unsigned short *_sprite, int _index, int _shape) {
 	
 	memcpy(&tile_mem[4][bankLoc], _sprite, size);
 }
-void load_anim_sprite(unsigned short *_sprites, int _index, int _frames, int _shape) {
-	load_sprite(_sprites, _index, _shape);
+void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, int speed) {
+	load_sprite(sprites, index, shape);
+	
+	anim_bank[index] = sprites;
+	
+	speed &= 0xF;
+	speed = (speed) & 0xF;
+	if (frames)
+		frames = (frames - 1) & 0xF;
+	
+	anim_meta[index] = speed;
+	anim_meta[index] |= speed << 4;
+	
+	anim_meta[index] |= frames << 8;
+	anim_meta[index] |= frames << 12;
+	
+	anim_meta[index] |= shape << 16;
 }
 void load_tileset(const unsigned short *_tiles, int _count) {
 	memcpy(&tile_mem[FG_TILESET][1], _tiles, _count << 5);
@@ -179,7 +196,36 @@ void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal) {
 }
 
 void update_anims() {
+	int i;
 	
+	for (i = 0; i < BANK_LIMIT; ++i) {
+		if (!anim_bank[i])
+			continue;
+		
+		anim_meta[i]--;
+		
+		if (!(anim_meta[i] & 0xF)) {
+			// Reset counter
+			anim_meta[i] |= (anim_meta[i] & 0xF0) >> 4;
+			
+			// Update the frame index
+			anim_meta[i] = ((anim_meta[i] + 0x100) & 0xF00) + (anim_meta[i] & ~0xF00);
+			
+			// Reset the frame index
+			if ((anim_meta[i] & 0xF00) > ((anim_meta[i] & 0xF000) >> 4)) {
+				anim_meta[i] &= ~0xF00;
+			}
+			
+			unsigned int *ptr = anim_bank[i];
+			int offset = (anim_meta[i] & 0xF00) >> 8;
+			int shape = (anim_meta[i] & 0xF0000) >> 16;
+			
+			load_sprite(&anim_bank[i][(offset * (shape2size[shape] >> 2))], i, shape);
+			
+			anim_bank[i] = ptr;
+		}
+		
+	}
 }
 
 void init_drawing() {

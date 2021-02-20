@@ -1,5 +1,6 @@
 #pragma once
-extern const unsigned int SPR_test[32];
+#define SPR_test_anim_len				4
+extern const unsigned int SPR_test_anim[128];
 extern const unsigned short PAL_test[16];
 extern const unsigned short PAL_test2[16];
 #define PART_basic						8192
