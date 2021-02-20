@@ -349,7 +349,7 @@ namespace GBA_Compiler {
 
 			}
 
-			source.Add($"}}; {end}");
+			source.Add($"\n}}; {end}");
 
 			header.Add($"extern const {valueType} {arrayHeader}[{arrayValues.Count}];\n");
 		}

@@ -70,6 +70,7 @@ namespace GBA_Compiler {
 		public static string GameName { get; private set; }
 
 		static void Main(string[] _args) {
+
 			Arguments = _args;
 			RootPath = Directory.GetCurrentDirectory().Replace('/', '\\');
 
@@ -81,6 +82,10 @@ namespace GBA_Compiler {
 				RootPath = RootPath.Substring(0, RootPath.Length - 1);
 
 			GameName = System.IO.Path.GetFileName(RootPath);
+
+			if (Arguments.Contains("-d")) {
+				File.Delete(GameName + ".gba");
+			}
 
 			ArtCompiler.Compile(RootPath + "\\art");
 			LevelCompiler.Compile(RootPath + "\\levels");

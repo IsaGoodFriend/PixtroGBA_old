@@ -1,6 +1,7 @@
 #include "load_data.h"
 #include <string.h>
 
+
 #include "sprites.h"
 #include "core.h"
 #include "physics.h"
@@ -30,15 +31,17 @@
 
 #endif
 
+#define BGOFS			((vu16*)(REG_BASE+0x0010))
+
 unsigned short *uncmp_visuals = (unsigned short*)0x02002000;
 unsigned char *lvlInfo;
 
-extern width, height, yShift;
-extern unsigned char collisionData[4096];
+extern int width, height, yShift;
+extern unsigned char *collisionData;
 
 extern int foreground_count;
 
-extern int camX, camY, prevCamX, prevCamY;
+extern int cam_x, cam_y, prev_cam_x, prev_cam_y;
 
 extern char level_meta[128];
 
@@ -69,7 +72,7 @@ void load_collision(unsigned char *levelInfo){
 	
 	lvlInfo += 2;
 	
-	unsigned char* cpyColl = (unsigned char*)&collisionData;
+	unsigned char* cpyColl = collisionData;
 	
 	int indexX, indexY;
 	
@@ -197,20 +200,20 @@ void move_cam() {
 	if (foreground_count == 0)
 		return;
 	
-	int moveX = INT2BLOCK(camX) - INT2BLOCK(prevCamX),
-		moveY = INT2BLOCK(camY) - INT2BLOCK(prevCamY);
+	int moveX = INT2BLOCK(cam_x) - INT2BLOCK(prev_cam_x),
+		moveY = INT2BLOCK(cam_y) - INT2BLOCK(prev_cam_y);
 	
 	if (!moveX && !moveY)
 		return;
 	
-	int xMin = INT2BLOCK(SIGNED_MIN(prevCamX, camX)) - 1;
-	int xMax = INT2BLOCK(SIGNED_MAX(prevCamX, camX)) + BLOCK_X + 1;
-	int yMin = INT2BLOCK(SIGNED_MIN(prevCamY, camY)) - 1;
-	int yMax = INT2BLOCK(SIGNED_MAX(prevCamY, camY)) + BLOCK_Y + 1;
+	int xMin = INT2BLOCK(SIGNED_MIN(prev_cam_x, cam_x)) - 1;
+	int xMax = INT2BLOCK(SIGNED_MAX(prev_cam_x, cam_x)) + BLOCK_X + 1;
+	int yMin = INT2BLOCK(SIGNED_MIN(prev_cam_y, cam_y)) - 1;
+	int yMax = INT2BLOCK(SIGNED_MAX(prev_cam_y, cam_y)) + BLOCK_Y + 1;
 	
-	unsigned short *foreground = &se_mem[31][0];
-	unsigned short *midground  = &se_mem[30][0];
-	unsigned short *background = &se_mem[29][0];
+	unsigned short *foreground = se_mem[31];
+	unsigned short *midground  = se_mem[30];
+	unsigned short *background = se_mem[29];
 	
 	if (foreground_count <= 2)
 		background = NULL;
@@ -280,31 +283,33 @@ void reset_cam() {
 	if (foreground_count == 0)
 		return;
 	
-	camX = 0x8;
-	camY = 0x8;
+	cam_x = 0x8;
+	cam_y = 0x8;
 	
-	int x = INT2BLOCK(camX);
-	int y = INT2BLOCK(camY);
+	int val;
+	for (val = 0; val < foreground_count << 1; val += 2) {
+		BGOFS[val] 		= cam_x;
+		BGOFS[val + 1]	= cam_y;
+	}
+	
+	
+	int x = INT2BLOCK(cam_x);
+	int y = INT2BLOCK(cam_y);
 	
 	y -= Y_TILE_BUFFER;
 	x -= X_TILE_BUFFER;
 	x &= ~0x1;
-	//int yMin = y;
-	//int xMin = x - X_TILE_BUFFER;
-	
-	unsigned int position;
-	unsigned int pos;
 	
 	unsigned short *foreground = se_mem[31];
-	unsigned short *midground  = &se_mem[30][0];
-	unsigned short *background = &se_mem[29][0];
+	unsigned short *midground  = se_mem[30];
+	unsigned short *background = se_mem[29];
 	
 	if (foreground_count < 3)
 		background = 0;
 	if (foreground_count < 2)
 		midground = 0;
 	
-	int val = 32;
+	val = 32;
 	while (val-- > 0){
 		
 		int p1 = VIS_BLOCK_POS(x, y);

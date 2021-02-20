@@ -20,10 +20,6 @@
 #define SET_VAL_IF(og, val, b) 	((og) * !(b) | (val) * (b))
 #define RESET_IF(val, b)		val &= ~(0xFFFFFFFF * (b))
 
-#define BUFFER(val, max, b, rel) val = SET_VAL_IF(val, max, b);\
-val &= ~(rel > 0);\
-val -= val > 0
-
 #define COLOR_LERP(a, b, t) ((INT_LERP(a, b, t) & 0x7C00) | (INT_LERP((a & 0x03E0), (b & 0x03E0), t) & 0x03E0) | (INT_LERP((a & 0x001F), (b & 0x001F), t)) )
 
 #define ACC			8

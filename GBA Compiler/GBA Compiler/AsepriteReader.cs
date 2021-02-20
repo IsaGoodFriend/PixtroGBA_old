@@ -363,7 +363,7 @@ namespace GBA_Compiler {
 			}
 		}
 
-		public IEnumerable<uint[]> GetSprites(string _tag = null, string _layer = null, bool _readBackwards = false, bool _pal0IsClear = true) {
+		public IEnumerable<uint[]> GetSprites(string _tag = null, string _layer = null, bool _readSpriteBackwards = false, bool _readFramesBackwards = false) {
 			int startFrame = 0, endFrame = frameCount - 1;
 
 			if (_tag != null) {
@@ -383,12 +383,16 @@ namespace GBA_Compiler {
 				for (int j = 0; j < 16; ++j) {
 					add[j] = filePalette[i + j].ToGBA();
 				}
-				if (_pal0IsClear)
-					add[0] = 0x8000;
 				palettes.Add(add);
 			}
 
-			for (; startFrame <= endFrame; ++startFrame) {
+			if (_readFramesBackwards) {
+				int temp = endFrame;
+				endFrame = startFrame;
+				startFrame = temp;
+			}
+
+			do {
 				FloatColor[,] rawArt = new FloatColor[Width, Height];
 
 				foreach (var layer in layers) {
@@ -402,7 +406,8 @@ namespace GBA_Compiler {
 
 					for (int y = 0; y < cel.height; ++y) {
 						for (int x = 0; x < cel.width; ++x) {
-							rawArt[x + cel.X, y + cel.Y] = FloatColor.FlattenColor(rawArt[x + cel.X, y + cel.Y], cel.colors[x + y * cel.height], layer.blending);
+							FloatColor c = FloatColor.FlattenColor(rawArt[x + cel.X, y + cel.Y], cel.colors[x + (y * cel.width)], layer.blending);
+							rawArt[x + cel.X, y + cel.Y] = c;
 						}
 					}
 				}
@@ -436,14 +441,17 @@ namespace GBA_Compiler {
 				};
 
 				List<uint> retval;
-				if (_readBackwards)
+				if (_readSpriteBackwards)
 					retval = new List<uint>(ArtCompiler.GetArrayFromSprite(Width, Height, backward));
 				else
 					retval = new List<uint>(ArtCompiler.GetArrayFromSprite(Width, Height, foreward));
 
 
 				yield return retval.ToArray();
+
+				startFrame += _readFramesBackwards ? -1 : 1;
 			}
+			while ((startFrame - endFrame) * (_readFramesBackwards ? 1 : -1) >= 0);
 
 			yield break;
 		}

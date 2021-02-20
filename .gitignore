@@ -8,6 +8,7 @@ Engine/source/sprites.h
 Engine/source/levels.c
 Engine/source/levels.h
 pixtro_develop.pnproj
+todo.txt
 
 *.pnps
 *.elf

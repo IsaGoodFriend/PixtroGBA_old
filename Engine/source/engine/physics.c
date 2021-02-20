@@ -15,13 +15,13 @@
 #define SHAPE_FULL			0
 #define SHAPE_PLATFORM		1
 
-unsigned int tileTypes[32];
+unsigned int tileTypes[128];
 
-unsigned char yShift;
+unsigned int yShift;
 unsigned int width, height;
-unsigned char collisionData[4096];
+unsigned char *collisionData = (unsigned char*)0x02008000;
 
-int GetBlock(int x, int y){
+int GetBlock(int x, int y) {
 	x -= x * (x < 0);
 	y -= y * (y < 0);
 	x += ((width  - 1) - x) * (x >= width);
@@ -48,15 +48,15 @@ unsigned int entity_physics(Entity *ent, int hitMask, int detectMask) {
 	int index = 0, index2 = 0;
 	
 	int top = ent->y,
-		bot = ent->y + INT2FIXED(height),
+		bot = ent->y + INT2FIXED(ent->height),
 		lef = ent->x					 - xIsNeg * (ent->velX),
-		rgt = ent->x + INT2FIXED(width)  + xIsPos * (ent->velX);
+		rgt = ent->x + INT2FIXED(ent->width)  + xIsPos * (ent->velX);
 	
 	//Get the start and end of the base collisionbox
-	int yMin = ent->y - yIsNeg * (INT2FIXED(height) - 1),
-		yMax = ent->y + yIsPos * (INT2FIXED(height) - 1),
-		xMin = ent->x - xIsNeg * (INT2FIXED(width)  - 1),
-		xMax = ent->x + xIsPos * (INT2FIXED(width)  - 1);
+	int yMin = ent->y - yIsNeg * (INT2FIXED(ent->height) - 1),
+		yMax = ent->y + yIsPos * (INT2FIXED(ent->height) - 1),
+		xMin = ent->x - xIsNeg * (INT2FIXED(ent->width)  - 1),
+		xMax = ent->x + xIsPos * (INT2FIXED(ent->width)  - 1);
 	
 	// Block values that were hit - flag
 	int hitValueX = 0, hitValueY = 0;
@@ -67,10 +67,14 @@ unsigned int entity_physics(Entity *ent, int hitMask, int detectMask) {
 		for (index2 = FIXED2BLOCK(yMin); index2 != FIXED2BLOCK(yMax) + signY; index2 += signY){
 			
 			int shape = GetBlock(index, index2);
+			if (!shape)
+				continue;
+			
+			shape = tileTypes[shape - 1];
 			int type = (shape & TILE_TYPE_MASK) >> TILE_TYPE_SHIFT;
 			int mask = 1 << (type - 1);
 			
-			if (!shape || !(tileTypes[shape - 1] & TILE_TYPE_MASK) || !(mask & detectMask)) // If the block is 0 or if the block is not solid, ignore
+			if (!type || !(mask & detectMask)) // If the block is 0 or if the block is not solid, ignore
 				continue;
 			
 			shape = shape & TILE_SHAPE_MASK;
@@ -82,18 +86,8 @@ unsigned int entity_physics(Entity *ent, int hitMask, int detectMask) {
 				continue;
 			}
 			
-			int tempOffset = (BLOCK2FIXED(index - xIsNeg) - INT2FIXED(width * xIsPos)) - ent->x; // Get offsets to align to grid
+			int tempOffset = (BLOCK2FIXED(index - xIsNeg) - INT2FIXED(ent->width * xIsPos)) - ent->x; // Get offsets to align to grid
 			
-			if (INT_ABS(tempOffset) < INT_ABS(offsetX)) { // If new movement is smaller, set collision data.
-				offsetX = tempOffset; // Set offset
-				hitValueX = mask;
-			}
-			else if (tempOffset == offsetX)
-			{
-				hitValueX |= mask;
-			}
-			
-			tempOffset = (BLOCK2FIXED(index + xIsPos) - INT2FIXED(width * -xIsNeg)) - ent->x; 
 			if (INT_ABS(tempOffset) < INT_ABS(offsetX)) { // If new movement is smaller, set collision data.
 				offsetX = tempOffset; // Set offset
 				hitValueX = mask;
@@ -110,7 +104,7 @@ unsigned int entity_physics(Entity *ent, int hitMask, int detectMask) {
 			ent->x += offsetX;
 			offsetX += ent->velX;
 			
-			if (ent->velX != 0 && signX == INT_SIGN((BLOCK2FIXED(index) + 0x400) - (ent->x + (width >> 1))))
+			if (ent->velX != 0 && signX == INT_SIGN((BLOCK2FIXED(index) + 0x400) - (ent->x + (ent->width >> 1))))
 				ent->velX = 0;
 			else
 				hitValueX = 0;
@@ -119,17 +113,21 @@ unsigned int entity_physics(Entity *ent, int hitMask, int detectMask) {
 	}
 	ent->x += ent->velX * !(hitValueX & detectMask);
 	
-	xMin = ent->x - xIsNeg * (INT2FIXED(width) - 1);
-	xMax = ent->x + xIsPos * (INT2FIXED(width) - 1);
+	xMin = ent->x - xIsNeg * (INT2FIXED(ent->width) - 1);
+	xMax = ent->x + xIsPos * (INT2FIXED(ent->width) - 1);
 	
 	for (index = FIXED2BLOCK(yMin); index != FIXED2BLOCK(yMax + ent->velY) + signY; index += signY){
 		for (index2 = FIXED2BLOCK(xMin); index2 != FIXED2BLOCK(xMax) + signX; index2 += signX){
 			
-			int shape = GetBlock(index, index2);
+			int shape = GetBlock(index2, index);
+			if (!shape)
+				continue;
+			
+			shape = tileTypes[shape - 1];
 			int type = (shape & TILE_TYPE_MASK) >> TILE_TYPE_SHIFT;
 			int mask = 1 << (type - 1);
 			
-			if (!shape || !(tileTypes[shape - 1] & TILE_TYPE_MASK) || !(mask & detectMask)) // If the block is 0 or if the block is not solid, ignore
+			if (!type || !(mask & detectMask)) // If the block is 0 or if the block is not solid, ignore
 				continue;
 			
 			shape = shape & TILE_SHAPE_MASK;
@@ -145,21 +143,11 @@ unsigned int entity_physics(Entity *ent, int hitMask, int detectMask) {
 				continue;
 			}
 			
-			int tempOffset = (BLOCK2FIXED(index - yIsNeg) - INT2FIXED(height * yIsPos)) - ent->y;
+			int tempOffset = (BLOCK2FIXED(index - yIsNeg) - INT2FIXED(ent->height * yIsPos)) - ent->y;
 			
 			if (INT_ABS(tempOffset) < INT_ABS(offsetY)) { // If new movement is smaller, set collision data.
 				offsetY = tempOffset; // Set offset
 				hitValueY |= mask;
-			}
-			else if (tempOffset == offsetY)
-			{
-				hitValueY |= mask;
-			}
-			
-			tempOffset = (BLOCK2FIXED(index + yIsPos) - INT2FIXED(height * -yIsNeg)) - ent->y;
-			if (INT_ABS(tempOffset) < INT_ABS(offsetY)) { // If new movement is smaller, set collision data.
-				offsetY = tempOffset; // Set offset
-				hitValueY = mask;
 			}
 			else if (tempOffset == offsetY)
 			{
@@ -173,7 +161,7 @@ unsigned int entity_physics(Entity *ent, int hitMask, int detectMask) {
 			ent->y += offsetY;
 			offsetY += ent->velY;
 			
-			if (ent->velY != 0 && signY == INT_SIGN((BLOCK2FIXED(index) + 0x400) - (ent->y + (height >> 1))))
+			if (ent->velY != 0 && signY == INT_SIGN((BLOCK2FIXED(index) + 0x400) - (ent->y + (ent->height >> 1))))
 				ent->velY = 0;
 			else
 				hitValueY = 0;

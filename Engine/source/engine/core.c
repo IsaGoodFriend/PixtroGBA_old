@@ -29,7 +29,7 @@ typedef struct Layer{
 
 #define TILESET_SIZE(n)			(layers[n].tile_meta & 0xFF)
 #define TILESET_OFFSET(n)		((layers[n].tile_meta & 0xFF00) >> 8)
-#define TILESET_SET(n, o, s)	layers[n].tile_meta = ((o & 0xFF) << 8) | (s & 0xFF) | TILES_CHANGED
+#define TILESET_SET(n, o, s)	layers[n].tile_meta = (((o) & 0xFF) << 8) | ((s) & 0xFF) | TILES_CHANGED
 
 #define TILES_CHANGED			0x10000
 #define MAPPING_CHANGED			0x20000
@@ -64,62 +64,25 @@ unsigned int levelFlags, visualFlags;
 char save_data[SAVEFILE_LEN - 1], settings_file[SETTING_LEN - 1];
 int save_file_number;
 
-int camX, camY, prevCamX, prevCamY;
-
 void (*custom_update)(void);
 void (*custom_render)(void);
 
 void load_settings();
 void interrupt();
+void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len);
 
-extern unsigned int tileTypes[32];
+extern void rng_seed(int _s1, int _s2, int _s3);
+extern void update_particles();
 
-void test_update(int index) {
-	Entity *ent = &entities[index];
-	ent->velY += 0x10;
-	
-	entity_physics(ent, 0x1, 0x1);
-	
-}
-void test_render(int index) {
-	Entity ent = entities[index];
-	
-	draw(ent.x, ent.y, 0, 0, 0, 0);
-}
 
 void pixtro_init() {
+	
+	rng_seed(0xFA12B4, 0x2B5C72, 0x14F4D2);
 	
 	init_drawing();
 	load_settings();
 	
-	tileTypes[0] = 0x10;
-	
-	entity_update[0] = &test_update;
-	entity_render[0] = &test_render;
-	
-	load_tileset(TILE_test, TILE_test_len);
-	
 	REG_DISPCNT = DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
-	
-	load_bg_pal(PAL_test, 0);
-	load_obj_pal(PAL_test, 0);
-	
-	load_sprite(SPR_test, 0, SPRITE16x16);
-	
-	set_layer_priority(1, 1);
-	set_layer_priority(2, 2);
-	set_layer_priority(3, 3);
-	
-	set_foreground_count(1);
-	finalize_layers();
-	
-	load_collision(LVL_test);
-	load_midground(0);
-	load_entities();
-	reset_cam();
-	
-	
-	entities[0].ID |= ENT_ACTIVE_FLAG;
 	
 	irq_add( II_HBLANK, interrupt );
 	
@@ -147,12 +110,17 @@ void pixtro_render() {
 	
 	layer_index = 0;
 	
-	
 	int i;
+	
+	move_cam();
+	
+	update_particles();
 	
 	for (i = 0; i < max_entities; ++i){
 		if (!ENT_FLAG(VISIBLE, i) || !entity_render[ENT_TYPE(i)])
 			continue;
+		
+		SET_DRAWING_FLAG(CAM_FOLLOW);
 		
 		entity_render[ENT_TYPE(i)](i);
 	}
@@ -161,8 +129,6 @@ void pixtro_render() {
 		custom_render();
 	
 	end_drawing();
-	
-	move_cam();
 }
 
 // Layer functions that don't need to be finalized
@@ -203,7 +169,6 @@ void load_background(int index, unsigned int *tiles, unsigned int tile_len, unsi
 	layers[index].tile_meta |= MAPPING_CHANGED;
 }
 void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len) {
-	int i;
 	
 	if (layers[index].tile_ptr != tiles) {
 		
@@ -260,7 +225,7 @@ void finalize_layers() {
 				int index = 32 * 32 * size;
 				
 				int offset = TILESET_OFFSET(i);
-				unsigned short *block = &se_mem[sbb], *mapping = layers[i].map_ptr;
+				unsigned short *block = se_mem[sbb], *mapping = layers[i].map_ptr;
 				
 				while (index) {
 					
