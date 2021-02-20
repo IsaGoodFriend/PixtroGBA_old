@@ -33,7 +33,7 @@ void test_render(int index) {
 
 void on_update() {
 	
-	if (!(GAME_life & 0x3)) {
+	if (!(game_life & 0x3)) {
 		add_particle_basic(0x20, 0x20, PART_basic, 10, 0, 0);
 	}
 }

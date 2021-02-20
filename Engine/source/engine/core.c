@@ -53,7 +53,7 @@ void (*entity_render[32])(int index);
 char level_meta[128];
 
 // Engine stuff
-unsigned int GAME_freeze, GAME_life;
+unsigned int game_freeze, game_life;
 unsigned int fadeAmount, fading, loadIndex;
 
 unsigned short* transition_style;
@@ -71,30 +71,39 @@ void load_settings();
 void interrupt();
 void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len);
 
-extern void rng_seed(int _s1, int _s2, int _s3);
+extern void rng_seed(unsigned int _s1, unsigned int _s2, unsigned int _s3);
 extern void update_particles();
 
-
+// Initialize the game
 void pixtro_init() {
 	
+	// Set the RNG seeds.  Change values to anything non 0
 	rng_seed(0xFA12B4, 0x2B5C72, 0x14F4D2);
 	
+	// Initialize graphics settings.  Must run before anything visual happens
 	init_drawing();
+	
+	// Load in settings, and initialize settings if running game for the first time
 	load_settings();
 	
+	// Display everything
 	REG_DISPCNT = DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
 	
+	// Add the
 	irq_add( II_HBLANK, interrupt );
 	
 	init();
 }
 
+// The game's update loop
 void pixtro_update() {
 	
-	GAME_life++;
+	// Increment game's life counter
+	game_life++;
 	
 	int i;
 	
+	// Run over every active entity and run it's custom update
 	for (i = 0; i < max_entities; ++i){
 		if (!ENT_FLAG(ACTIVE, i) || !entity_update[ENT_TYPE(i)])
 			continue;
@@ -102,20 +111,26 @@ void pixtro_update() {
 		entity_update[ENT_TYPE(i)](i);
 	}
 	
+	// Custom update if desired
 	if (custom_update)
 		custom_update();
 }
 
+// Rendering the game
 void pixtro_render() {
 	
+	// Setting the background offset index to 0
 	layer_index = 0;
 	
 	int i;
 	
+	// Set the camera position and load in level if the camera has moved (and if there is any level)
 	move_cam();
 	
+	// Update and render particles
 	update_particles();
 	
+	// Render each visible entity
 	for (i = 0; i < max_entities; ++i){
 		if (!ENT_FLAG(VISIBLE, i) || !entity_render[ENT_TYPE(i)])
 			continue;
@@ -125,9 +140,11 @@ void pixtro_render() {
 		entity_render[ENT_TYPE(i)](i);
 	}
 	
+	// Custom render if desired
 	if (custom_render)
 		custom_render();
 	
+	// Finalize the graphics and prepare for the next cycle
 	end_drawing();
 }
 
@@ -245,6 +262,7 @@ void finalize_layers() {
 	bg_tile_allowance = sbb << 5;
 }
 
+// Horizontal interrupt
 void interrupt(){
 	
 	int line = REG_VCOUNT;
