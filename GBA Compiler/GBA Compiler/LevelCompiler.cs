@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace GBA_Compiler {
 	public static class LevelCompiler {
@@ -31,6 +32,12 @@ namespace GBA_Compiler {
 #endif
 			var compiler = new CompileToC();
 
+			entGlobalCount = 0;
+			entSectionCount = new Dictionary<LevelParse, int>();
+			typeLocalCount = new Dictionary<string, int>();
+			typeGlobalCount = new Dictionary<string, int>();
+			typeSectionCount = new Dictionary<LevelParse, Dictionary<string, int>>();
+
 			List<LevelParse> parseData = JsonConvert.DeserializeObject<List<LevelParse>>(File.ReadAllText(_path + "\\meta_level.json"));
 			CompressedLevel.Randomizer = new Random();
 
@@ -46,6 +53,20 @@ namespace GBA_Compiler {
 
 				CompressedLevel compressed = null;
 
+				foreach (var p in parseData) {
+					if (p.Matches(localPath)) {
+						CompressedLevel.DataParse = p;
+						if (!typeSectionCount.ContainsKey(p)) {
+							typeSectionCount.Add(p, new Dictionary<string, int>());
+							entSectionCount.Add(p, 0);
+						}
+						break;
+					}
+				}
+
+				entLocalCount = 0;
+				typeLocalCount.Clear();
+
 				switch (ext) {
 					case ".txt":
 						compressed = CompileLevelTxt(level);
@@ -59,13 +80,6 @@ namespace GBA_Compiler {
 
 				if (compressed == null)
 					continue;
-				
-				foreach (var p in parseData) {
-					if (p.Matches(localPath)) {
-						CompressedLevel.DataParse = p;
-						break;
-					}
-				}
 
 				compiler.BeginArray(CompileToC.ArrayType.Char, $"LVL_{Path.GetFileNameWithoutExtension(localPath)}");
 
@@ -108,28 +122,187 @@ namespace GBA_Compiler {
 			//return null;
 		}
 
+
+		private static string currentType;
+
+		private static int entGlobalCount, entLocalCount;
+		private static Dictionary<LevelParse, int> entSectionCount;
+
+		private static Dictionary<string, int> typeGlobalCount, typeLocalCount;
+		private static Dictionary<LevelParse, Dictionary<string, int>> typeSectionCount;
+
+		private static string NextLine(StreamReader _reader) {
+
+			string retval;
+			do
+				retval = _reader.ReadLine();
+			while (string.IsNullOrWhiteSpace(retval));
+
+			return retval;
+		}
+		private static string[] SplitWithTrim(string str, char splitChar) {
+			string[] split = str.Split(new char[]{ splitChar }, StringSplitOptions.RemoveEmptyEntries);
+
+			for (int i = 0; i < split.Length; ++i) {
+				split[i] = split[i].Trim();
+			}
+
+			return split;
+		}
+
+		enum MetaOperations {
+			Add, Subtract, Divide, Multiply
+		}
+
+		private static IEnumerator<string> MetaSplit(string _value) {
+
+			int i;
+
+			string retval = "";
+
+			for (i = 0; i < _value.Length;) {
+				while (_value[i] == ' ')
+					++i;
+
+				if (_value[i] == '{') {
+					i++;
+					do {
+						if (_value[i] != ' ')
+							retval += _value[i];
+						i++;
+					}
+					while (_value[i] != '}');
+
+					yield return retval;
+					retval = "";
+				}
+				else {
+					do {
+						retval += _value[i++];
+					}
+					while (_value[i] != ' ' && _value[i] != '{');
+
+					yield return retval;
+					retval = "";
+				}
+			}
+
+			yield break;
+		}
+		private static byte ParseEntityMeta(string _value) {
+			byte retval;
+
+			if (byte.TryParse(_value, out retval))
+				return retval;
+
+			float parsedValue = 0;
+
+			var checkEach = MetaSplit(_value);
+
+			MetaOperations currentOp = MetaOperations.Add;
+
+			while (checkEach.MoveNext()) {
+				var parsed = checkEach.Current;
+
+				string[] split = parsed.Split('.');
+				float tempValue = 0;
+
+				switch (split[0]) {
+					case "ent": {
+
+						switch (split[1]) {
+							case "globalcount":
+								tempValue = entGlobalCount;
+								break;
+							case "localcount":
+								tempValue = entLocalCount;
+								break;
+							case "sectioncount":
+								tempValue = entSectionCount[CompressedLevel.DataParse];
+								break;
+						}
+
+						break;
+					}
+					case "type": {
+
+						switch (split[1]) {
+							case "globalcount":
+								tempValue = typeGlobalCount[currentType];
+								break;
+							case "localcount":
+								tempValue = typeLocalCount[currentType];
+								break;
+							case "sectioncount":
+								tempValue = typeSectionCount[CompressedLevel.DataParse][currentType];
+								break;
+						}
+
+						break;
+					}
+
+					case "+":
+						currentOp = MetaOperations.Add;
+						break;
+					case "-":
+						currentOp = MetaOperations.Subtract;
+						break;
+					case "*":
+						currentOp = MetaOperations.Multiply;
+						break;
+					case "/":
+						currentOp = MetaOperations.Divide;
+						break;
+					default: {
+
+						if (float.TryParse(parsed, out tempValue)) {
+							break;
+						}
+
+						throw new Exception();
+					}
+				}
+
+				switch (currentOp) {
+					case MetaOperations.Add:
+						parsedValue += tempValue;
+						break;
+					case MetaOperations.Subtract:
+						parsedValue -= tempValue;
+						break;
+					case MetaOperations.Multiply:
+						parsedValue *= tempValue;
+						break;
+					case MetaOperations.Divide:
+						parsedValue /= tempValue;
+						break;
+				}
+			}
+
+			retval = (byte)parsedValue;
+
+			return retval;
+		}
 		private static CompressedLevel CompileLevelTxt(string _path) {
 			CompressedLevel retval = new CompressedLevel();
 
 			using (StreamReader reader = new StreamReader(File.Open(_path, FileMode.Open))) {
-				string[] header = reader.ReadLine().Split('-');
+				string[] split = SplitWithTrim(NextLine(reader), '-');
 
-				retval.Width = int.Parse(header[0].Trim());
-				retval.Height = int.Parse(header[1].Trim());
-				retval.Layers = int.Parse(header[2].Trim());
+				retval.Width = int.Parse(split[0]);
+				retval.Height = int.Parse(split[1]);
+				retval.Layers = int.Parse(split[2]);
 
 				while (!reader.EndOfStream) {
-					string dataType = reader.ReadLine();
+					string dataType = NextLine(reader);
+					split = SplitWithTrim(dataType, '-');
 
-					while (string.IsNullOrWhiteSpace(dataType))
-						dataType = reader.ReadLine();
-
-					switch (dataType.Split('-')[0].Trim()) {
+					switch (split[0]) {
 						case "layer": {
-							int line = dataType.Contains('-') ? int.Parse(dataType.Split('-')[1].Trim()) : 0;
+							int line = dataType.Contains('-') ? int.Parse(split[1]) : 0;
 
 							for (int i = 0; i < retval.Height; ++i) {
-								retval.AddLine(line, i, reader.ReadLine());
+								retval.AddLine(line, i, NextLine(reader));
 							}
 							break;
 						}
@@ -137,21 +310,33 @@ namespace GBA_Compiler {
 							string ent = "";
 
 							while (ent != "end") {
-								ent = reader.ReadLine();
+								ent = NextLine(reader);
 
-								if (ent == "end" || string.IsNullOrWhiteSpace(ent))
-									continue;
+								if (ent == "end")
+									break;
 
-								string[] split = ent.Split(';');
+								split = SplitWithTrim(ent, ';');
 
 								var entity = new CompressedLevel.Entity();
 
-								entity.type = int.Parse(split[0].Trim());
-								entity.x = int.Parse(split[1].Trim());
-								entity.y = int.Parse(split[2].Trim());
+								entLocalCount++;
+								entGlobalCount++;
+								entSectionCount[CompressedLevel.DataParse]++;
+
+								currentType = split[0];
+
+								typeLocalCount[currentType]++;
+								typeGlobalCount[currentType]++;
+								typeSectionCount[CompressedLevel.DataParse][currentType]++;
+
+								entity.type = CompressedLevel.DataParse.EntityIndex[split[0]];
+								
+
+								entity.x = int.Parse(split[1]);
+								entity.y = int.Parse(split[2]);
 
 								for (int i = 3; i < split.Length; ++i) {
-									entity.data.Add(byte.Parse(split[i]));
+									entity.data.Add(ParseEntityMeta(split[i]));
 								}
 
 								retval.entities.Add(entity);

@@ -17,6 +17,8 @@ namespace GBA_Compiler {
 		}
 		public Dictionary<char, TileWrapping> Wrapping;
 
+		public Dictionary<string, byte> EntityIndex;
+
 		public string Include, Exclude;
 		public string IncludeRegex, ExcludeRegex;
 
