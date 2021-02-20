@@ -677,6 +677,16 @@ namespace GBA_Compiler {
 		private static void CompileParticles(string _path, CompileToC _compiler) {
 			string[] getFiles = Directory.GetFiles(_path);
 
+			int index = 0;
+
+			void add_particle(string name, int length) {
+				length = Math.Min(length, 16) - 1;
+
+				_compiler.AddValueDefine($"PART_{name}", index | (length << 12));
+
+				index += length;
+			}
+
 			_compiler.BeginArray(CompileToC.ArrayType.UInt, "particles");
 
 			foreach (string s in getFiles) {
@@ -684,7 +694,6 @@ namespace GBA_Compiler {
 
 				string name = Path.GetFileNameWithoutExtension(s);
 
-				int index = _compiler.ArrayLength;
 
 				switch (ext) {
 					case ".bmp": {
@@ -701,8 +710,9 @@ namespace GBA_Compiler {
 
 						_compiler.AddRange(Enumerable.ToArray(GetArrayFromSprite(map.Width, map.Height, getIdx)));
 
-						_compiler.AddValueDefine($"PART_{name}", index);
-						_compiler.AddValueDefine($"PART_{name}_L", Math.Min((map.Width * map.Height) >> 6, 4));
+
+						add_particle(name, (map.Width * map.Height) >> 6);
+							
 
 						map.Dispose();
 
@@ -711,12 +721,11 @@ namespace GBA_Compiler {
 					case ".ase":
 						using (AsepriteReader read = new AsepriteReader(s)) {
 							foreach (var tag in read.Tags) {
-								foreach (var array in read.GetSprites(tag.name)) {
+								foreach (var array in read.GetSprites(tag.name, _readFramesBackwards: true)) {
 									_compiler.AddRange(array);
 								}
 
-								_compiler.AddValueDefine($"PART_{tag.name}", index);
-								_compiler.AddValueDefine($"PART_{tag.name}_L", Math.Min(tag.end - tag.start + 1, 4));
+								add_particle(tag.name, tag.end - tag.start + 1);
 							}
 
 							break;

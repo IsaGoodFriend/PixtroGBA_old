@@ -59,26 +59,29 @@ const int shape_height[12] = {
 	tileSize * 8,
 };
 
-int drawing_flags;
+int drawing_flags = DFLAG_CAM_FOLLOW;
 
 int cam_x, cam_y, prev_cam_x, prev_cam_y;
 
-int bg0x_follow, bg0y_follow, bg1x_follow, bg1y_follow, bg2x_follow, bg2y_follow, bg3x_follow, bg3y_follow;
-
 #define SPRITE_X(n)			((n & ATTR1_X_MASK)<<ATTR1_X_SHIFT)
 #define SPRITE_Y(n)			((n & ATTR0_Y_MASK)<<ATTR0_Y_SHIFT)
-int spriteCount, prevSpriteCount;
+int sprite_count, prev_sprite_count;
 
-#define BANK_LIMIT		64
+#define BANK_LIMIT			64
+#define BANK_MEM_START		0x60
+
+// Max of 128 sprites
+#define SPRITE_LIMIT		128
 
 // Sprite bank information
 int shapes[BANK_LIMIT], indexes[BANK_LIMIT], ordered[BANK_LIMIT];
 
 unsigned int *anims[BANK_LIMIT];
 
-OBJ_ATTR obj_buffer[128];
+OBJ_ATTR obj_buffer[SPRITE_LIMIT];
 OBJ_ATTR *sprite_pointer;
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
+
 
 void load_sprite(unsigned short *_sprite, int _index, int _shape) {
 	
@@ -90,7 +93,7 @@ void load_sprite(unsigned short *_sprite, int _index, int _shape) {
 	}
 	else {
 		int i;
-		bankLoc = 0;
+		bankLoc = BANK_MEM_START;
 		
 		//Search for an open spot in the sprites
 		for (i = 0; i < BANK_LIMIT; ++i) {
@@ -139,7 +142,7 @@ void load_sprite(unsigned short *_sprite, int _index, int _shape) {
 void load_anim_sprite(unsigned short *_sprites, int _index, int _frames, int _shape) {
 	load_sprite(_sprites, _index, _shape);
 }
-void load_tileset(unsigned short *_tiles, int _count) {
+void load_tileset(const unsigned short *_tiles, int _count) {
 	memcpy(&tile_mem[FG_TILESET][1], _tiles, _count << 5);
 }
 void load_obj_pal(unsigned short *_pal, int _palIndex) {
@@ -154,7 +157,7 @@ void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal) {
 	_x = FIXED2INT(_x);
 	_y = FIXED2INT(_y);
 	
-	if (drawing_flags & DFLAG_CAM)
+	if (drawing_flags & DFLAG_CAM_FOLLOW)
 	{
 		_x -= cam_x;
 		_y -= cam_y;
@@ -172,7 +175,7 @@ void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal) {
 	ATTR2_PALBANK(_pal) | ATTR2_PRIO(_prio) | (indexes[_sprite]));
 	
 	++sprite_pointer;
-	++spriteCount;
+	++sprite_count;
 }
 
 void update_anims() {
@@ -180,10 +183,11 @@ void update_anims() {
 }
 
 void init_drawing() {
-	oam_init(obj_buffer, 128);
+	oam_init(obj_buffer, SPRITE_LIMIT);
 	sprite_pointer = (OBJ_ATTR*)&obj_buffer;
 	int i;
 	
+	indexes[0] = BANK_MEM_START;
 	shapes[0] = -1;
 	for (i = 1; i < BANK_LIMIT; ++i) {
 		indexes[i] = 0x8000;
@@ -193,31 +197,18 @@ void init_drawing() {
 }
 void end_drawing() {
 	
-	if (spriteCount < prevSpriteCount){
-		int i = spriteCount;
-		for (; i < prevSpriteCount; ++i)
+	if (sprite_count < prev_sprite_count){
+		int i = sprite_count;
+		for (; i < prev_sprite_count; ++i)
 		{
 			sprite_pointer->attr0 = 0x0200;
 			++sprite_pointer;
 		}
 	}
-	prevSpriteCount = spriteCount;
-	spriteCount = 0;
+	prev_sprite_count = sprite_count;
+	sprite_count = 0;
 	
-	oam_copy(oam_mem, obj_buffer, 128);
+	oam_copy(oam_mem, obj_buffer, SPRITE_LIMIT);
 	
 	sprite_pointer = (OBJ_ATTR*)&obj_buffer;
-}
-
-void update_camera() {
-	
-	REG_BG0HOFS = INT2FIXED(FIXED_MULT(INT2FIXED(cam_x), bg0x_follow));
-	REG_BG0VOFS = INT2FIXED(FIXED_MULT(INT2FIXED(cam_y), bg0y_follow));
-	REG_BG1HOFS = INT2FIXED(FIXED_MULT(INT2FIXED(cam_x), bg1x_follow));
-	REG_BG1VOFS = INT2FIXED(FIXED_MULT(INT2FIXED(cam_y), bg1y_follow));
-	REG_BG2HOFS = INT2FIXED(FIXED_MULT(INT2FIXED(cam_x), bg2x_follow));
-	REG_BG2VOFS = INT2FIXED(FIXED_MULT(INT2FIXED(cam_y), bg2y_follow));
-	REG_BG3HOFS = INT2FIXED(FIXED_MULT(INT2FIXED(cam_x), bg3x_follow));
-	REG_BG3VOFS = INT2FIXED(FIXED_MULT(INT2FIXED(cam_y), bg3y_follow));
-	
 }

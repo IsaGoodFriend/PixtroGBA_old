@@ -1,14 +1,15 @@
-#ifndef _PIX_GRAPHICS
-#define _PIX_GRAPHICS
+#pragma once
+
+#include "sprites.h"
 
 extern int drawing_flags;
 
 // Drawing flags
-#define DFLAG_CAM				0x0001 // Do sprites use cam position data?
-#define DFLAG_LOAD_MAP			0x0002
+#define DFLAG_CAM_FOLLOW		0x0001 // Do sprites use cam position data?
 
-#define SET_DRAWING_FLAG(f)		drawing_flags |= f;
-#define CLEAR_DRAWING_FLAG(f)	drawing_flags &= ~f;
+#define SET_DRAWING_FLAG(name)		drawing_flags |= DFLAG_##name;
+#define CLEAR_DRAWING_FLAG(name)	drawing_flags &= ~DFLAG_##name;
+#define DRAWING_FLAG_ENABLED(name)	(drawing_flags & DFLAG_##name);
 
 // Sprite shapes
 #define SPRITE8x8		0
@@ -31,11 +32,13 @@ extern int drawing_flags;
 #define FLIP_Y			0x2000
 #define FLIP_XY			0x3000
 
+#define LOAD_TILESET(name)		load_tileset((unsigned short*)TILE_##name, TILE_##name##_len)
+
 void load_sprite(unsigned short *_sprite, int _index, int _shape);
 void load_obj_pal(unsigned short *_pal, int _palIndex);
 void load_bg_pal(unsigned short *_pal, int _palIndex);
 
-void load_tileset(unsigned short *_tiles, int _count);
+void load_tileset(const unsigned short *_tiles, int _count);
 
 void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal);
 
@@ -43,5 +46,3 @@ void init_drawing();
 void end_drawing();
 
 void update_camera();
-
-#endif

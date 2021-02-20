@@ -2,7 +2,8 @@
 extern const unsigned int SPR_test[32];
 extern const unsigned short PAL_test[16];
 extern const unsigned short PAL_test2[16];
-extern const unsigned int particles[0];
+#define PART_basic						8192
+extern const unsigned int particles[24];
 #define BGT_sample_ase					BGT_sample_ase
 extern const unsigned short BG_sample_ase[1024];
 extern const unsigned short BG_sample_bmp[1024];
