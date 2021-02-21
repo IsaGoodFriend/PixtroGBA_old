@@ -39,6 +39,11 @@ namespace GBA_Compiler {
 			typeSectionCount = new Dictionary<LevelParse, Dictionary<string, int>>();
 
 			List<LevelParse> parseData = JsonConvert.DeserializeObject<List<LevelParse>>(File.ReadAllText(_path + "\\meta_level.json"));
+			foreach (var p in parseData) {
+				foreach (char c in p.Wrapping.Keys)
+					p.Wrapping[c].FinalizeMasks();
+			}
+
 			CompressedLevel.Randomizer = new Random();
 
 			foreach (var level in Directory.GetFiles(_path, "*", SearchOption.AllDirectories)) {
@@ -150,45 +155,7 @@ namespace GBA_Compiler {
 			return split;
 		}
 
-		enum MetaOperations {
-			Add, Subtract, Divide, Multiply
-		}
 
-		private static IEnumerator<string> MetaSplit(string _value) {
-
-			int i;
-
-			string retval = "";
-
-			for (i = 0; i < _value.Length;) {
-				while (_value[i] == ' ')
-					++i;
-
-				if (_value[i] == '{') {
-					i++;
-					do {
-						if (_value[i] != ' ')
-							retval += _value[i];
-						i++;
-					}
-					while (_value[i] != '}');
-
-					yield return retval;
-					retval = "";
-				}
-				else {
-					do {
-						retval += _value[i++];
-					}
-					while (_value[i] != ' ' && _value[i] != '{');
-
-					yield return retval;
-					retval = "";
-				}
-			}
-
-			yield break;
-		}
 		private static byte ParseEntityMeta(string _value) {
 			byte retval;
 
@@ -197,7 +164,7 @@ namespace GBA_Compiler {
 
 			float parsedValue = 0;
 
-			var checkEach = MetaSplit(_value);
+			var checkEach = DataParser.MetaSplit(_value);
 
 			MetaOperations currentOp = MetaOperations.Add;
 
@@ -325,6 +292,11 @@ namespace GBA_Compiler {
 
 								currentType = split[0];
 
+								if (!typeLocalCount.ContainsKey(currentType)) {
+									typeLocalCount.Add(currentType, 0);
+									typeGlobalCount.Add(currentType, 0);
+									typeSectionCount[CompressedLevel.DataParse].Add(currentType, 0);
+								}
 								typeLocalCount[currentType]++;
 								typeGlobalCount[currentType]++;
 								typeSectionCount[CompressedLevel.DataParse][currentType]++;

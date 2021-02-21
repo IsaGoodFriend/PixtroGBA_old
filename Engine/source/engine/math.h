@@ -24,6 +24,10 @@
 
 #define ACC			8
 
+struct AffineMatrix {
+	
+} AffineMatrix;
+
 int FIXED_sqrt(int x);
 unsigned int RNG();
 #endif

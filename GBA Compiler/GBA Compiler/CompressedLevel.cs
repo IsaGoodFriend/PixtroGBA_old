@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace GBA_Compiler {
 	public class LevelParse {
@@ -13,7 +14,30 @@ namespace GBA_Compiler {
 			public string Tileset;
 			public char[] Connections;
 			public Point[] Mapping;
-			public Dictionary<string, Point[]> TileOffsets;
+			public string[] MappingSpecial;
+			public Dictionary<string, Point[]> TileMapping;
+			public Dictionary<string, Point[]> Offsets;
+
+			[JsonIgnore]
+			public Dictionary<string, uint> EnableMask, DisableMask;
+
+			public void FinalizeMasks() {
+				EnableMask = new Dictionary<string, uint>();
+				DisableMask = new Dictionary<string, uint>();
+
+				foreach (string key in TileMapping.Keys) {
+					EnableMask.Add(key, Convert.ToUInt32(key.Replace("*", "0"), 2));
+					DisableMask.Add(key, ~Convert.ToUInt32(key.Replace("*", "1"), 2));
+				}
+				if (Offsets != null)
+				foreach (string key in Offsets.Keys) {
+					if (EnableMask.ContainsKey(key))
+						continue;
+
+					EnableMask.Add(key, Convert.ToUInt32(key.Replace("*", "0"), 2));
+					DisableMask.Add(key, ~Convert.ToUInt32(key.Replace("*", "1"), 2));
+				}
+			}
 		}
 		public Dictionary<char, TileWrapping> Wrapping;
 
@@ -230,63 +254,111 @@ namespace GBA_Compiler {
 			}
 
 			uint[,] data = new uint[width, height];
-			ushort[] retvals = new ushort[width * height];
-			int i = 0;
 
 			for (int y = 0; y < height; ++y) {
 				for (int x = 0; x < width; ++x) {
 					data[x, y] = levelData[layer, x, y] == ' ' ? 0 : (uint)characters.IndexOf(levelData[layer, x, y]) + 1;
 				}
 			}
-			for (int y = 0; y < height; ++y) {
-				for (int x = 0; x < width; ++x) {
-					if (levelData[layer, x, y] == ' ') {
-						retvals[i++] = 0;
-						continue;
-					}
 
-					var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
-
-					Tile tile = null;
-					LevelTileset tileset = ArtCompiler.LevelTilesets[wrapping.Tileset];
-					uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping), testValue;
-
-					foreach (var key in wrapping.TileOffsets.Keys) {
-						testValue = Convert.ToUInt32(key.Replace("*", "0"), 2);
-
-						if ((testValue & value) != testValue)
-							continue;
-
-						testValue = ~Convert.ToUInt32(key.Replace("*", "1"), 2);
-
-						if ((testValue & (value)) != 0)
-							continue;
-						
-						var point = wrapping.TileOffsets[key].GetRandom(Randomizer);
-
-						tile = tileset.GetOGTile(point.X, point.Y);
-						break;
-					}
-
-					Tile mappedTile = tileset.GetTile(tile);
-
-					retvals[i++] = (ushort)((fullTileset.IndexOf(mappedTile) + 1) | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
-				}
-			}
-
-			ushort last = retvals[0];
+			ushort last = 0;
 			byte count = 0;
 
-			foreach (var v in retvals) {
-				if (v != last || count == 255) {
-					yield return count;
-					yield return (byte)(last       & 0xFF);
-					yield return (byte)((last >> 8));
+			for (int y = 0; y < height; ++y) {
+				for (int x = 0; x < width; ++x) {
+					ushort retval;
 
-					last = v;
-					count = 0;
+					if (levelData[layer, x, y] == ' ') {
+						retval = 0;
+					}
+					else {
+						var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
+
+						Tile tile = null;
+						LevelTileset tileset = ArtCompiler.LevelTilesets[wrapping.Tileset];
+						uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping), testValue;
+
+						float getvalue(string _s) {
+
+							string[] split = _s.Split('.');
+
+							switch (split[0]) {
+								case "x":
+									return x;
+								case "y":
+									return y;
+								case "width":
+									return width;
+								case "height":
+									return height;
+								case "random":
+									if (split.Length == 2)
+										return Randomizer.Next(int.Parse(split[1]));
+									else
+										return Randomizer.Next(int.Parse(split[1]), int.Parse(split[2]));
+							}
+
+							return 0;
+						}
+
+						if (wrapping.MappingSpecial != null) 
+							foreach (string str in wrapping.MappingSpecial) {
+
+								var dp = new DataParser(str);
+
+								value <<= 1;
+								value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
+							}
+
+						foreach (var key in wrapping.TileMapping.Keys) {
+							testValue = wrapping.EnableMask[key];
+
+							if ((testValue & value) != testValue)
+								continue;
+
+							testValue = wrapping.DisableMask[key];
+
+							if ((testValue & (value)) != 0)
+								continue;
+
+							var point = wrapping.TileMapping[key].GetRandom(Randomizer);
+
+							if (wrapping.Offsets != null)
+								foreach (var o in wrapping.Offsets.Keys) {
+
+									testValue = wrapping.EnableMask[o];
+
+									if ((testValue & value) != testValue)
+										continue;
+
+									testValue = wrapping.DisableMask[o];
+
+									if ((testValue & (value)) != 0)
+										continue;
+
+									foreach (var exPoint in wrapping.Offsets[o])
+										point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
+								}
+
+							tile = tileset.GetOGTile(point.X, point.Y);
+							break;
+						}
+
+						Tile mappedTile = tileset.GetTile(tile);
+
+						retval = (ushort)((fullTileset.IndexOf(mappedTile) + 1) | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
+					}
+
+					if ((x != 0 || y != 0) && (retval != last || count == 255)) {
+						yield return count;
+						yield return (byte)(last       & 0xFF);
+						yield return (byte)((last >> 8));
+
+						last = retval;
+						count = 0;
+					}
+					++count;
 				}
-				++count;
 			}
 
 			yield return count;

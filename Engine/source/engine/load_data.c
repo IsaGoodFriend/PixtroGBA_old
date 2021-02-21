@@ -213,8 +213,8 @@ void protect_cam(){
 		BGOFS[(i << 1) + 1] = cam_y;
 	}
 	for (; i < 4; ++i) {
-		BGOFS[(i << 1) + 0] = FIXED_MULT(cam_x, layers[i].lerp[0]);
-		BGOFS[(i << 1) + 1] = FIXED_MULT(cam_y, layers[i].lerp[0]);
+		BGOFS[(i << 1) + 0] = FIXED_MULT(cam_x, 0x80);
+		BGOFS[(i << 1) + 1] = FIXED_MULT(cam_y, 0x80);
 	}
 }
 #ifdef LARGE_TILES
@@ -236,8 +236,6 @@ void move_cam() {
 	if (!moveX && !moveY)
 		goto skip_loadcam;
 	
-	cam_x -= BLOCK2INT(X_TILE_BUFFER);
-	cam_y -= BLOCK2INT(Y_TILE_BUFFER);
 	
 	int xMin = INT2BLOCK(SIGNED_MIN(prev_cam_x, cam_x)) - 1;
 	int xMax = INT2BLOCK(SIGNED_MAX(prev_cam_x, cam_x)) + BLOCK_X + 1;
@@ -310,10 +308,10 @@ void move_cam() {
 	}
 	while (startX != endX || startY != endY);
 	
-	cam_x += BLOCK2INT(X_TILE_BUFFER);
-	cam_y += BLOCK2INT(Y_TILE_BUFFER);
-	
 	skip_loadcam:
+	
+	prev_cam_x = cam_x;
+	prev_cam_y = cam_y;
 	
 	cam_x += 120;
 	cam_y += 80;
@@ -330,17 +328,10 @@ void reset_cam() {
 		goto skip_loadcam;
 	
 	int val;
-	for (val = 0; val < foreground_count << 1; val += 2) {
-		BGOFS[val] 		= cam_x;
-		BGOFS[val + 1]	= cam_y;
-	}
-	
 	
 	int x = INT2BLOCK(cam_x);
 	int y = INT2BLOCK(cam_y);
 	
-	y -= Y_TILE_BUFFER;
-	x -= X_TILE_BUFFER;
 	x &= ~0x1;
 	
 	unsigned short *foreground = se_mem[31];
@@ -378,10 +369,11 @@ void reset_cam() {
 	
 	skip_loadcam:
 	
-	cam_x += 120;
-	cam_y += 80;
 	prev_cam_x = cam_x;
 	prev_cam_y = cam_y;
+	
+	cam_x += 120;
+	cam_y += 80;
 }
 //*/
 #endif
