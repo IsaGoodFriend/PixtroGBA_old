@@ -14,7 +14,8 @@ extern unsigned int tileTypes[128];
 void test_update(int index) {
 	Entity *ent = &entities[index];
 	ent->velY += 0x20;
-	ent->velX = key_tri_horz() * 0x180;
+	ent->velX = FIXED_APPROACH(ent->velX, (key_tri_horz() * 0x200), 0x40);
+	
 	
 	if (key_pressed(KEY_A, 20)){
 		ent->velY = -0x280;
@@ -27,7 +28,16 @@ void test_update(int index) {
 void test_render(int index) {
 	Entity ent = entities[index];
 	
-	draw(ent.x - 0x200, ent.y, 0, 0, 0, 0);
+	AffineMatrix mat = matrix_identity();
+	
+	TRANSLATE_MATRIX(mat, 0x000, -0x800);
+	SCALE_MATRIX(mat, 0x100);
+	ROTATE_MATRIX(mat, -(ent.velX / 14));
+	TRANSLATE_MATRIX(mat, ent.x + INT2FIXED(ent.width >> 1), ent.y + INT2FIXED(ent.height));
+	
+	draw_affine(mat, 0, 0, 0);
+	
+	//draw(ent.x - 0x200, ent.y, 0, 0, 0, 0);
 }
 
 void on_update() {
@@ -47,7 +57,7 @@ void init() {
 	load_bg_pal(PAL_test, 0);
 	load_obj_pal(PAL_test, 0);
 	
-	load_anim_sprite(&SPR_test_anim[0], 0, SPRITE16x16, 4, SPR_test_anim_len);
+	load_sprite(&SPR_test_anim[0], 0, SPRITE16x16);
 	
 	set_layer_priority(1, 1);
 	set_layer_priority(2, 2);

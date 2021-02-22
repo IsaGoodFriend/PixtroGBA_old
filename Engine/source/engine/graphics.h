@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sprites.h"
+#include "math.h"
 
 extern int drawing_flags;
 
@@ -44,6 +45,7 @@ void load_bg_pal(unsigned short *_pal, int _palIndex);
 void load_tileset(const unsigned short *_tiles, int _count);
 
 void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal);
+void draw_affine(AffineMatrix _matrix, int _sprite, int _prio, int _pal);
 
 void init_drawing();
 void end_drawing();

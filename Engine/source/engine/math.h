@@ -8,10 +8,10 @@
 #define FIXED_MULT(a, b)		(FIXED2INT((a) * (b)))
 
 #define INT_ABS(n)				((n) * (((n)>>31) | 1))
-#define INT_SIGN(n)				((n != 0) * (((n)>>31) | 1))
-#define INT_SIGNED(n, s)		((n != 0) * (((n)>>31) | 1))
-#define INT_LERP(a, b, t)		(((a * (0x100 - t)) + (b * t)) >> ACC)
-#define FIXED_LERP(a, b, t)		(FIXED_MULT((b), t) + FIXED_MULT((a), 0x100 - t))
+#define INT_SIGN(n)				(((n) != 0) * (((n)>>31) | 1))
+#define INT_SIGNED(n, s)		(((n) != 0) * (((n)>>31) | 1))
+#define INT_LERP(a, b, t)		((((a) * (0x100 - (t))) + ((b) * (t))) >> ACC)
+#define FIXED_LERP(a, b, t)		(FIXED_MULT((b), (t)) + FIXED_MULT((a), 0x100 - (t)))
 #define FIXED_APPROACH(a, b, m)	((a > b) * SIGNED_MAX(a - m, b) + (a <= b) * SIGNED_MIN(a + m, b))
 
 #define SIGNED_MAX(a, b)		(b + (a - b) * (a > b))
@@ -24,9 +24,22 @@
 
 #define ACC			8
 
-struct AffineMatrix {
+#define TRANSLATE_MATRIX(m, x, y)	m = matrix_multiply(m, matrix_trans(x, y))
+#define ROTATE_MATRIX(m, r)			m = matrix_multiply(m, matrix_rot(r))
+#define SCALE_MATRIX(m, s)			m = matrix_multiply(m, matrix_scale(s, s))
+#define SCALE_MATRIX_XY(m, x, y)	m = matrix_multiply(m, matrix_scale(x, y))
+
+typedef struct AffineMatrix {
+	int values[6];
 	
 } AffineMatrix;
+
+AffineMatrix matrix_multiply(AffineMatrix a, AffineMatrix b);
+
+AffineMatrix matrix_identity();
+AffineMatrix matrix_trans(int x, int y);
+AffineMatrix matrix_rot(int rot);
+AffineMatrix matrix_scale(int scale_x, int scale_y);
 
 int FIXED_sqrt(int x);
 unsigned int RNG();
