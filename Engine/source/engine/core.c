@@ -60,7 +60,7 @@ void load_settings();
 void interrupt();
 void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len, int size);
 
-extern void rng_seed(unsigned int s1, unsigned int s2, unsigned int s3);
+extern void rng_seed(unsigned int seed1, unsigned int seed2, unsigned int seed3);
 extern void update_particles();
 extern void update_anims();
 extern void update_presses();
@@ -68,7 +68,11 @@ extern void update_presses();
 // Initialize the game
 void pixtro_init() {
 	
+	// Resetting tileset values
 	reset_tilesets();
+	
+	// Setting first physics tile to be collidable
+	SET_TILE_DATA(0, SHAPE_FULL, 0);
 	
 	// Set the RNG seeds.  Change values to anything non 0
 	rng_seed(0xFA12B4, 0x2B5C72, 0x14F4D2);

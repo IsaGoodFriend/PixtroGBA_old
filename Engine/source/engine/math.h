@@ -40,5 +40,5 @@ AffineMatrix matrix_trans(int x, int y);
 AffineMatrix matrix_rot(int rot);
 AffineMatrix matrix_scale(int scale_x, int scale_y);
 
-int FIXED_sqrt(int x);
+int fixed_sqrt(int x);
 unsigned int RNG();

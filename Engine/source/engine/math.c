@@ -35,7 +35,7 @@ int int_deg_cos(int angle) {
 	return int_deg_sin(angle + 90);
 }
 
-int FIXED_sqrt(int x) {
+int fixed_sqrt(int x) {
     unsigned int t, q, b, r;
     r = x;
     b = 0x1000;
