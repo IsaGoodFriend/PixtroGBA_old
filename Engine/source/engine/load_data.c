@@ -8,28 +8,25 @@
 #include "math.h"
 
 
-#define FIXED2BLOCK(n) ((n) >> (ACC + BLOCK_SHIFT))
-#define BLOCK2FIXED(n) ((n) << (ACC + BLOCK_SHIFT))
+#define FIXED2BLOCK(n)	((n) >> (ACC + BLOCK_SHIFT))
+#define BLOCK2FIXED(n)	((n) << (ACC + BLOCK_SHIFT))
 
-#define INT2BLOCK(n) ((n) >> (BLOCK_SHIFT))
-#define BLOCK2INT(n) ((n) << (BLOCK_SHIFT))
+#define INT2BLOCK(n)	((n) >> (BLOCK_SHIFT))
+#define BLOCK2INT(n)	((n) << (BLOCK_SHIFT))
+
+#define FIXED2TILE(n)	((n) >> (ACC + 3))
+#define TILE2FIXED(n)	((n) << (ACC + 3))
+
+#define INT2TILE(n)		((n) >> 3)
+#define TILE2INT(n)		((n) << 3)
 
 #define VIS_BLOCK_POS(x, y) (((x) & 0x1F) + (((y) & 0x1F) << 5))
 
 #define X_TILE_BUFFER 1
 #define Y_TILE_BUFFER 1
 
-#ifdef LARGE_TILES
-
-#define BLOCK_X		15
-#define BLOCK_Y		10
-
-#else
-
 #define BLOCK_X		30
 #define BLOCK_Y		20
-
-#endif
 
 #define BGOFS			((vu16*)(REG_BASE+0x0010))
 
@@ -218,6 +215,9 @@ void protect_cam(){
 	}
 }
 #ifdef LARGE_TILES
+void copy_tiles(unsigned short *screen, unsigned short *data, int x, int y, int len) {
+	
+}
 void move_cam() {
 	
 	cam_x -= 120;
@@ -228,17 +228,17 @@ void move_cam() {
 	if (foreground_count == 0)
 		goto skip_loadcam;
 	
-	int moveX = INT2BLOCK(cam_x) - INT2BLOCK(prev_cam_x),
-		moveY = INT2BLOCK(cam_y) - INT2BLOCK(prev_cam_y);
+	int moveX = INT2TILE(cam_x) - INT2TILE(prev_cam_x),
+		moveY = INT2TILE(cam_y) - INT2TILE(prev_cam_y);
 	
 	if (!moveX && !moveY)
 		goto skip_loadcam;
 	
 	
-	int xMin = INT2BLOCK(SIGNED_MIN(prev_cam_x, cam_x)) - 1;
-	int xMax = INT2BLOCK(SIGNED_MAX(prev_cam_x, cam_x)) + BLOCK_X + 1;
-	int yMin = INT2BLOCK(SIGNED_MIN(prev_cam_y, cam_y)) - 1;
-	int yMax = INT2BLOCK(SIGNED_MAX(prev_cam_y, cam_y)) + BLOCK_Y + 1;
+	int xMin = INT2TILE(SIGNED_MIN(prev_cam_x, cam_x)) - 1;
+	int xMax = INT2TILE(SIGNED_MAX(prev_cam_x, cam_x)) + BLOCK_X + 1;
+	int yMin = INT2TILE(SIGNED_MIN(prev_cam_y, cam_y)) - 1;
+	int yMax = INT2TILE(SIGNED_MAX(prev_cam_y, cam_y)) + BLOCK_Y + 1;
 	
 	unsigned short *foreground = se_mem[31];
 	unsigned short *midground  = se_mem[30];
@@ -278,11 +278,13 @@ void move_cam() {
 			for (; min != max; min += dirY){
 				position = VIS_BLOCK_POS(startX, min);
 				
-				foreground[position] = uncmp_visuals[startX + (min << yShift)];
+				int vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << yShift)];
+				foreground[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
+				/*foreground[position] = uncmp_visuals[startX + (min << yShift)];
 				if (midground)
 					midground[position]  = uncmp_visuals[startX + (min << yShift) + 0x2000];
 				if (background)
-					background[position] = uncmp_visuals[startX + (min << yShift) + 0x4000];
+					background[position] = uncmp_visuals[startX + (min << yShift) + 0x4000]; */
 			}
 			startX += dirX;
 		}
@@ -295,7 +297,8 @@ void move_cam() {
 			for (; min != max; min += dirX){
 				position = VIS_BLOCK_POS(min, startY);
 				
-				foreground[position] = uncmp_visuals[min + (startY << yShift)];
+				int vis = uncmp_visuals[(min >> 1) + ((startY >> 1) << yShift)];
+				foreground[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);
 				if (midground)
 					midground[position] = uncmp_visuals[min + (startY << yShift) + 0x2000];
 				if (background)
@@ -322,7 +325,7 @@ void reset_cam() {
 	
 	protect_cam();
 	
-	if (foreground_count == 0)
+	//if (foreground_count == 0)
 		goto skip_loadcam;
 	
 	int val;
@@ -348,21 +351,27 @@ void reset_cam() {
 		int p2 = (y << yShift) + x;
 		++y;
 		
-		memcpy(&foreground[p1], &uncmp_visuals[p2], 64 - (x << 1));
+		copy_tiles(&foreground[p1], &uncmp_visuals[p2], x, y, 32 - x);
+		
+		/*
 		if (midground)
 			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], 64 - (x << 1));
 		if (background)
 			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], 64 - (x << 1));
 		
+		*/
 		p1 &= 0xFE0;
 		p2 += 32 - x;
 		
+		copy_tiles(&foreground[p1], &uncmp_visuals[p2], x, y, x);
+		/*
 		memcpy(&foreground[p1], &uncmp_visuals[p2], x << 1);
 		if (midground)
 			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], (x << 1));
 		if (background)
 			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], (x << 1));
 		
+		*/
 	}
 	
 	skip_loadcam:

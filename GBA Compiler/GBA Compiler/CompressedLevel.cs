@@ -346,7 +346,7 @@ namespace GBA_Compiler {
 
 						Tile mappedTile = tileset.GetTile(tile);
 
-						retval = (ushort)((fullTileset.IndexOf(mappedTile) + 1) | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
+						retval = (ushort)(((fullTileset.IndexOf(mappedTile) + 1) << (Compiler.LargeTiles ? 2 : 0)) | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
 					}
 
 					if ((x != 0 || y != 0) && (retval != last || count == 255)) {

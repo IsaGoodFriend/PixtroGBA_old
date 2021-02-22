@@ -96,6 +96,7 @@ namespace GBA_Compiler {
 			return (ushort)tiles.IndexOf(GetTile(_version));
 		}
 		public virtual IEnumerable<uint> Data(string _name) {
+			
 			foreach (var tile in tiles)
 				foreach (var v in tile.RawData)
 					yield return v;
@@ -514,7 +515,7 @@ namespace GBA_Compiler {
 
 						LevelTilesets.Add(name, tileset);
 
-						_compiler.AddValueDefine(name + "_len", tileset.tiles.Count);
+						_compiler.AddValueDefine(name + "_len", tileset.tiles.Count << (Compiler.LargeTiles ? 2 : 0));
 
 						_compiler.BeginArray(CompileToC.ArrayType.UInt, name);
 						_compiler.AddRange(Enumerable.ToArray(tileset.Data("asdf")));

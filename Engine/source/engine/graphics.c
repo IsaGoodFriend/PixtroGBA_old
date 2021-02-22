@@ -160,7 +160,7 @@ void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, i
 	anim_meta[index] |= shape << 16;
 }
 void load_tileset(const unsigned short *_tiles, int _count) {
-	memcpy(&tile_mem[FG_TILESET][1], _tiles, _count << 5);
+	memcpy(&tile_mem[FG_TILESET][4], _tiles, _count << 5);
 }
 void load_obj_pal(unsigned short *_pal, int _palIndex) {
 	memcpy(&pal_obj_mem[_palIndex << 4], _pal, copyPalette);
