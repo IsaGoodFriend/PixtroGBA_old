@@ -142,7 +142,6 @@ void pixtro_render() {
 	// Finalize the graphics and prepare for the next cycle
 	end_drawing();
 }
-
 // Layer functions that don't need to be finalized
 void set_layer_visible(int layer, bool visible) {
 	layer = 1 << (layer + 8);

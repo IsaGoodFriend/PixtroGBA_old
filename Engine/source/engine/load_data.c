@@ -218,7 +218,161 @@ void protect_cam(){
 	}
 }
 #ifdef LARGE_TILES
-
+void move_cam() {
+	
+	cam_x -= 120;
+	cam_y -= 80;
+	
+	protect_cam();
+	
+	if (foreground_count == 0)
+		goto skip_loadcam;
+	
+	int moveX = INT2BLOCK(cam_x) - INT2BLOCK(prev_cam_x),
+		moveY = INT2BLOCK(cam_y) - INT2BLOCK(prev_cam_y);
+	
+	if (!moveX && !moveY)
+		goto skip_loadcam;
+	
+	
+	int xMin = INT2BLOCK(SIGNED_MIN(prev_cam_x, cam_x)) - 1;
+	int xMax = INT2BLOCK(SIGNED_MAX(prev_cam_x, cam_x)) + BLOCK_X + 1;
+	int yMin = INT2BLOCK(SIGNED_MIN(prev_cam_y, cam_y)) - 1;
+	int yMax = INT2BLOCK(SIGNED_MAX(prev_cam_y, cam_y)) + BLOCK_Y + 1;
+	
+	unsigned short *foreground = se_mem[31];
+	unsigned short *midground  = se_mem[30];
+	unsigned short *background = se_mem[29];
+	
+	if (foreground_count <= 2)
+		background = NULL;
+	if (foreground_count <= 1)
+		midground = NULL;
+	
+	int position;
+	
+	// Get the start X and Y rows needed to edit, and the direction each is needed to move.
+	// Get the end destinations for x and y.
+	
+	int dirX = INT_SIGN(moveX), dirY = INT_SIGN(moveY);
+	int startX = (dirX < 0) ? xMin : xMax, startY = (dirY < 0) ? yMin : yMax;
+	int endX = startX + moveX, endY = startY + moveY;
+	int min, max;
+		
+	if (startX != endX)
+		startX -= dirX;
+	if (startY != endY)
+		startY -= dirY;
+	
+	if (dirX == 0)
+		dirX = 1;
+	if (dirY == 0)
+		dirY = 1;
+	
+	do {
+		
+		if (startX != endX) {
+			min = startY - (BLOCK_Y + 2) * dirY;
+			max = startY;
+			
+			for (; min != max; min += dirY){
+				position = VIS_BLOCK_POS(startX, min);
+				
+				foreground[position] = uncmp_visuals[startX + (min << yShift)];
+				if (midground)
+					midground[position]  = uncmp_visuals[startX + (min << yShift) + 0x2000];
+				if (background)
+					background[position] = uncmp_visuals[startX + (min << yShift) + 0x4000];
+			}
+			startX += dirX;
+		}
+		
+		if (startY != endY) {
+			
+			min = startX - (BLOCK_X + 2) * dirX;
+			max = startX;
+			
+			for (; min != max; min += dirX){
+				position = VIS_BLOCK_POS(min, startY);
+				
+				foreground[position] = uncmp_visuals[min + (startY << yShift)];
+				if (midground)
+					midground[position] = uncmp_visuals[min + (startY << yShift) + 0x2000];
+				if (background)
+					background[position] = uncmp_visuals[min + (startY << yShift) + 0x4000];
+			}
+			startY += dirY;
+		}
+	}
+	while (startX != endX || startY != endY);
+	
+	skip_loadcam:
+	
+	prev_cam_x = cam_x;
+	prev_cam_y = cam_y;
+	
+	cam_x += 120;
+	cam_y += 80;
+}
+//*
+void reset_cam() {
+	
+	cam_x -= 120;
+	cam_y -= 80;
+	
+	protect_cam();
+	
+	if (foreground_count == 0)
+		goto skip_loadcam;
+	
+	int val;
+	
+	int x = INT2BLOCK(cam_x);
+	int y = INT2BLOCK(cam_y);
+	
+	x &= ~0x1;
+	
+	unsigned short *foreground = se_mem[31];
+	unsigned short *midground  = se_mem[30];
+	unsigned short *background = se_mem[29];
+	
+	if (foreground_count < 3)
+		background = 0;
+	if (foreground_count < 2)
+		midground = 0;
+	
+	val = 32;
+	while (val-- > 0){
+		
+		int p1 = VIS_BLOCK_POS(x, y);
+		int p2 = (y << yShift) + x;
+		++y;
+		
+		memcpy(&foreground[p1], &uncmp_visuals[p2], 64 - (x << 1));
+		if (midground)
+			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], 64 - (x << 1));
+		if (background)
+			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], 64 - (x << 1));
+		
+		p1 &= 0xFE0;
+		p2 += 32 - x;
+		
+		memcpy(&foreground[p1], &uncmp_visuals[p2], x << 1);
+		if (midground)
+			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], (x << 1));
+		if (background)
+			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], (x << 1));
+		
+	}
+	
+	skip_loadcam:
+	
+	prev_cam_x = cam_x;
+	prev_cam_y = cam_y;
+	
+	cam_x += 120;
+	cam_y += 80;
+}
 #else
 void move_cam() {
 	

@@ -1,7 +1,6 @@
-#ifndef _PIX_ENGINE
-#define _PIX_ENGINE
+#pragma once
 
-//#define LARGE_TILES
+#define LARGE_TILES
 
 // The size of each individual save file.  Can be any size, but it is recommended it be a multiple of 16
 // The readable data in the save file will be one byte less than this number here.
@@ -20,4 +19,3 @@
 void init();
 void init_settings();
 
-#endif

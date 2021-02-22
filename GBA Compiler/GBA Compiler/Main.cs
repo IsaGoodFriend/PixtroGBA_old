@@ -61,6 +61,9 @@ namespace GBA_Compiler {
 
 			return (ushort)(r | (g << 5) | (b << 10));
 		}
+		
+		public static bool LargeTiles { get; private set; }
+		
 		public static string[] Arguments { get; private set; }
 		public static bool HasArgument(string _arg) {
 			return Arguments.Contains(_arg);
@@ -77,6 +80,22 @@ namespace GBA_Compiler {
 #if DEBUG
 			RootPath = @"C:\Users\IsaGoodFriend\OneDrive\Documents\DevKitPro\Projects\PixtroGBA\Engine";
 #endif
+
+			foreach (string s in File.ReadAllLines(Path.Combine(RootPath, @"source\engine.h"))) {
+				if (s.StartsWith("#define")) {
+					string removeComments = s;
+					if (removeComments.Contains("/"))
+						removeComments = removeComments.Substring(0, removeComments.IndexOf('/'));
+
+					string[] split = removeComments.Replace('\t', ' ').Split(new char[] {' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+					switch (split[1]) {
+						case "LARGE_TILES":
+							LargeTiles = true;
+							break;
+					}
+				}
+			}
 
 			if (RootPath.EndsWith("\\"))
 				RootPath = RootPath.Substring(0, RootPath.Length - 1);

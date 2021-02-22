@@ -228,7 +228,7 @@ namespace GBA_Compiler {
 
 			BaseStream.Seek(14, SeekOrigin.Current);
 
-			int transparent = ReadByte();
+			transparent = ReadByte();
 
 			BaseStream.Seek(3, SeekOrigin.Current);
 
@@ -238,9 +238,7 @@ namespace GBA_Compiler {
 			BaseStream.Seek(128, SeekOrigin.Begin);
 
 			for (int i = 0; i < frameCount; ++i) {
-				BaseStream.Seek(4, SeekOrigin.Current);
-
-				string test = ReadUInt16().ToString("X");
+				BaseStream.Seek(6, SeekOrigin.Current);
 
 				uint chunkCount = ReadUInt16();
 				BaseStream.Seek(4, SeekOrigin.Current);
@@ -271,7 +269,6 @@ namespace GBA_Compiler {
 		}
 
 		private void ReadChunk(uint type, int frameIndex, uint size) {
-			long chunkStart = BaseStream.Position;
 
 			switch (type) {
 				case 0x2018: // Tag data
@@ -306,7 +303,7 @@ namespace GBA_Compiler {
 					long idx = BaseStream.Position;
 					BaseStream.Seek(5, SeekOrigin.Current);
 
-					Cel cel = null;
+					Cel cel;
 
 					var b = ReadUInt16();
 					switch (b) {
@@ -363,7 +360,7 @@ namespace GBA_Compiler {
 			}
 		}
 
-		public IEnumerable<uint[]> GetSprites(string _tag = null, string _layer = null, bool _readSpriteBackwards = false, bool _readFramesBackwards = false) {
+		public IEnumerable<uint[]> GetSprites(string _tag = null, string _layer = null, bool _readSpriteBackwards = false, bool _readFramesBackwards = false, bool _largeTiles = false) {
 			int startFrame = 0, endFrame = frameCount - 1;
 
 			if (_tag != null) {
@@ -442,9 +439,9 @@ namespace GBA_Compiler {
 
 				List<uint> retval;
 				if (_readSpriteBackwards)
-					retval = new List<uint>(ArtCompiler.GetArrayFromSprite(Width, Height, backward));
+					retval = new List<uint>(ArtCompiler.GetArrayFromSprite(Width, Height, backward, _largeTiles));
 				else
-					retval = new List<uint>(ArtCompiler.GetArrayFromSprite(Width, Height, foreward));
+					retval = new List<uint>(ArtCompiler.GetArrayFromSprite(Width, Height, foreward, _largeTiles));
 
 
 				yield return retval.ToArray();

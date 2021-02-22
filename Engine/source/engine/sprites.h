@@ -12,5 +12,5 @@ extern const unsigned short BG_sample_bmp[1024];
 extern const unsigned int BGT_sample_ase[448];
 #define BGT_sample_bmp_len				96
 extern const unsigned int BGT_sample_bmp[768];
-#define TILE_test_len					8
-extern const unsigned int TILE_test[64];
+#define TILE_test_len					10
+extern const unsigned int TILE_test[320];

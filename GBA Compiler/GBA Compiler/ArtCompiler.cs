@@ -45,19 +45,19 @@ namespace GBA_Compiler {
 				throw new Exception();
 			}
 		}
-		public void AddTiles(IEnumerator<uint> _tileData) {
+		public void AddTiles(IEnumerator<uint> _tileData, bool _largeTiles) {
 			int x = 0, y = 0;
 			do {
 				List<uint> tileRaw = new List<uint>();
 
-				for (int i = 0; i < 8 && _tileData.MoveNext(); ++i) {
+				for (int i = 0; i < (_largeTiles ? 32 : 8) && _tileData.MoveNext(); ++i) {
 					tileRaw.Add(_tileData.Current);
 				}
 
 				if (tileRaw.Count < 8)
 					break;
 
-				var tile = new Tile(tileRaw.ToArray(), 0);
+				var tile = new Tile(tileRaw.ToArray(), 0, _largeTiles);
 
 				AddTile(tile);
 				if (originalLayout != null) {
@@ -123,13 +123,13 @@ namespace GBA_Compiler {
 
 		public uint[] RawData => rawData;
 
-		public Tile(uint[] _GBA, int _index) {
-			bitData = new byte[64];
-			rawData = new uint[8];
+		public Tile(uint[] _GBA, int _index, bool _largeTile) {
+			bitData = new byte[64 * (_largeTile ? 4 : 1)];
+			rawData = new uint[8 * (_largeTile ? 4 : 1)];
 
 			IsAir = true;
 
-			for (int i = 0; i < 8; ++i) {
+			for (int i = 0; i < 8 * (_largeTile ? 4 : 1); ++i) {
 				rawData[i] = _GBA[i + _index];
 
 				IsAir &= rawData[i] == 0;
@@ -397,7 +397,7 @@ namespace GBA_Compiler {
 					if (tileRaw.Count < 8)
 						break;
 
-					var tile = new Tile(tileRaw.ToArray(), 0);
+					var tile = new Tile(tileRaw.ToArray(), 0, false);
 
 					tileset.AddTile(tile);
 
@@ -501,10 +501,16 @@ namespace GBA_Compiler {
 
 						palettesFromSprites.Add(name, palette.ToArray());
 
-						LevelTileset tileset = new LevelTileset(map.Width >> 3, map.Height >> 3);
+						LevelTileset tileset = new LevelTileset(map.Width >> (Compiler.LargeTiles ? 4 : 3), map.Height >> (Compiler.LargeTiles ? 4 : 3));
 
-						tileset.AddTiles(GetArrayFromSprite(map.Width, map.Height,
-							(x, y) => { return (uint)palette.IndexOf(map.GetPixel(x, y)); }).GetEnumerator());
+
+						uint getValueSmall (int x, int y) {
+							return (uint)palette.IndexOf(map.GetPixel(x, y));
+						};
+
+						tileset.AddTiles(
+							GetArrayFromSprite(map.Width, map.Height, getValueSmall, Compiler.LargeTiles).GetEnumerator(),
+							Compiler.LargeTiles);
 
 						LevelTilesets.Add(name, tileset);
 
@@ -524,11 +530,11 @@ namespace GBA_Compiler {
 
 							int index = 0;
 
-							foreach (var array in read.GetSprites()) {
+							foreach (var array in read.GetSprites(_largeTiles: Compiler.LargeTiles)) {
 								string tName =  $"{name}_{index++}";
 
 								var tileset = new LevelTileset(read.Width >> 3, read.Height >> 3);
-								tileset.AddTiles(array.Cast<uint>().GetEnumerator());
+								tileset.AddTiles(array.Cast<uint>().GetEnumerator(), Compiler.LargeTiles);
 
 								_compiler.BeginArray(CompileToC.ArrayType.UInt, tName);
 								_compiler.AddRange(array);
@@ -880,21 +886,36 @@ namespace GBA_Compiler {
 						break;
 
 					}
-					break;
 			}
 		}
 
-		public static IEnumerable<uint> GetArrayFromSprite(int _width, int _height, IndexOnSprite _values) {
+		public static IEnumerable<uint> GetArrayFromSprite(int _width, int _height, IndexOnSprite _values, bool _largeTiles = false) {
 
-			for (int yL = 0; yL < _height >> 3; ++yL) {
-				for (int xL = 0; xL < _width >> 3; ++xL) {
-					for (int y = 0; y < 8; ++y) {
-						uint tempValue = 0;
+			if (_largeTiles) {
+				for (int yL = 0; yL < _height >> 3; yL += 2) {
+					for (int xL = 0; xL < _width >> 3; ++xL) {
+						for (int y = 0; y < 16; ++y) {
+							uint tempValue = 0;
 
-						for (int i = 7; i >= 0; --i)
-							tempValue = (tempValue << 4) | _values((xL << 3) + i, (yL << 3) + y);
+							for (int i = 7; i >= 0; --i)
+								tempValue = (tempValue << 4) | _values((xL << 3) + i, (yL << 3) + y);
 
-						yield return tempValue;
+							yield return tempValue;
+						}
+					}
+				}
+			}
+			else {
+				for (int yL = 0; yL < _height >> 3; ++yL) {
+					for (int xL = 0; xL < _width >> 3; ++xL) {
+						for (int y = 0; y < 8; ++y) {
+							uint tempValue = 0;
+
+							for (int i = 7; i >= 0; --i)
+								tempValue = (tempValue << 4) | _values((xL << 3) + i, (yL << 3) + y);
+
+							yield return tempValue;
+						}
 					}
 				}
 			}
