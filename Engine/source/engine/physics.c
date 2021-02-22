@@ -15,14 +15,14 @@
 unsigned int tile_types[128];
 
 unsigned int y_shift;
-unsigned int width, height;
+unsigned int lvl_width, lvl_height;
 unsigned char *collision_data = (unsigned char*)0x02008000;
 
 int GetBlock(int x, int y) {
 	x -= x * (x < 0);
 	y -= y * (y < 0);
-	x += ((width  - 1) - x) * (x >= width);
-	y += ((height - 1) - y) * (y >= height);
+	x += ((lvl_width  - 1) - x) * (x >= lvl_width);
+	y += ((lvl_height - 1) - y) * (y >= lvl_height);
 	
 	return collision_data[x + (y << y_shift)];
 }

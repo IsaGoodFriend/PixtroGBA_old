@@ -33,7 +33,7 @@
 unsigned short *uncmp_visuals = (unsigned short*)0x02002000;
 unsigned char *lvl_info;
 
-extern int width, height, y_shift;
+extern int lvl_width, lvl_height, y_shift;
 extern unsigned char *collision_data;
 
 extern int cam_x, cam_y, prev_cam_x, prev_cam_y;
@@ -44,11 +44,11 @@ void load_collision(unsigned char *level_start){
 	
 	lvl_info = level_start;
 	
-	width =  lvl_info[0];
-	height = lvl_info[1];
+	lvl_width =  lvl_info[0];
+	lvl_height = lvl_info[1];
 	lvl_info += 2;
 	
-	int index = width - 1;
+	int index = lvl_width - 1;
 	y_shift = 0;
 	
 	while (index) {
@@ -73,24 +73,24 @@ void load_collision(unsigned char *level_start){
 	
 	// decompress file data
 	// --- COLLISION ---
-	int r1 = (1 << y_shift) - width;
+	int r1 = (1 << y_shift) - lvl_width;
 	unsigned int countT;
 	
-	for (indexY = 0; indexY < height; ++indexY){// by row
-		countT = (count > width) ? width : count; // get the mem set count value.  if larger than the width
+	for (indexY = 0; indexY < lvl_height; ++indexY){// by row
+		countT = (count > lvl_width) ? lvl_width : count; // get the mem set count value.  if larger than the width
 		
-		for (indexX = 0; indexX < width;)
+		for (indexX = 0; indexX < lvl_width;)
 		{
 			memset(cpyColl, value, countT);
 			count -= countT;
 			indexX += countT;
 			cpyColl += countT;
 			
-			if (indexX < width)
+			if (indexX < lvl_width)
 			{
 				count = lvl_info[0];
 				
-				countT = (count > (width - indexX)) ? (width - indexX) : count;	
+				countT = (count > (lvl_width - indexX)) ? (lvl_width - indexX) : count;	
 				
 				value = lvl_info[1];
 				lvl_info += 2;
@@ -101,7 +101,7 @@ void load_collision(unsigned char *level_start){
 }
 void load_midground(int index) {
 	
-	int r1 = (1 << y_shift) - width, indexX, indexY;
+	int r1 = (1 << y_shift) - lvl_width, indexX, indexY;
 	unsigned int count = lvl_info[0], countT;
 	unsigned int value = (lvl_info[2] << 8) | lvl_info[1];
 	
@@ -109,10 +109,10 @@ void load_midground(int index) {
 	
 	unsigned short* cpyColl = &uncmp_visuals[0x2000 * index];
 	
-	for (indexY = 0; indexY < height; ++indexY){// by row
-		countT = (count > width) ? width : count; // get the mem set count value.  if larger than the width
+	for (indexY = 0; indexY < lvl_height; ++indexY){// by row
+		countT = (count > lvl_width) ? lvl_width : count; // get the mem set count value.  if larger than the width
 		
-		for (indexX = 0; indexX < width;) {
+		for (indexX = 0; indexX < lvl_width;) {
 			int a = countT;
 			while (--a >= 0)
 				cpyColl[a] = value;
@@ -121,11 +121,11 @@ void load_midground(int index) {
 			indexX += countT;
 			cpyColl += countT;
 			
-			if (indexX < width)
+			if (indexX < lvl_width)
 			{
 				count = lvl_info[0];
 				
-				countT = (count > (width - indexX)) ? (width - indexX) : count;	
+				countT = (count > (lvl_width - indexX)) ? (lvl_width - indexX) : count;	
 				
 				value = lvl_info[2] << 8;
 				value |= lvl_info[1];
@@ -198,10 +198,10 @@ void protect_cam(){
 		if (cam_y < BLOCK_SIZE)
 			cam_y = BLOCK_SIZE;
 			
-		if (cam_x + 240 + BLOCK_SIZE > BLOCK2INT(width))
-			cam_x = BLOCK2INT(width) - 240 - BLOCK_SIZE;
-		if (cam_y + 160 + BLOCK_SIZE > BLOCK2INT(height))
-			cam_y = BLOCK2INT(height) - 160 - BLOCK_SIZE;
+		if (cam_x + 240 + BLOCK_SIZE > BLOCK2INT(lvl_width))
+			cam_x = BLOCK2INT(lvl_width) - 240 - BLOCK_SIZE;
+		if (cam_y + 160 + BLOCK_SIZE > BLOCK2INT(lvl_height))
+			cam_y = BLOCK2INT(lvl_height) - 160 - BLOCK_SIZE;
 	}
 	
 	int i;
