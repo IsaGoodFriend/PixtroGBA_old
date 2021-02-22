@@ -5,16 +5,16 @@
 #include <tonc.h>
 #include <string.h>
 
-#include "../engine.h"
+#include "engine.h"
 
 // ---- Entities ----
 typedef struct Entity
 {
-	int x, y, velX, velY;
+	int x, y, vel_x, vel_y;
 	unsigned short width, height;
-	unsigned int ID;
+	unsigned int ID, collision_flags;
 	
-	unsigned int flags[2];
+	unsigned int flags[5];
 	
 	
 } ALIGN4 Entity;
@@ -57,7 +57,7 @@ extern Layer layers[4];
 extern int foreground_count;
 
 // Macro to help load backgrounds easier.  
-#define LOAD_BG(bg, n) load_background(n, BGT_##bg, BGT_##bg##_len, BG_##bg)
+#define LOAD_BG(bg, n) load_background(n, BGT_##bg, BGT_##bg##_len, BG_##bg, BG_##bg##_size)
 
 #define FG_TILESET		0
 #define BG_TILESET		1
@@ -103,30 +103,30 @@ void pixtro_render();
 
 void set_layer_visible(int layer, bool vis);
 void set_layer_priority(int layer, int prio);
-void set_foreground_count(int _count);
-void load_background(int index, unsigned int *tiles, unsigned int tile_len, unsigned short *mapping);
+void set_foreground_count(int count);
+void load_background(int index, unsigned int *tiles, unsigned int tile_len, unsigned short *mapping, int size);
 void finalize_layers();
 
-void open_file(int _file);
+void open_file(int file);
 void save_file();
 void reset_file();
 
 void save_settings();
 void reset_settings();
 
-char char_from_file(int _index);
-short short_from_file(int _index);
-int int_from_file(int _index);
-void char_to_file(int _index, char _value);
-void short_to_file(int _index, short _value);
-void int_to_file(int _index, int _value);
+char char_from_file(int index);
+short short_from_file(int index);
+int int_from_file(int index);
+void char_to_file(int index, char value);
+void short_to_file(int index, short value);
+void int_to_file(int index, int value);
 
-char char_from_settings(int _index);
-short short_from_settings(int _index);
-int int_from_settings(int _index);
-void char_to_settings(int _index, char _value);
-void short_to_settings(int _index, short _value);
-void int_to_settings(int _index, int _value);
+char char_from_settings(int index);
+short short_from_settings(int index);
+int int_from_settings(int index);
+void char_to_settings(int index, char value);
+void short_to_settings(int index, short value);
+void int_to_settings(int index, int value);
 
 INLINE void key_mod(u32 key);
 INLINE void key_mod2(u32 key);

@@ -134,8 +134,8 @@ unsigned int RNG() {
 	s3 = (6100003 * s3) % 715827829;
 	return s1 + s2 + s3;
 }
-void rng_seed(unsigned int _s1, unsigned int _s2, unsigned int _s3) {
-	s1 = _s1;
-	s2 = _s2;
-	s3 = _s3;
+void rng_seed(unsigned int seed1, unsigned int seed2, unsigned int seed3) {
+	s1 = seed1;
+	s2 = seed2;
+	s3 = seed3;
 }

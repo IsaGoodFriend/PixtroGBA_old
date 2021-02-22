@@ -1,4 +1,4 @@
-
+#pragma once
 // The basic files for the pixtro engine
 
 #include "sprites.h"

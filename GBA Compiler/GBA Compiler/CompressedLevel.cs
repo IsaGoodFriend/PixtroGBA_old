@@ -46,6 +46,8 @@ namespace GBA_Compiler {
 		public string Include, Exclude;
 		public string IncludeRegex, ExcludeRegex;
 
+		public string Name;
+
 		private static bool TestString(string path, string test) {
 
 			if (test == "*")

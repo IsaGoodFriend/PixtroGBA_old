@@ -1,5 +1,4 @@
-#ifndef _PIX_MATH
-#define _PIX_MATH
+#pragma once
 
 #define FIXED2INT(n)			((n) >> ACC)
 #define INT2FIXED(n)			((n) << ACC)
@@ -43,4 +42,3 @@ AffineMatrix matrix_scale(int scale_x, int scale_y);
 
 int FIXED_sqrt(int x);
 unsigned int RNG();
-#endif

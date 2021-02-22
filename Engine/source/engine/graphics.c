@@ -82,16 +82,17 @@ OBJ_ATTR obj_buffer[SPRITE_LIMIT];
 OBJ_ATTR *sprite_pointer;
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
+int tileset_count;
 
-void load_sprite(unsigned int *_sprite, int _index, int _shape) {
+void load_sprite(unsigned int *sprite, int index, int shape) {
 
-	anim_bank[_index] = NULL;
+	anim_bank[index] = NULL;
 	
-	int bankLoc, size = shape2size[_shape];
+	int bankLoc, size = shape2size[shape];
 	
 	// If there's a sprite already loaded here, and it's the same size or bigger, replace it
-	if (shapes[_index] >= 0 && shape2size[shapes[_index]] >= size) {
-		bankLoc = indexes[_index];
+	if (shapes[index] >= 0 && shape2size[shapes[index]] >= size) {
+		bankLoc = indexes[index];
 	}
 	else {
 		int i;
@@ -123,7 +124,7 @@ void load_sprite(unsigned int *_sprite, int _index, int _shape) {
 			if (ind == i)
 				break;
 			
-			if (ordered[i + 1] == _index)
+			if (ordered[i + 1] == index)
 				swapping = true;
 			
 			if (swapping) {
@@ -134,12 +135,12 @@ void load_sprite(unsigned int *_sprite, int _index, int _shape) {
 			
 		}
 		
-		indexes[_index] = bankLoc;
+		indexes[index] = bankLoc;
 	}
 	
-	shapes[_index] = _shape;
+	shapes[index] = shape;
 	
-	memcpy(&tile_mem[4][bankLoc], _sprite, size);
+	memcpy(&tile_mem[4][bankLoc], sprite, size);
 }
 void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, int speed) {
 	load_sprite(sprites, index, shape);
@@ -159,21 +160,31 @@ void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, i
 	
 	anim_meta[index] |= shape << 16;
 }
-void load_tileset(const unsigned short *_tiles, int _count) {
-	memcpy(&tile_mem[FG_TILESET][4], _tiles, _count << 5);
+void load_tileset(unsigned short *tiles, int count) {
+
+	memcpy(&tile_mem[FG_TILESET][tileset_count], tiles, count << 5);
+	
+	tileset_count += count;
 }
-void load_obj_pal(unsigned short *_pal, int _palIndex) {
-	memcpy(&pal_obj_mem[_palIndex << 4], _pal, copyPalette);
+void reset_tilesets() {
+#ifdef LARGE_TILES
+	tileset_count = 4;
+#else
+	tileset_count = 1;
+#endif
 }
-void load_bg_pal(unsigned short *_pal, int _palIndex) {
-	memcpy(&pal_bg_mem[_palIndex << 4], _pal, copyPalette);
+void load_obj_pal(unsigned short *pal, int palIndex) {
+	memcpy(&pal_obj_mem[palIndex << 4], pal, copyPalette);
+}
+void load_bg_pal(unsigned short *pal, int palIndex) {
+	memcpy(&pal_bg_mem[palIndex << 4], pal, copyPalette);
 }
 
-void draw_affine_big(AffineMatrix _matrix, int _sprite, int _prio, int _pal) {
+void draw_affine_big(AffineMatrix matrix, int sprite, int prio, int pal) {
 	if (affine_count == 32)
 		return;
 	
-	int x = FIXED2INT(_matrix.values[2]), y = FIXED2INT(_matrix.values[5]);
+	int x = FIXED2INT(matrix.values[2]), y = FIXED2INT(matrix.values[5]);
 	
 	if (drawing_flags & DFLAG_CAM_FOLLOW)
 	{
@@ -181,7 +192,7 @@ void draw_affine_big(AffineMatrix _matrix, int _sprite, int _prio, int _pal) {
 		y -= cam_y - 80;
 	}
 	
-	int shape = shapes[_sprite];
+	int shape = shapes[sprite];
 	
 	x -= shape_width[shape];
 	y -= shape_height[shape];
@@ -189,30 +200,30 @@ void draw_affine_big(AffineMatrix _matrix, int _sprite, int _prio, int _pal) {
 	obj_set_attr(sprite_pointer,
 	((shape & 0xC) << 12) | SPRITE_Y(y) | ATTR0_AFF_DBL,
 	((shape & 0x3) << 14) | SPRITE_X(x) | ATTR1_AFF_ID(affine_count),
-	ATTR2_PALBANK(_pal) | ATTR2_PRIO(_prio) | (indexes[_sprite]));
+	ATTR2_PALBANK(pal) | ATTR2_PRIO(prio) | (indexes[sprite]));
 	
-	int det = FIXED_MULT(_matrix.values[0], _matrix.values[4]) -
-		FIXED_MULT(_matrix.values[1], _matrix.values[3]);
+	int det = FIXED_MULT(matrix.values[0], matrix.values[4]) -
+		FIXED_MULT(matrix.values[1], matrix.values[3]);
 	
 	if (det)
 		det = FIXED_DIV(0x100, det);
 	
 	obj_aff_set((obj_aff_buffer + affine_count),
-		FIXED_MULT(_matrix.values[4], det),
-		FIXED_MULT(_matrix.values[3], det),
-		FIXED_MULT(_matrix.values[1], det),
-		FIXED_MULT(_matrix.values[0], det));
+		FIXED_MULT(matrix.values[4], det),
+		FIXED_MULT(matrix.values[3], det),
+		FIXED_MULT(matrix.values[1], det),
+		FIXED_MULT(matrix.values[0], det));
 	
 	++sprite_pointer;
 	++sprite_count;
 	++affine_count;
 }
-void draw_affine(AffineMatrix _matrix, int _sprite, int _prio, int _pal) {
+void draw_affine(AffineMatrix matrix, int sprite, int prio, int pal) {
 	
 	if (affine_count == 32)
 		return;
 	
-	AffineMatrix transform = matrix_multiply(matrix_identity(), _matrix);
+	AffineMatrix transform = matrix_multiply(matrix_identity(), matrix);
 	
 	int x = FIXED2INT(transform.values[2]), y = FIXED2INT(transform.values[5]);
 	
@@ -222,7 +233,7 @@ void draw_affine(AffineMatrix _matrix, int _sprite, int _prio, int _pal) {
 		y -= cam_y - 80;
 	}
 	
-	int shape = shapes[_sprite];
+	int shape = shapes[sprite];
 	
 	x -= shape_width[shape] >> 1;
 	y -= shape_height[shape] >> 1;
@@ -230,45 +241,45 @@ void draw_affine(AffineMatrix _matrix, int _sprite, int _prio, int _pal) {
 	obj_set_attr(sprite_pointer,
 	((shape & 0xC) << 12) | SPRITE_Y(y) | ATTR0_AFF,
 	((shape & 0x3) << 14) | SPRITE_X(x) | ATTR1_AFF_ID(affine_count),
-	ATTR2_PALBANK(_pal) | ATTR2_PRIO(_prio) | (indexes[_sprite]));
+	ATTR2_PALBANK(pal) | ATTR2_PRIO(prio) | (indexes[sprite]));
 	
-	int det = FIXED_MULT(_matrix.values[0], _matrix.values[4]) -
-		FIXED_MULT(_matrix.values[1], _matrix.values[3]);
+	int det = FIXED_MULT(matrix.values[0], matrix.values[4]) -
+		FIXED_MULT(matrix.values[1], matrix.values[3]);
 	
 	if (det)
 		det = FIXED_DIV(0x100, det);
 	
 	obj_aff_set((obj_aff_buffer + affine_count),
-		FIXED_MULT(_matrix.values[4], det),
-		FIXED_MULT(_matrix.values[3], det),
-		FIXED_MULT(_matrix.values[1], det),
-		FIXED_MULT(_matrix.values[0], det));
+		FIXED_MULT(matrix.values[4], det),
+		FIXED_MULT(matrix.values[3], det),
+		FIXED_MULT(matrix.values[1], det),
+		FIXED_MULT(matrix.values[0], det));
 	
 	++sprite_pointer;
 	++sprite_count;
 	++affine_count;
 }
-void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal) {
+void draw(int x, int y, int sprite, int flip, int prio, int pal) {
 	
-	_x = FIXED2INT(_x);
-	_y = FIXED2INT(_y);
+	x = FIXED2INT(x);
+	y = FIXED2INT(y);
 	
 	if (drawing_flags & DFLAG_CAM_FOLLOW)
 	{
-		_x -= cam_x - 120;
-		_y -= cam_y - 80;
+		x -= cam_x - 120;
+		y -= cam_y - 80;
 	}
 	
-	int shape = shapes[_sprite];
+	int shape = shapes[sprite];
 	
-	if (_x + shape_width [shape] <= 0 || _x > 240 ||
-		_y + shape_height[shape] <= 0 || _y > 160)
+	if (x + shape_width [shape] <= 0 || x > 240 ||
+		y + shape_height[shape] <= 0 || y > 160)
 		return;
 	
 	obj_set_attr(sprite_pointer,
-	((shape & 0xC) << 12) | SPRITE_Y(_y),
-	((shape & 0x3) << 14) | SPRITE_X(_x) | _flip,
-	ATTR2_PALBANK(_pal) | ATTR2_PRIO(_prio) | (indexes[_sprite]));
+	((shape & 0xC) << 12) | SPRITE_Y(y),
+	((shape & 0x3) << 14) | SPRITE_X(x) | flip,
+	ATTR2_PALBANK(pal) | ATTR2_PRIO(prio) | (indexes[sprite]));
 	
 	++sprite_pointer;
 	++sprite_count;

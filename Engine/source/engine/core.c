@@ -14,16 +14,15 @@
 
 // Layers
 
-#define LAYER_SIZE(n)			((layers[n].meta & 0x3) << 1)
-#define LAYER_BLOCKSIZE(n)		((layers[n].meta & 0x3) >> 0)
+#define LAYER_SIZE(n)			((layers[n].tile_meta & 0x30000) >> 16)
 
 #define TILESET_SIZE(n)			(layers[n].tile_meta & 0xFF)
 #define TILESET_OFFSET(n)		((layers[n].tile_meta & 0xFF00) >> 8)
 #define TILESET_SET(n, o, s)	layers[n].tile_meta = (((o) & 0xFF) << 8) | ((s) & 0xFF) | TILES_CHANGED
 
-#define TILES_CHANGED			0x10000
-#define MAPPING_CHANGED			0x20000
-#define LAYER_VIS_UPDATE		0x30000
+#define TILES_CHANGED			0x100000
+#define MAPPING_CHANGED			0x200000
+#define LAYER_VIS_UPDATE		0x300000
 
 int layer_count, layer_line[7], layer_index;
 int bg_tile_allowance;
@@ -59,15 +58,17 @@ void (*custom_render)(void);
 
 void load_settings();
 void interrupt();
-void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len);
+void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len, int size);
 
-extern void rng_seed(unsigned int _s1, unsigned int _s2, unsigned int _s3);
+extern void rng_seed(unsigned int s1, unsigned int s2, unsigned int s3);
 extern void update_particles();
 extern void update_anims();
 extern void update_presses();
 
 // Initialize the game
 void pixtro_init() {
+	
+	reset_tilesets();
 	
 	// Set the RNG seeds.  Change values to anything non 0
 	rng_seed(0xFA12B4, 0x2B5C72, 0x14F4D2);
@@ -81,9 +82,15 @@ void pixtro_init() {
 	// Display everything
 	REG_DISPCNT = DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
 	
-	// Add the
-	irq_add( II_HBLANK, interrupt );
+	// Set background priority
+	set_layer_priority(1, 1);
+	set_layer_priority(2, 2);
+	set_layer_priority(3, 3);
 	
+	set_foreground_count(1);
+	finalize_layers();
+	
+	// Initialize the engine with user's code
 	init();
 }
 
@@ -170,16 +177,16 @@ void set_layer_priority(int layer, int prio) {
 }
 
 // Layer functions that require finalization
-void load_background(int index, unsigned int *tiles, unsigned int tile_len, unsigned short *mapping) {
+void load_background(int index, unsigned int *tiles, unsigned int tile_len, unsigned short *mapping, int size) {
 	if (index < foreground_count)
 		return;
-	
-	load_background_tiles(index, tiles, tile_len);
+		
+	load_background_tiles(index, tiles, tile_len, size);
 	
 	layers[index].map_ptr = mapping;
 	layers[index].tile_meta |= MAPPING_CHANGED;
 }
-void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len) {
+void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len, int size) {
 	
 	if (layers[index].tile_ptr != tiles) {
 		
@@ -189,6 +196,8 @@ void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len
 			TILESET_SET(index, TILESET_SIZE(index - 1) + TILESET_OFFSET(index - 1), tile_len);
 		
 		layers[index].tile_ptr = tiles;
+		layers[index].tile_meta &= ~0x30000;//size;
+		layers[index].tile_meta |= size << 16;
 		
 		for (int i = index + 1; i < 4; ++i){
 			
@@ -215,7 +224,7 @@ void finalize_layers() {
 			size = LAYER_SIZE(i) + 1;
 			sbb -= size;
 			
-			REG_BGCNT[i] |= LAYER_SIZE(i) | BG_SBB(sbb) | BG_CBB(BG_TILESET);
+			REG_BGCNT[i] |= (LAYER_SIZE(i) << 14) | BG_SBB(sbb) | BG_CBB(BG_TILESET);
 		}
 		else {
 			--sbb;
@@ -353,66 +362,66 @@ void load_file(){
 		save_file();
 	}
 }
-void open_file(int _file) {
-	save_file_number = _file;
+void open_file(int file) {
+	save_file_number = file;
 	load_file();
 }
 
 // Get and set from Save file
-char char_from_file(int _index) {
-	return save_data[_index];
+char char_from_file(int index) {
+	return save_data[index];
 }
-short short_from_file(int _index) {
-	return (save_data[_index]) + (save_data[_index + 1] << 8);
+short short_from_file(int index) {
+	return (save_data[index]) + (save_data[index + 1] << 8);
 }
-int int_from_file(int _index) {
-	return (save_data[_index]) + (save_data[_index + 1] << 8) + (save_data[_index + 2] << 16) + (save_data[_index + 3] << 24);
+int int_from_file(int index) {
+	return (save_data[index]) + (save_data[index + 1] << 8) + (save_data[index + 2] << 16) + (save_data[index + 3] << 24);
 }
-void char_to_file(int _index, char _value) {
-	save_data[_index] = _value;
+void char_to_file(int index, char value) {
+	save_data[index] = value;
 }
-void short_to_file(int _index, short _value) {
+void short_to_file(int index, short value) {
 	int i;
 	
 	for (i = 0; i < 2; ++i) {
-		save_data[_index + i] = _value & 0xFF;
-		_value >>= 8;
+		save_data[index + i] = value & 0xFF;
+		value >>= 8;
 	}
 }
-void int_to_file(int _index, int _value) {
+void int_to_file(int index, int value) {
 	int i;
 	
 	for (i = 0; i < 4; ++i) {
-		save_data[_index + i] = _value & 0xFF;
-		_value >>= 8;
+		save_data[index + i] = value & 0xFF;
+		value >>= 8;
 	}
 }
 // Get and set from settings
-char char_from_settings(int _index) {
-	return settings_file[_index];
+char char_from_settings(int index) {
+	return settings_file[index];
 }
-short short_from_settings(int _index) {
-	return (settings_file[_index]) + (settings_file[_index + 1] << 8);
+short short_from_settings(int index) {
+	return (settings_file[index]) + (settings_file[index + 1] << 8);
 }
-int int_from_settings(int _index) {
-	return (settings_file[_index]) + (settings_file[_index + 1] << 8) + (settings_file[_index + 2] << 16) + (settings_file[_index + 3] << 24);
+int int_from_settings(int index) {
+	return (settings_file[index]) + (settings_file[index + 1] << 8) + (settings_file[index + 2] << 16) + (settings_file[index + 3] << 24);
 }
-void char_to_settings(int _index, char _value) {
-	settings_file[_index] = _value;
+void char_to_settings(int index, char value) {
+	settings_file[index] = value;
 }
-void short_to_settings(int _index, short _value) {
+void short_to_settings(int index, short value) {
 	int i;
 	
 	for (i = 0; i < 2; ++i) {
-		settings_file[_index + i] = _value & 0xFF;
-		_value >>= 8;
+		settings_file[index + i] = value & 0xFF;
+		value >>= 8;
 	}
 }
-void int_to_settings(int _index, int _value) {
+void int_to_settings(int index, int value) {
 	int i;
 	
 	for (i = 0; i < 4; ++i) {
-		settings_file[_index + i] = _value & 0xFF;
-		_value >>= 8;
+		settings_file[index + i] = value & 0xFF;
+		value >>= 8;
 	}
 }

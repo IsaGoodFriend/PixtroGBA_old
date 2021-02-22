@@ -31,49 +31,49 @@
 #define BGOFS			((vu16*)(REG_BASE+0x0010))
 
 unsigned short *uncmp_visuals = (unsigned short*)0x02002000;
-unsigned char *lvlInfo;
+unsigned char *lvl_info;
 
-extern int width, height, yShift;
-extern unsigned char *collisionData;
+extern int width, height, y_shift;
+extern unsigned char *collision_data;
 
 extern int cam_x, cam_y, prev_cam_x, prev_cam_y;
 
 extern char level_meta[128];
 
-void load_collision(unsigned char *levelInfo){
+void load_collision(unsigned char *level_start){
 	
-	lvlInfo = levelInfo;
+	lvl_info = level_start;
 	
-	width =  lvlInfo[0];
-	height = lvlInfo[1];
-	lvlInfo += 2;
+	width =  lvl_info[0];
+	height = lvl_info[1];
+	lvl_info += 2;
 	
 	int index = width - 1;
-	yShift = 0;
+	y_shift = 0;
 	
 	while (index) {
 		index >>= 1;
-		++yShift;
+		++y_shift;
 	}
 	
-	while (lvlInfo[0] < 128) {
-		level_meta[lvlInfo[0]] = lvlInfo[1];	
-		lvlInfo += 2;
+	while (lvl_info[0] < 128) {
+		level_meta[lvl_info[0]] = lvl_info[1];	
+		lvl_info += 2;
 	}
-	lvlInfo++;
+	lvl_info++;
 	
-	unsigned int count = (lvlInfo[0]);
-	unsigned int value = (lvlInfo[1]);
+	unsigned int count = (lvl_info[0]);
+	unsigned int value = (lvl_info[1]);
 	
-	lvlInfo += 2;
+	lvl_info += 2;
 	
-	unsigned char* cpyColl = collisionData;
+	unsigned char* cpyColl = collision_data;
 	
 	int indexX, indexY;
 	
 	// decompress file data
 	// --- COLLISION ---
-	int r1 = (1 << yShift) - width;
+	int r1 = (1 << y_shift) - width;
 	unsigned int countT;
 	
 	for (indexY = 0; indexY < height; ++indexY){// by row
@@ -88,12 +88,12 @@ void load_collision(unsigned char *levelInfo){
 			
 			if (indexX < width)
 			{
-				count = lvlInfo[0];
+				count = lvl_info[0];
 				
 				countT = (count > (width - indexX)) ? (width - indexX) : count;	
 				
-				value = lvlInfo[1];
-				lvlInfo += 2;
+				value = lvl_info[1];
+				lvl_info += 2;
 			}
 		}
 		cpyColl += r1;
@@ -101,11 +101,11 @@ void load_collision(unsigned char *levelInfo){
 }
 void load_midground(int index) {
 	
-	int r1 = (1 << yShift) - width, indexX, indexY;
-	unsigned int count = lvlInfo[0], countT;
-	unsigned int value = (lvlInfo[2] << 8) | lvlInfo[1];
+	int r1 = (1 << y_shift) - width, indexX, indexY;
+	unsigned int count = lvl_info[0], countT;
+	unsigned int value = (lvl_info[2] << 8) | lvl_info[1];
 	
-	lvlInfo += 3;
+	lvl_info += 3;
 	
 	unsigned short* cpyColl = &uncmp_visuals[0x2000 * index];
 	
@@ -123,14 +123,14 @@ void load_midground(int index) {
 			
 			if (indexX < width)
 			{
-				count = lvlInfo[0];
+				count = lvl_info[0];
 				
 				countT = (count > (width - indexX)) ? (width - indexX) : count;	
 				
-				value = lvlInfo[2] << 8;
-				value |= lvlInfo[1];
+				value = lvl_info[2] << 8;
+				value |= lvl_info[1];
 				
-				lvlInfo += 3;
+				lvl_info += 3;
 			}
 		}
 		cpyColl += r1;
@@ -161,31 +161,31 @@ void load_entities() {
 	
 	// load entities
 	unsigned char type;
-	type = lvlInfo[0];
-	lvlInfo += 1;
+	type = lvl_info[0];
+	lvl_info += 1;
 	
 	while (type != 255) {
 		unsigned char
-			x = lvlInfo[0],
-			y = lvlInfo[1];
+			x = lvl_info[0],
+			y = lvl_info[1];
 		
-		lvlInfo += 2;
+		lvl_info += 2;
 		
-		entities[max_entities].velX = 0;
-		entities[max_entities].velY = 0;
+		entities[max_entities].vel_x = 0;
+		entities[max_entities].vel_y = 0;
 		
 		entities[max_entities].x = BLOCK2FIXED(x);
 		entities[max_entities].y = BLOCK2FIXED(y);
 		entities[max_entities].ID = type | ENT_VISIBLE_FLAG;
 		
 		if (entity_inits[type])
-			lvlInfo += entity_inits[type](&max_entities, lvlInfo);
+			lvl_info += entity_inits[type](&max_entities, lvl_info);
 		
 		++max_entities;
 		
-		type = lvlInfo[0];
+		type = lvl_info[0];
 		
-		lvlInfo += 1;
+		lvl_info += 1;
 	} 
 }
 
@@ -216,7 +216,27 @@ void protect_cam(){
 }
 #ifdef LARGE_TILES
 void copy_tiles(unsigned short *screen, unsigned short *data, int x, int y, int len) {
+	int i, vis, pos;
 	
+	if (0) {
+		
+		vis = data[0];
+		
+		len--;
+		screen++;
+		data++;
+	}
+	
+	for (i = 0; i < (len & 0xFE); i += 2) {
+		
+		vis = data[i >> 1];
+		screen[i] =		vis | ((y ^ (vis >> 10)) & 0x1) | ((( vis >> 11) & 0x1) << 1);
+		screen[i + 1] =	vis | ((y ^ (vis >> 10)) & 0x1) | (((~vis >> 11) & 0x1) << 1);
+	}
+	
+	if (len & 0x1) {
+		
+	}
 }
 void move_cam() {
 	
@@ -278,13 +298,16 @@ void move_cam() {
 			for (; min != max; min += dirY){
 				position = VIS_BLOCK_POS(startX, min);
 				
-				int vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << yShift)];
+				int vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift)];
 				foreground[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
-				/*foreground[position] = uncmp_visuals[startX + (min << yShift)];
-				if (midground)
-					midground[position]  = uncmp_visuals[startX + (min << yShift) + 0x2000];
-				if (background)
-					background[position] = uncmp_visuals[startX + (min << yShift) + 0x4000]; */
+				if (midground) {
+					vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift) + 0x2000];
+					midground[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
+				}
+				if (background) {
+					vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift) + 0x4000];
+					background[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
+				}
 			}
 			startX += dirX;
 		}
@@ -297,12 +320,16 @@ void move_cam() {
 			for (; min != max; min += dirX){
 				position = VIS_BLOCK_POS(min, startY);
 				
-				int vis = uncmp_visuals[(min >> 1) + ((startY >> 1) << yShift)];
+				int vis = uncmp_visuals[(min >> 1) + ((startY >> 1) << y_shift)];
 				foreground[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);
-				if (midground)
-					midground[position] = uncmp_visuals[min + (startY << yShift) + 0x2000];
-				if (background)
-					background[position] = uncmp_visuals[min + (startY << yShift) + 0x4000];
+				if (midground) {
+					vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift) + 0x2000];
+					midground[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);
+				}
+				if (background) {
+					vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift) + 0x4000];
+					background[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);;
+				}
 			}
 			startY += dirY;
 		}
@@ -325,13 +352,13 @@ void reset_cam() {
 	
 	protect_cam();
 	
-	//if (foreground_count == 0)
+	if (foreground_count == 0)
 		goto skip_loadcam;
 	
 	int val;
 	
-	int x = INT2BLOCK(cam_x);
-	int y = INT2BLOCK(cam_y);
+	int x = INT2TILE(cam_x);
+	int y = INT2TILE(cam_y);
 	
 	x &= ~0x1;
 	
@@ -348,8 +375,7 @@ void reset_cam() {
 	while (val-- > 0){
 		
 		int p1 = VIS_BLOCK_POS(x, y);
-		int p2 = (y << yShift) + x;
-		++y;
+		int p2 = ((y >> 1) << y_shift) + (x >> 1);
 		
 		copy_tiles(&foreground[p1], &uncmp_visuals[p2], x, y, 32 - x);
 		
@@ -361,9 +387,9 @@ void reset_cam() {
 		
 		*/
 		p1 &= 0xFE0;
-		p2 += 32 - x;
+		p2 += (32 - x) >> 1;
 		
-		copy_tiles(&foreground[p1], &uncmp_visuals[p2], x, y, x);
+		copy_tiles(&foreground[p1], &uncmp_visuals[p2], 0, y, x);
 		/*
 		memcpy(&foreground[p1], &uncmp_visuals[p2], x << 1);
 		if (midground)
@@ -372,6 +398,7 @@ void reset_cam() {
 			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], (x << 1));
 		
 		*/
+		++y;
 	}
 	
 	skip_loadcam:
@@ -443,11 +470,11 @@ void move_cam() {
 			for (; min != max; min += dirY){
 				position = VIS_BLOCK_POS(startX, min);
 				
-				foreground[position] = uncmp_visuals[startX + (min << yShift)];
+				foreground[position] = uncmp_visuals[startX + (min << y_shift)];
 				if (midground)
-					midground[position]  = uncmp_visuals[startX + (min << yShift) + 0x2000];
+					midground[position]  = uncmp_visuals[startX + (min << y_shift) + 0x2000];
 				if (background)
-					background[position] = uncmp_visuals[startX + (min << yShift) + 0x4000];
+					background[position] = uncmp_visuals[startX + (min << y_shift) + 0x4000];
 			}
 			startX += dirX;
 		}
@@ -460,11 +487,11 @@ void move_cam() {
 			for (; min != max; min += dirX){
 				position = VIS_BLOCK_POS(min, startY);
 				
-				foreground[position] = uncmp_visuals[min + (startY << yShift)];
+				foreground[position] = uncmp_visuals[min + (startY << y_shift)];
 				if (midground)
-					midground[position] = uncmp_visuals[min + (startY << yShift) + 0x2000];
+					midground[position] = uncmp_visuals[min + (startY << y_shift) + 0x2000];
 				if (background)
-					background[position] = uncmp_visuals[min + (startY << yShift) + 0x4000];
+					background[position] = uncmp_visuals[min + (startY << y_shift) + 0x4000];
 			}
 			startY += dirY;
 		}
@@ -479,7 +506,6 @@ void move_cam() {
 	cam_x += 120;
 	cam_y += 80;
 }
-//*
 void reset_cam() {
 	
 	cam_x -= 120;
@@ -510,7 +536,7 @@ void reset_cam() {
 	while (val-- > 0){
 		
 		int p1 = VIS_BLOCK_POS(x, y);
-		int p2 = (y << yShift) + x;
+		int p2 = (y << y_shift) + x;
 		++y;
 		
 		memcpy(&foreground[p1], &uncmp_visuals[p2], 64 - (x << 1));

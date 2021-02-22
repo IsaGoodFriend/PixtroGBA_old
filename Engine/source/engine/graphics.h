@@ -37,15 +37,16 @@ extern int drawing_flags;
 
 extern int cam_x, cam_y;
 
-void load_sprite(unsigned int *_sprite, int _index, int _shape);
+void load_sprite(unsigned int *sprite, int index, int shape);
 void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, int speed);
-void load_obj_pal(unsigned short *_pal, int _palIndex);
-void load_bg_pal(unsigned short *_pal, int _palIndex);
+void load_obj_pal(unsigned short *pal, int palIndex);
+void load_bg_pal(unsigned short *pal, int palIndex);
 
-void load_tileset(const unsigned short *_tiles, int _count);
+void load_tileset(unsigned short *tiles, int count);
+void reset_tilesets();
 
-void draw(int _x, int _y, int _sprite, int _flip, int _prio, int _pal);
-void draw_affine(AffineMatrix _matrix, int _sprite, int _prio, int _pal);
+void draw(int x, int y, int sprite, int flip, int prio, int pal);
+void draw_affine(AffineMatrix matrix, int sprite, int prio, int pal);
 
 void init_drawing();
 void end_drawing();

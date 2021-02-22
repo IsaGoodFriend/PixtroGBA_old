@@ -1,4 +1,4 @@
-
+#pragma once
 
 #define PGRAVITY_LIGHT		0
 #define PGRAVITY_HEAVY		1

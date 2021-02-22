@@ -382,7 +382,7 @@ namespace GBA_Compiler {
 					return (uint)Array.IndexOf(palettesBase[paletteIdx[x >> 3, y >> 3]], rawData[x, y]);
 				};
 
-				AddTiles(GetArrayFromSprite(width << 3, height << 3, getOffset).GetEnumerator());
+				AddTiles(GetArrayFromSprite(width << 3, height << 3, getOffset, _background: true).GetEnumerator());
 			}
 
 
@@ -812,8 +812,6 @@ namespace GBA_Compiler {
 					if (map.Width % 256 != 0 || map.Height % 256 != 0)
 						break;
 
-					List<Color> palette = new List<Color>(map.Palette.Entries);
-
 					Background bg = new Background(map, tiles);
 
 					string tileName = $"BGT_{name}";
@@ -830,6 +828,8 @@ namespace GBA_Compiler {
 						_compiler.AddRange(Enumerable.ToArray(bg.Data()));
 
 						_compiler.EndArray();
+
+						_compiler.AddValueDefine($"BG_{name}_size", ((map.Width * map.Height) >> 16) - 1);
 					}
 
 					map.Dispose();
@@ -878,6 +878,8 @@ namespace GBA_Compiler {
 
 								_compiler.AddRange(Enumerable.ToArray(bg.Data()));
 
+								_compiler.AddValueDefine($"BG_{name}_size", ((read.Width * read.Height) >> 16) - 1);
+
 								_compiler.EndArray();
 							}
 						}
@@ -890,7 +892,7 @@ namespace GBA_Compiler {
 			}
 		}
 
-		public static IEnumerable<uint> GetArrayFromSprite(int _width, int _height, IndexOnSprite _values, bool _largeTiles = false) {
+		public static IEnumerable<uint> GetArrayFromSprite(int _width, int _height, IndexOnSprite _values, bool _largeTiles = false, bool _background = false) {
 
 			if (_largeTiles) {
 				for (int yL = 0; yL < _height >> 3; yL += 2) {
@@ -903,6 +905,26 @@ namespace GBA_Compiler {
 
 							yield return tempValue;
 						}
+					}
+				}
+			}
+			else if (_background) {
+				for (int yW = 0; yW < _height >> 3; yW += 32) {
+					for (int xW = 0; xW < _width >> 3; xW += 32) {
+
+						for (int yL = 0; yL < 32; ++yL) {
+							for (int xL = 0; xL < 32; ++xL) {
+								for (int y = 0; y < 8; ++y) {
+									uint tempValue = 0;
+
+									for (int i = 7; i >= 0; --i)
+										tempValue = (tempValue << 4) | _values(((xL + xW) << 3) + i, ((yL + yW) << 3) + y);
+
+									yield return tempValue;
+								}
+							}
+						}
+
 					}
 				}
 			}
@@ -920,6 +942,7 @@ namespace GBA_Compiler {
 					}
 				}
 			}
+
 		}
 	}
 }
