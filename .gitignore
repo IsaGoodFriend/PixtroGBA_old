@@ -10,6 +10,7 @@ Engine/source/levels.h
 pixtro_develop.pnproj
 todo.txt
 
+*.zip
 *.pnps
 *.elf
 *.gba
