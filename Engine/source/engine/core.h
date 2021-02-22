@@ -29,6 +29,10 @@ typedef struct Entity
 #define ENT_ACTIVE_SHIFT			9
 #define ENT_VISIBLE_FLAG			0x00000400
 #define ENT_VISIBLE_SHIFT			10
+#define ENT_DETECT_FLAG				0x00000800
+#define ENT_DETECT_SHIFT			11
+#define ENT_COLLIDE_FLAG			0x00001000
+#define ENT_COLLIDE_SHIFT			12
 
 extern unsigned int max_entities;
 

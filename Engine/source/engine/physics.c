@@ -8,9 +8,9 @@
 #define FIXED2BLOCK(n) ((n) >> (ACC + BLOCK_SHIFT))
 #define BLOCK2FIXED(n) ((n) << (ACC + BLOCK_SHIFT))
 
-#define TILE_TYPE_SHIFT		4
-#define TILE_TYPE_MASK 		0x000000F0
-#define TILE_SHAPE_MASK		0x0000000F
+#define TILE_TYPE_SHIFT		8
+#define TILE_TYPE_MASK 		0x0000FF00
+#define TILE_SHAPE_MASK		0x000000FF
 
 unsigned int tile_types[128];
 
@@ -31,7 +31,7 @@ int GetBlock(int x, int y) {
 // Physics Collision for any entity
 // Returns y collision data on 0x00007FFF, and x collision data on 0x7FFF0000.
 // 0x80000000 is set if x velocity was positive, and 0x00008000 is set if y velocity was positive
-unsigned int entity_physics(Entity *ent, int hit_mask, int detect_mask) {
+unsigned int entity_physics(Entity *ent, int hit_mask) {
 	
 	
 	// Get the sign (-/+) of the velocity components
@@ -44,10 +44,10 @@ unsigned int entity_physics(Entity *ent, int hit_mask, int detect_mask) {
 	// Box collision indexes - Tile values;
 	int index = 0, index2 = 0;
 	
-	int top = ent->y,
-		bot = ent->y + INT2FIXED(ent->height),
-		lef = ent->x					 - x_is_neg * (ent->vel_x),
-		rgt = ent->x + INT2FIXED(ent->width)  + x_is_pos * (ent->vel_x);
+	int top = FIXED2INT(ent->y),
+		bot = top + ent->height - 1,
+		lef = FIXED2INT(ent->x),
+		rgt = lef + ent->width - 1;
 	
 	//Get the start and end of the base collisionbox
 	int y_min = ent->y - y_is_neg * (INT2FIXED(ent->height) - 1),
@@ -71,19 +71,23 @@ unsigned int entity_physics(Entity *ent, int hit_mask, int detect_mask) {
 			int type = (shape & TILE_TYPE_MASK) >> TILE_TYPE_SHIFT;
 			int mask = 1 << (type - 1);
 			
-			if (!type || !(mask & detect_mask)) // If the block is 0 or if the block is not solid, ignore
+			if (!type || !(mask & hit_mask)) // If the block is 0 or if the block is not solid, ignore
 				continue;
 			
 			shape = shape & TILE_SHAPE_MASK;
 			
+			int temp_offset;
+			
 			switch (shape) {
+			
+				fullshape_x:
 			case SHAPE_FULL:
+				temp_offset = (BLOCK2FIXED(index - x_is_neg) - INT2FIXED(ent->width * x_is_pos)) - ent->x;
 				break;
+			
 			default:
 				continue;
 			}
-			
-			int temp_offset = (BLOCK2FIXED(index - x_is_neg) - INT2FIXED(ent->width * x_is_pos)) - ent->x; // Get offsets to align to grid
 			
 			if (INT_ABS(temp_offset) < INT_ABS(offsetX)) { // If new movement is smaller, set collision data.
 				offsetX = temp_offset; // Set offset
@@ -93,11 +97,8 @@ unsigned int entity_physics(Entity *ent, int hit_mask, int detect_mask) {
 			{
 				hit_value_x |= mask;
 			}
-			
-			if (hit_value_x & hit_mask)
-				break;
 		}
-		if (hit_value_x & detect_mask){
+		if (hit_value_x & hit_mask){
 			ent->x += offsetX;
 			offsetX += ent->vel_x;
 			
@@ -108,7 +109,7 @@ unsigned int entity_physics(Entity *ent, int hit_mask, int detect_mask) {
 			break;
 		}
 	}
-	ent->x += ent->vel_x * !(hit_value_x & detect_mask);
+	ent->x += ent->vel_x * !(hit_value_x & hit_mask);
 	
 	x_min = ent->x - x_is_neg * (INT2FIXED(ent->width) - 1);
 	x_max = ent->x + x_is_pos * (INT2FIXED(ent->width) - 1);
@@ -124,23 +125,30 @@ unsigned int entity_physics(Entity *ent, int hit_mask, int detect_mask) {
 			int type = (shape & TILE_TYPE_MASK) >> TILE_TYPE_SHIFT;
 			int mask = 1 << (type - 1);
 			
-			if (!type || !(mask & detect_mask)) // If the block is 0 or if the block is not solid, ignore
+			if (!type || !(mask & hit_mask)) // If the block is 0 or if the block is not solid, ignore
 				continue;
 			
 			shape = shape & TILE_SHAPE_MASK;
 			
+			int temp_offset;
+			
 			switch (shape) {
+			
+				fullshape_y:
 			case SHAPE_FULL:
+				temp_offset = (BLOCK2FIXED(index - y_is_neg) - INT2FIXED(ent->height * y_is_pos)) - ent->y;
 				break;
+				
 			case SHAPE_PLATFORM:
-				if (ent->vel_y < 0)
+				if (ent->vel_y < 0 ||
+					bot > BLOCK2INT(index))
 					continue;
+					
+				goto fullshape_y;
 				break;
 			default:
 				continue;
 			}
-			
-			int temp_offset = (BLOCK2FIXED(index - y_is_neg) - INT2FIXED(ent->height * y_is_pos)) - ent->y;
 			
 			if (INT_ABS(temp_offset) < INT_ABS(offsetY)) { // If new movement is smaller, set collision data.
 				offsetY = temp_offset; // Set offset
@@ -151,10 +159,8 @@ unsigned int entity_physics(Entity *ent, int hit_mask, int detect_mask) {
 				hit_value_y |= mask;
 			}
 			
-			if (hit_value_x & hit_mask)
-				break;
 		}
-		if (hit_value_y & detect_mask){
+		if (hit_value_y & hit_mask){
 			ent->y += offsetY;
 			offsetY += ent->vel_y;
 			
@@ -165,37 +171,58 @@ unsigned int entity_physics(Entity *ent, int hit_mask, int detect_mask) {
 			break;
 		}
 	}
-	ent->y += ent->vel_y * !(hit_value_y & detect_mask);
-	
-	hit_value_x &= detect_mask;
-	hit_value_y &= detect_mask;
+	ent->y += ent->vel_y * !(hit_value_y & hit_mask);
 	
 	return (hit_value_x << 16) | hit_value_y;
 }
-/*
-unsigned int collide_rect(int x, int y, int width, int height){
-	int y_min = y,
-	y_max = y + INT2FIXED(height) - 1;
-	int x_min = x,
-	x_max = x + INT2FIXED(width)  - 1;	
+//*
+unsigned int collide_rect(int x, int y, int width, int height, int hit_mask){
+	int y_min = FIXED2INT(y),
+		y_max = y_min + height - 1;
+	
+	int x_min = FIXED2INT(x),
+		x_max = x_min + width - 1;
 	
 	// Block values that were hit - flag
 	int blockValue;
 	int hitValue = 0;
 	int xCoor, yCoor;
 	
-	for (xCoor = FIXED2BLOCK(x_min); xCoor != FIXED2BLOCK(x_max) + 1; ++xCoor){
-		for (yCoor = FIXED2BLOCK(y_min); yCoor != FIXED2BLOCK(y_max) + 1; ++yCoor){
+	for (xCoor = INT2BLOCK(x_min); xCoor <= INT2BLOCK(x_max); ++xCoor){
+		for (yCoor = INT2BLOCK(y_min); yCoor <= INT2BLOCK(y_max); ++yCoor){
 			
+			int shape = GetBlock(xCoor, yCoor);
+			if (!shape)
+				continue;
+			
+			shape = tile_types[shape - 1];
+			int type = (shape & TILE_TYPE_MASK) >> TILE_TYPE_SHIFT;
+			int mask = 1 << (type - 1);
+			
+			if (!type || !(mask & hit_mask)) // If the block is 0 or if the block is not solid, ignore
+				continue;
+			
+			shape = shape & TILE_SHAPE_MASK;
+			
+			switch (shape) {
+			
+				fullshape:
+			case SHAPE_FULL:
+				hitValue |= mask;
+				break;
+				
+			default:
+				continue;
+			}
 		}
 	}
 	
 	return hitValue;
 }
-unsigned int collide_entity(unsigned int ID){
+unsigned int collide_entity(unsigned int ID) {
 	int i = 0;
 	
-	Entity *id = &entities[ID], *iterP;
+	Entity *id = &entities[ID], *other;
 	
 	int id_LX = FIXED2INT(id->x);
 	int id_LY = FIXED2INT(id->y);
@@ -203,25 +230,25 @@ unsigned int collide_entity(unsigned int ID){
 	int id_RY = id_LY + id->height - 1;
 	int iter_LX, iter_LY, iter_RX, iter_RY;
 	
-	for (; i < ACTOR_LIMIT; ++i)
+	for (; i < ENTITY_LIMIT; ++i)
 	{
 		if (i == ID)
 			continue;
 		
-		iterP = &entities[i];
+		other = &entities[i];
 		
-		if (!ACTOR_ENABLED(iterP->flags) || !ACTOR_CAN_COLLIDE(iterP->flags))
+		if (!ENT_FLAG(ACTIVE, i) || !ENT_FLAG(DETECT, i))
 			continue;
 		
-		iter_LX = FIXED2INT(iterP->x);
-		iter_LY = FIXED2INT(iterP->y);
-		iter_RX = iter_LX + iterP->width - 1;
-		iter_RY = iter_LY + iterP->height - 1;
+		iter_LX = FIXED2INT(other->x);
+		iter_LY = FIXED2INT(other->y);
+		iter_RX = iter_LX + other->width - 1;
+		iter_RY = iter_LY + other->height - 1;
 		
 		if (id_RX < iter_LX || iter_RX < id_LX || id_RY < iter_LY || iter_RY < id_LY)
 			continue;
 		
-		return iterP->ID;
+		return other->ID;
 	}
 	return 0xFFFFFFFF;
 }
