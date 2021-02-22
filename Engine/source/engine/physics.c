@@ -18,7 +18,7 @@ unsigned int y_shift;
 unsigned int lvl_width, lvl_height;
 unsigned char *collision_data = (unsigned char*)0x02008000;
 
-int GetBlock(int x, int y) {
+int get_block(int x, int y) {
 	x -= x * (x < 0);
 	y -= y * (y < 0);
 	x += ((lvl_width  - 1) - x) * (x >= lvl_width);
@@ -27,10 +27,6 @@ int GetBlock(int x, int y) {
 	return collision_data[x + (y << y_shift)];
 }
 
-
-// Physics Collision for any entity
-// Returns y collision data on 0x00007FFF, and x collision data on 0x7FFF0000.
-// 0x80000000 is set if x velocity was positive, and 0x00008000 is set if y velocity was positive
 unsigned int entity_physics(Entity *ent, int hit_mask) {
 	
 	
@@ -63,7 +59,7 @@ unsigned int entity_physics(Entity *ent, int hit_mask) {
 	for (index = FIXED2BLOCK(x_min); index != FIXED2BLOCK(x_max + ent->vel_x) + sign_x; index += sign_x){
 		for (index2 = FIXED2BLOCK(y_min); index2 != FIXED2BLOCK(y_max) + sign_y; index2 += sign_y){
 			
-			int shape = GetBlock(index, index2);
+			int shape = get_block(index, index2);
 			if (!shape)
 				continue;
 			
@@ -117,7 +113,7 @@ unsigned int entity_physics(Entity *ent, int hit_mask) {
 	for (index = FIXED2BLOCK(y_min); index != FIXED2BLOCK(y_max + ent->vel_y) + sign_y; index += sign_y){
 		for (index2 = FIXED2BLOCK(x_min); index2 != FIXED2BLOCK(x_max) + sign_x; index2 += sign_x){
 			
-			int shape = GetBlock(index2, index);
+			int shape = get_block(index2, index);
 			if (!shape)
 				continue;
 			
@@ -175,7 +171,6 @@ unsigned int entity_physics(Entity *ent, int hit_mask) {
 	
 	return (hit_value_x << 16) | hit_value_y;
 }
-//*
 unsigned int collide_rect(int x, int y, int width, int height, int hit_mask){
 	int y_min = FIXED2INT(y),
 		y_max = y_min + height - 1;
@@ -191,7 +186,7 @@ unsigned int collide_rect(int x, int y, int width, int height, int hit_mask){
 	for (xCoor = INT2BLOCK(x_min); xCoor <= INT2BLOCK(x_max); ++xCoor){
 		for (yCoor = INT2BLOCK(y_min); yCoor <= INT2BLOCK(y_max); ++yCoor){
 			
-			int shape = GetBlock(xCoor, yCoor);
+			int shape = get_block(xCoor, yCoor);
 			if (!shape)
 				continue;
 			
@@ -252,4 +247,3 @@ unsigned int collide_entity(unsigned int ID) {
 	}
 	return 0xFFFFFFFF;
 }
-//*/
