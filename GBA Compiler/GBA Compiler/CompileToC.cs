@@ -292,6 +292,9 @@ namespace GBA_Compiler {
 			AddValueDefine(_name, _value.ToString());
 		}
 		public void AddValueDefine(string _name, string _value) {
+			if (_name == _value)
+				return;
+
 			string def = $"#define {_name}";
 
 			int len = def.Length;
