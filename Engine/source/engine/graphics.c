@@ -197,6 +197,10 @@ void draw_affine_big(AffineMatrix matrix, int sprite, int prio, int pal) {
 	x -= shape_width[shape];
 	y -= shape_height[shape];
 	
+	if (x + (shape_width [shape] << 1) <= 0 || x > 240 ||
+		y + (shape_height[shape] << 1) <= 0 || y > 160)
+		return;
+	
 	obj_set_attr(sprite_pointer,
 	((shape & 0xC) << 12) | SPRITE_Y(y) | ATTR0_AFF_DBL,
 	((shape & 0x3) << 14) | SPRITE_X(x) | ATTR1_AFF_ID(affine_count),
@@ -237,6 +241,10 @@ void draw_affine(AffineMatrix matrix, int sprite, int prio, int pal) {
 	
 	x -= shape_width[shape] >> 1;
 	y -= shape_height[shape] >> 1;
+	
+	if (x + shape_width [shape] <= 0 || x > 240 ||
+		y + shape_height[shape] <= 0 || y > 160)
+		return;
 	
 	obj_set_attr(sprite_pointer,
 	((shape & 0xC) << 12) | SPRITE_Y(y) | ATTR0_AFF,
