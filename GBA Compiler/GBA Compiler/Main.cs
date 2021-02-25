@@ -131,9 +131,9 @@ namespace GBA_Compiler {
 
 				//sw.Write(@"C:\devkitPro\tools\bin\bin2s -H test.h ");
 
-				foreach (var file in Directory.GetFiles(Path.Combine(RootPath, "art", "bin"))) {
+				//foreach (var file in Directory.GetFiles(Path.Combine(RootPath, "art", "bin"))) {
 					//sw.Write(Path.Combine("art\\bin", Path.GetFileName(file)) + " ");
-				}
+				//}
 
 				//sw.WriteLine();
 				//return;

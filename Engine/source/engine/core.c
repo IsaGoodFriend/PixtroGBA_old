@@ -269,27 +269,6 @@ void finalize_layers() {
 	bg_tile_allowance = sbb << 5;
 }
 
-// Horizontal interrupt
-void interrupt(){
-	
-	int line = REG_VCOUNT;
-	
-	if (fadeAmount != TRANSITION_CAP && (line == 228 || line < 160)) {
-		if (IS_FADING) {
-			if (line >= 160) {
-				REG_WIN0H = transition_style[(fadeAmount >> 1) * 160];
-			}
-			else{
-				REG_WIN0H = transition_style[line + (fadeAmount >> 1) * 160];
-			}
-		}
-		
-		if (hBlankInterrupt)
-			hBlankInterrupt(line);
-	}
-	
-}
-
 //Settings File
 void load_settings() {
 	int index;
