@@ -9,39 +9,12 @@
 void update();
 void render();
 
-extern unsigned int tileTypes[128];
-
-void test_update(int index) {
-	Entity *ent = &entities[index];
-	ent->velY += 0x20;
-	ent->velX = FIXED_APPROACH(ent->velX, (key_tri_horz() * 0x200), 0x40);
-	
-	
-	if (key_pressed(KEY_A, 20)){
-		ent->velY = -0x280;
-		clear_buffer(KEY_A);
-	}
-	
-	entity_physics(ent, 0x1, 0x1);
-	
-}
-void test_render(int index) {
-	Entity ent = entities[index];
-	
-	draw(ent.x - 0x200, ent.y, 0, 0, 0, 0);
-}
-
 void on_update() {
 	cam_x = FIXED2INT(entities[0].x);
 	cam_y = FIXED2INT(entities[0].y);
 }
 
 void init() {
-	
-	tileTypes[0] = 0x10;
-	
-	entity_update[0] = &test_update;
-	entity_render[0] = &test_render;
 	
 	LOAD_TILESET(test);
 	
