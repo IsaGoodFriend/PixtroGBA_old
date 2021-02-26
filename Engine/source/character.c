@@ -144,7 +144,7 @@ int normal_update(int index) {
 }
 
 void character_update(int index) {
-		
+	
 	Entity *ent = &entities[index];
 	ent->vel_y += 0x20;
 	
