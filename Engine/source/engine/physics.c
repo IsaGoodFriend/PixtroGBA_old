@@ -8,6 +8,9 @@
 #define FIXED2BLOCK(n) ((n) >> (ACC + BLOCK_SHIFT))
 #define BLOCK2FIXED(n) ((n) << (ACC + BLOCK_SHIFT))
 
+#define INT2BLOCK(n) ((n) >> (BLOCK_SHIFT))
+#define BLOCK2INT(n) ((n) << (BLOCK_SHIFT))
+
 #define TILE_TYPE_SHIFT		8
 #define TILE_TYPE_MASK 		0x0000FF00
 #define TILE_SHAPE_MASK		0x000000FF

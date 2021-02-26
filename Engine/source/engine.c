@@ -16,6 +16,9 @@ void on_update() {
 
 void init() {
 	
+	//LOAD_ENTITY(char, 0);
+	
+	
 	LOAD_TILESET(test);
 	
 	load_bg_pal(PAL_test, 0);
