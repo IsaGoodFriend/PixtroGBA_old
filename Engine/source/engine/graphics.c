@@ -76,17 +76,24 @@ int affine_count;
 // Sprite bank information
 int shapes[BANK_LIMIT], indexes[BANK_LIMIT], ordered[BANK_LIMIT];
 
-unsigned int *anim_bank[BANK_LIMIT], anim_meta[BANK_LIMIT];
+unsigned int *anim_bank[BANK_LIMIT], anim_meta[BANK_LIMIT], wait_to_load[BANK_LIMIT];
 
 OBJ_ATTR obj_buffer[SPRITE_LIMIT];
 OBJ_ATTR *sprite_pointer;
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
 int tileset_count;
+char is_rendering;
 
 void load_sprite(unsigned int *sprite, int index, int shape) {
-
+	
 	anim_bank[index] = NULL;
+	
+	if (!is_rendering) {
+		wait_to_load[index] = ((unsigned int)sprite) | (shape << 28);
+		return;
+	}
+	
 	
 	int bankLoc, size = shape2size[shape];
 	
@@ -293,10 +300,21 @@ void draw(int x, int y, int sprite, int flip, int prio, int pal) {
 	++sprite_count;
 }
 
-void update_anims() {
+void begin_drawing() {
+	
+	is_rendering = 1;
+	
 	int i;
 	
 	for (i = 0; i < BANK_LIMIT; ++i) {
+		
+		if (wait_to_load[i]) {
+			
+			load_sprite(wait_to_load[i] & 0x0FFFFFFF, i, (wait_to_load[i] >> 28));
+			
+			wait_to_load[i] = 0;
+		}
+		
 		if (!anim_bank[i])
 			continue;
 		
@@ -327,6 +345,8 @@ void update_anims() {
 }
 
 void init_drawing() {
+	is_rendering = 0;
+	
 	oam_init(obj_buffer, SPRITE_LIMIT);
 	sprite_pointer = (OBJ_ATTR*)&obj_buffer;
 	int i;
@@ -340,6 +360,7 @@ void init_drawing() {
 	}
 }
 void end_drawing() {
+	is_rendering = 0;
 	
 	if (sprite_count < prev_sprite_count){
 		int i = sprite_count;
