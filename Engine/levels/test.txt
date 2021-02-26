@@ -17,10 +17,10 @@ MM                            MM
 MM                            MM
 MM                         MMMMM
 MM                         MMMMM
-MM                         MMMMM
-MM            MMMMMMMMMMMMMMMMMM
-MM            MMMMMMMMMMMMMMMMMM
-MM            MMMMMMMMMMMMMMMMMM
+MM                      MMMMMMMM
+MM            MMMM      MMMMMMMM
+MM            MMMMMMM   MMMMMMMM
+MM                      MMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM

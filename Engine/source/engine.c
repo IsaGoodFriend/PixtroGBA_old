@@ -19,13 +19,12 @@ void init() {
 	
 	LOAD_ENTITY(character, 0);
 	
-	
 	LOAD_TILESET(test);
 	
 	load_bg_pal(PAL_test, 0);
-	load_obj_pal(PAL_test, 0);
+	load_obj_pal(PAL_character, 0);
 	
-	load_sprite(&SPR_test_anim[0], 0, SPRITE16x16);
+	load_sprite(SPR_char_idle, 0, SPRITE32x32);
 	
 	set_layer_priority(1, 1);
 	set_layer_priority(2, 2);
@@ -44,9 +43,6 @@ void init() {
 	
 	custom_update = &on_update;
 	
-	entities[0].ID |= ENT_ACTIVE_FLAG;
-	entities[0].width = 12;
-	entities[0].height = 16;
 }
 
 void init_settings() {
