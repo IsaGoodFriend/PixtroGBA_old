@@ -1,10 +1,11 @@
 #include "character.h"
 #include "pixtro_basic.h"
 
-void char_init(unsigned int* actor_index, unsigned char* data) {
+int character_init(unsigned int* actor_index, unsigned char* data) {
 	
+	return 0;
 }
-void char_update(int index) {
+void character_update(int index) {
 	
 	Entity *ent = &entities[index];
 	ent->vel_y += 0x20;
@@ -19,7 +20,7 @@ void char_update(int index) {
 	entity_physics(ent, 0x1);
 	
 }
-void char_render(int index) {
+void character_render(int index) {
 	
 	Entity ent = entities[index];
 	

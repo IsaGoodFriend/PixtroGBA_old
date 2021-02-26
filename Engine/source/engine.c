@@ -5,6 +5,7 @@
 
 #include "levels.h"
 #include "load_data.h"
+#include "character.h"
 
 void update();
 void render();
@@ -16,7 +17,7 @@ void on_update() {
 
 void init() {
 	
-	//LOAD_ENTITY(char, 0);
+	LOAD_ENTITY(character, 0);
 	
 	
 	LOAD_TILESET(test);

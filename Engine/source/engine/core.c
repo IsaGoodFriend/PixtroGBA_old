@@ -72,7 +72,7 @@ void pixtro_init() {
 	reset_tilesets();
 	
 	// Setting first physics tile to be collidable
-	SET_TILE_DATA(0, SHAPE_FULL, 0);
+	SET_TILE_DATA(0, SHAPE_FULL, 1);
 	
 	// Set the RNG seeds.  Change values to anything non 0
 	rng_seed(0xFA12B4, 0x2B5C72, 0x14F4D2);
