@@ -60,9 +60,9 @@ void load_settings();
 void interrupt();
 void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len, int size);
 
+extern void begin_drawing();
 extern void rng_seed(unsigned int seed1, unsigned int seed2, unsigned int seed3);
 extern void update_particles();
-extern void update_anims();
 extern void update_presses();
 
 // Initialize the game
@@ -131,7 +131,7 @@ void pixtro_render() {
 	
 	// Set the camera position and load in level if the camera has moved (and if there is any level)
 	move_cam();
-	update_anims();
+	begin_drawing();
 	
 	// Update and render particles
 	update_particles();
