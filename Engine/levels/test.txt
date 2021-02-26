@@ -18,8 +18,8 @@ MM                            MM
 MM                         MMMMM
 MM                         MMMMM
 MM                      MMMMMMMM
-MM            MMMM      MMMMMMMM
-MM            MMMMMMM   MMMMMMMM
+MM          MMMMMMM     MMMMMMMM
+MM          MMMMMMMMM   MMMMMMMM
 MM                      MMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM

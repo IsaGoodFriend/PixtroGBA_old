@@ -12,7 +12,7 @@ void render();
 
 void on_update() {
 	cam_x = FIXED2INT(entities[0].x);
-	cam_y = FIXED2INT(entities[0].y);
+	cam_y = FIXED2INT(entities[0].y) + entities[0].height - 10;
 }
 
 void init() {

@@ -62,6 +62,8 @@ void roll_begin(int index, int old_st) {
 	entities[index].y += INT2FIXED(HEIGHT_DIFF);
 	entities[index].height = CHAR_R_HEIGHT;
 	
+	roll_angle = 0;
+	
 	CLEAR_FLAG(ROLLJUMP, entities[index].flags[0]);
 }
 void roll_end(int index, int new_st) {
@@ -72,13 +74,20 @@ void roll_end(int index, int new_st) {
 	entities[index].height = CHAR_HEIGHT;
 }
 int roll_update(int index) {
-	
 	Entity *ent = &entities[index];
+	
+	roll_angle += ent->vel_x >> 3;
 
-	ent->vel_x = FIXED_APPROACH(ent->vel_x, (key_tri_horz() * ROLL_SPEED), 0x18);
+	int dir = key_tri_horz();
+	
+	if (dir && HAS_FLAG(GROUND, ent->flags[0]))
+		ent->vel_x = FIXED_APPROACH(ent->vel_x, (dir * ROLL_SPEED), 0x28);
+	else
+		ent->vel_x = FIXED_APPROACH(ent->vel_x, 0, 0x04);
 	
 	if (!KEY_DOWN_NOW(KEY_R) && !(collide_rect(ent->x, ent->y - INT2FIXED(HEIGHT_DIFF), ent->width, HEIGHT_DIFF, 0x1)))
 		return STATE_NORMAL;
+	
 	
 	return char_machine.state;
 }
@@ -161,8 +170,14 @@ void character_render(int index) {
 		case STATE_NORMAL:
 			draw(ent.x - 0xA00, ent.y - 0x800, 0, 0, 0, 0);
 		break;
-		case STATE_ROLLING:
-			draw_affine(ent.x - 0xA00, ent.y - 0x1100, 0, 0, 0, 0);
+		case STATE_ROLLING: {
+			AffineMatrix matrix = matrix_identity();
+			TRANSLATE_MATRIX(matrix, 0, -0x700);
+			ROTATE_MATRIX(matrix, roll_angle >> 2);
+			TRANSLATE_MATRIX(matrix, ent.x + 0x600, ent.y + 0x600);
+			
+			draw_affine(matrix, 0, 0, 0);
+			}
 		break;
 	}
 }
