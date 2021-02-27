@@ -8,11 +8,13 @@
 #define CHAR_R_HEIGHT		12
 #define HEIGHT_DIFF			12
 
-#define JUMP_HEIGHT			-0x340
-#define JUMP_ROLL_HEIGHT	-0x280
+#define JUMP_HEIGHT			-0x4C0
+#define JUMP_ROLL_HEIGHT	-0x3C0
+#define GRAVITY				0x38
+#define MAX_FALL			0x600
 
 #define ROLL_SPEED			0x500
-#define ROLL_JUMP			-0x140
+#define ROLL_JUMP			-0x0C0
 
 #define HAS_FLAG(name, value)	(name##_FLAG & value)
 #define SET_FLAG(name, value)	value |= name##_FLAG;
@@ -77,6 +79,7 @@ int roll_update(int index) {
 	Entity *ent = &entities[index];
 	
 	roll_angle += ent->vel_x >> 3;
+	ent->vel_y = FIXED_APPROACH(ent->vel_y, MAX_FALL, GRAVITY);
 
 	int dir = key_tri_horz();
 	
@@ -94,8 +97,18 @@ int roll_update(int index) {
 int normal_update(int index) {
 	
 	Entity *ent = &entities[index];
+	
 	if (INT_ABS(ent->vel_x) <= 0x200)
 		CLEAR_FLAG(ROLLJUMP, ent->flags[0]);
+	
+	if (HAS_FLAG(ROLLJUMP, ent->flags[0])) {
+		ent->vel_y = FIXED_APPROACH(ent->vel_y, MAX_FALL, (GRAVITY / 2));
+	}
+	else {
+		ent->vel_y = FIXED_APPROACH(ent->vel_y, MAX_FALL, GRAVITY);
+	}
+	
+	
 	
 	if (HAS_FLAG(GROUND, ent->flags[0])) {
 		if (KEY_DOWN_NOW(KEY_R) && INT_ABS(ent->vel_x) > 0x200) {
@@ -120,7 +133,10 @@ int normal_update(int index) {
 		}
 	}
 	else {
-		ent->vel_x = FIXED_APPROACH(ent->vel_x, (key_tri_horz() * 0x200), 0x24);
+		if (INT_ABS(ent->vel_x) <= 0x200)
+			ent->vel_x = FIXED_APPROACH(ent->vel_x, (key_tri_horz() * 0x200), 0x48);
+		else
+			ent->vel_x = FIXED_APPROACH(ent->vel_x, (key_tri_horz() * 0x200), 0x28);
 		
 		if (ent->vel_y > 0)
 			CLEAR_FLAG(HOLDJUMP, ent->flags[0]);
@@ -146,7 +162,6 @@ int normal_update(int index) {
 void character_update(int index) {
 	
 	Entity *ent = &entities[index];
-	ent->vel_y += 0x20;
 	
 	update_statemachine(&char_machine, index);
 	
