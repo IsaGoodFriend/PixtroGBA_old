@@ -1,11 +1,11 @@
 #include "load_data.h"
 #include <string.h>
 
-
 #include "sprites.h"
 #include "core.h"
 #include "physics.h"
 #include "math.h"
+#include "loading.h"
 
 
 #define FIXED2BLOCK(n)	((n) >> (ACC + BLOCK_SHIFT))
@@ -30,50 +30,34 @@
 
 #define BGOFS			((vu16*)(REG_BASE+0x0010))
 
-unsigned short *uncmp_visuals = (unsigned short*)0x02002000;
+#define LEVEL_REGION_A		(unsigned short*)0x02002000
+#define LEVEL_REGION_B		(unsigned short*)0x02012000
+
 unsigned char *lvl_info;
 
-extern int lvl_width, lvl_height, y_shift;
-extern unsigned char *collision_data;
+extern int lvl_width, lvl_height;
+extern unsigned short *tileset_data;
 
 extern int cam_x, cam_y, prev_cam_x, prev_cam_y;
 
-extern char level_meta[128];
+extern char level_meta[256];
 
 void load_collision(unsigned char *level_start){
 	
-	lvl_info = level_start;
-	
-	lvl_width =  lvl_info[0];
-	lvl_height = lvl_info[1];
-	lvl_info += 2;
-	
-	int index = lvl_width - 1;
-	y_shift = 0;
-	
-	while (index) {
-		index >>= 1;
-		++y_shift;
-	}
-	
-	while (lvl_info[0] < 128) {
-		level_meta[lvl_info[0]] = lvl_info[1];	
-		lvl_info += 2;
-	}
-	lvl_info++;
+	load_header(level_start);
 	
 	unsigned int count = (lvl_info[0]);
 	unsigned int value = (lvl_info[1]);
 	
 	lvl_info += 2;
 	
-	unsigned char* cpyColl = collision_data;
+	unsigned char* cpyColl = tileset_data;
 	
 	int indexX, indexY;
 	
 	// decompress file data
 	// --- COLLISION ---
-	int r1 = (1 << y_shift) - lvl_width;
+	int r1 = (1 * lvl_width) - lvl_width;
 	unsigned int countT;
 	
 	for (indexY = 0; indexY < lvl_height; ++indexY){// by row
@@ -99,15 +83,15 @@ void load_collision(unsigned char *level_start){
 		cpyColl += r1;
 	}
 }
-void load_midground(int index) {
+void load_midgrounds(int index) {
 	
-	int r1 = (1 << y_shift) - lvl_width, indexX, indexY;
+	int indexX, indexY;
 	unsigned int count = lvl_info[0], countT;
 	unsigned int value = (lvl_info[2] << 8) | lvl_info[1];
 	
 	lvl_info += 3;
 	
-	unsigned short* cpyColl = &uncmp_visuals[0x2000 * index];
+	unsigned short* cpyColl = &tileset_data[0x2000 * index];
 	
 	for (indexY = 0; indexY < lvl_height; ++indexY){// by row
 		countT = (count > lvl_width) ? lvl_width : count; // get the mem set count value.  if larger than the width
@@ -133,7 +117,6 @@ void load_midground(int index) {
 				lvl_info += 3;
 			}
 		}
-		cpyColl += r1;
 	}
 }
 void load_entities() {
@@ -298,14 +281,14 @@ void move_cam() {
 			for (; min != max; min += dirY){
 				position = VIS_BLOCK_POS(startX, min);
 				
-				int vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift)];
+				int vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width)];
 				foreground[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
 				if (midground) {
-					vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift) + 0x2000];
+					vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width) + 0x2000];
 					midground[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
 				}
 				if (background) {
-					vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift) + 0x4000];
+					vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width) + 0x4000];
 					background[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
 				}
 			}
@@ -320,14 +303,14 @@ void move_cam() {
 			for (; min != max; min += dirX){
 				position = VIS_BLOCK_POS(min, startY);
 				
-				int vis = uncmp_visuals[(min >> 1) + ((startY >> 1) << y_shift)];
+				int vis = tileset_data[(min >> 1) + ((startY >> 1) * lvl_width)];
 				foreground[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);
 				if (midground) {
-					vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift) + 0x2000];
+					vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width) + 0x2000];
 					midground[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);
 				}
 				if (background) {
-					vis = uncmp_visuals[(startX >> 1) + ((min >> 1) << y_shift) + 0x4000];
+					vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width) + 0x4000];
 					background[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);;
 				}
 			}
@@ -344,7 +327,6 @@ void move_cam() {
 	cam_x += 120;
 	cam_y += 80;
 }
-//*
 void reset_cam() {
 	
 	cam_x -= 120;
@@ -375,27 +357,27 @@ void reset_cam() {
 	while (val-- > 0){
 		
 		int p1 = VIS_BLOCK_POS(x, y);
-		int p2 = ((y >> 1) << y_shift) + (x >> 1);
+		int p2 = ((y >> 1) * lvl_width) + (x >> 1);
 		
-		copy_tiles(&foreground[p1], &uncmp_visuals[p2], x, y, 32 - x);
+		copy_tiles(&foreground[p1], &tileset_data[p2], x, y, 32 - x);
 		
 		/*
 		if (midground)
-			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], 64 - (x << 1));
+			memcpy(&midground[p1], &tileset_data[p2 + 0x2000], 64 - (x << 1));
 		if (background)
-			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], 64 - (x << 1));
+			memcpy(&background[p1], &tileset_data[p2 + 0x4000], 64 - (x << 1));
 		
 		*/
 		p1 &= 0xFE0;
 		p2 += (32 - x) >> 1;
 		
-		copy_tiles(&foreground[p1], &uncmp_visuals[p2], 0, y, x);
+		copy_tiles(&foreground[p1], &tileset_data[p2], 0, y, x);
 		/*
-		memcpy(&foreground[p1], &uncmp_visuals[p2], x << 1);
+		memcpy(&foreground[p1], &tileset_data[p2], x << 1);
 		if (midground)
-			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], (x << 1));
+			memcpy(&midground[p1], &tileset_data[p2 + 0x2000], (x << 1));
 		if (background)
-			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], (x << 1));
+			memcpy(&background[p1], &tileset_data[p2 + 0x4000], (x << 1));
 		
 		*/
 		++y;
@@ -470,11 +452,11 @@ void move_cam() {
 			for (; min != max; min += dirY){
 				position = VIS_BLOCK_POS(startX, min);
 				
-				foreground[position] = uncmp_visuals[startX + (min << y_shift)];
+				foreground[position] = tileset_data[startX + (min * lvl_width)];
 				if (midground)
-					midground[position]  = uncmp_visuals[startX + (min << y_shift) + 0x2000];
+					midground[position]  = tileset_data[startX + (min * lvl_width) + 0x2000];
 				if (background)
-					background[position] = uncmp_visuals[startX + (min << y_shift) + 0x4000];
+					background[position] = tileset_data[startX + (min * lvl_width) + 0x4000];
 			}
 			startX += dirX;
 		}
@@ -487,11 +469,11 @@ void move_cam() {
 			for (; min != max; min += dirX){
 				position = VIS_BLOCK_POS(min, startY);
 				
-				foreground[position] = uncmp_visuals[min + (startY << y_shift)];
+				foreground[position] = tileset_data[min + (startY * lvl_width)];
 				if (midground)
-					midground[position] = uncmp_visuals[min + (startY << y_shift) + 0x2000];
+					midground[position] = tileset_data[min + (startY * lvl_width) + 0x2000];
 				if (background)
-					background[position] = uncmp_visuals[min + (startY << y_shift) + 0x4000];
+					background[position] = tileset_data[min + (startY * lvl_width) + 0x4000];
 			}
 			startY += dirY;
 		}
@@ -536,23 +518,23 @@ void reset_cam() {
 	while (val-- > 0){
 		
 		int p1 = VIS_BLOCK_POS(x, y);
-		int p2 = (y << y_shift) + x;
+		int p2 = (y * lvl_width) + x;
 		++y;
 		
-		memcpy(&foreground[p1], &uncmp_visuals[p2], 64 - (x << 1));
+		memcpy(&foreground[p1], &tileset_data[p2], 64 - (x << 1));
 		if (midground)
-			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], 64 - (x << 1));
+			memcpy(&midground[p1], &tileset_data[p2 + 0x2000], 64 - (x << 1));
 		if (background)
-			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], 64 - (x << 1));
+			memcpy(&background[p1], &tileset_data[p2 + 0x4000], 64 - (x << 1));
 		
 		p1 &= 0xFE0;
 		p2 += 32 - x;
 		
-		memcpy(&foreground[p1], &uncmp_visuals[p2], x << 1);
+		memcpy(&foreground[p1], &tileset_data[p2], x << 1);
 		if (midground)
-			memcpy(&midground[p1], &uncmp_visuals[p2 + 0x2000], (x << 1));
+			memcpy(&midground[p1], &tileset_data[p2 + 0x2000], (x << 1));
 		if (background)
-			memcpy(&background[p1], &uncmp_visuals[p2 + 0x4000], (x << 1));
+			memcpy(&background[p1], &tileset_data[p2 + 0x4000], (x << 1));
 		
 	}
 	
@@ -564,5 +546,4 @@ void reset_cam() {
 	cam_x += 120;
 	cam_y += 80;
 }
-//*/
 #endif

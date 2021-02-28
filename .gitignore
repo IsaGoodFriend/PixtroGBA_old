@@ -1,7 +1,8 @@
 Engine/build/
 Engine/art/bin
-/GBA Compiler/GBA Compiler/bin/
-/GBA Compiler/GBA Compiler/obj/
+Compiler\bin\
+Compiler\obj\
+Compiler\.vs\
 
 *sprites.c
 *sprites.h
@@ -19,5 +20,7 @@ todo.txt
 *.exe
 *.pdb
 *.csproj
+*.csproj.*
 *.wav
 *.mod
+GBA Compiler/GBA Compiler.csproj.user

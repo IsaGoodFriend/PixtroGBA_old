@@ -192,47 +192,18 @@ namespace GBA_Compiler {
 			yield break;
 		}
 
-		private IEnumerable<byte> Header(){
-			yield return (byte)width;
-			yield return (byte)height;
+		private IEnumerable<byte> Header() {
+			foreach (byte b in BitConverter.GetBytes((short)width))
+				yield return b;
+			foreach (byte b in BitConverter.GetBytes((short)height))
+				yield return b;
 
 			foreach (var b in metadata.Keys) {
 				yield return b;
 				yield return metadata[b];
 			}
 			yield return 0xFF;
-
-			foreach (var b in Collision())
-				yield return b;
-
-			yield break;
-		}
-		private IEnumerable<byte> Collision() {
-
-			byte[] data = new byte[width * height];
-
-			int i = 0;
-
-			for (int y = 0; y < height; ++y)
-				for (int x = 0; x < width; ++x)
-					data[i++] = (byte)(levelData[0, x, y] == ' ' ? 0 : DataParse.Wrapping[levelData[0, x, y]].CollisionType);
-
-			byte last = data[0], count = 0;
-
-			for (i = 0; i < width * height; ++i) {
-				if (data[i] != last || count == 255) {
-					yield return count;
-					yield return last;
-
-					last = data[i];
-					count = 0;
-				}
-				++count;
-			}
-
-			yield return count;
-			yield return last;
-
+			
 			yield break;
 		}
 		private IEnumerable<byte> VisualLayer(int layer) {

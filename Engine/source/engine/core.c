@@ -94,6 +94,15 @@ void pixtro_init() {
 	set_foreground_count(1);
 	finalize_layers();
 	
+	load_bg_pal(PAL_test, 0);
+	
+	LOAD_TILESET(test);
+	
+	load_collision(LVL_test);
+	load_midground(0);
+	
+	reset_cam();
+	
 	// Initialize the engine with user's code
 	init();
 }

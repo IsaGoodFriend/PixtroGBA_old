@@ -78,7 +78,7 @@ namespace GBA_Compiler {
 			RootPath = Directory.GetCurrentDirectory().Replace('/', '\\');
 
 #if DEBUG
-			RootPath = @"C:\Users\IsaGoodFriend\OneDrive\Documents\DevKitPro\Projects\PixtroGBA\Engine";
+			RootPath = @"C:\Users\IsaGoodFriend\source\HomeBrew\PixtroGBA\Engine";
 #endif
 
 			foreach (string s in File.ReadAllLines(Path.Combine(RootPath, @"source\engine.h"))) {

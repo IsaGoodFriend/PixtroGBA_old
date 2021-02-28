@@ -58,7 +58,7 @@ const int shape_height[12] = {
 	tileSize * 8,
 };
 
-int drawing_flags = DFLAG_CAM_FOLLOW;
+int drawing_flags = DFLAG_CAM_FOLLOW | DFLAG_CAM_BOUNDS;
 
 int cam_x, cam_y, prev_cam_x, prev_cam_y;
 
