@@ -3,7 +3,11 @@
 
 	{
 		"Include": "*",
-
+		"Name" : "all",
+		
+		"TilesetCollision" : {
+			"TILE_test" : 1,
+		},
 		"EntityIndex" : {
 			"char" : 0,
 			"test" : 0,
@@ -11,7 +15,6 @@
 		"Wrapping" : {
 			"M" : {
 				"Palettes" : [0],
-				"CollisionType" : 1,
 				"Tileset" : "TILE_test",
 				"Connections" : ["M"],
 				"Mapping" : ["0, 1", "0, -1", "1, 0", "-1, 0"],
@@ -32,7 +35,6 @@
 			},
 			"N" : {
 				"Palettes" : [0],
-				"CollisionType" : 1,
 				"Tileset" : "TILE_test",
 				"Connections" : ["N"],
 				"Mapping" : ["0, 1", "0, -1", "1, 0", "-1, 0"],

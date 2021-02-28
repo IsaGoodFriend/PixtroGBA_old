@@ -10,7 +10,6 @@ namespace GBA_Compiler {
 		public class TileWrapping {
 
 			public int[] Palettes;
-			public byte CollisionType;
 			public string Tileset;
 			public char[] Connections;
 			public Point[] Mapping;
@@ -208,12 +207,19 @@ namespace GBA_Compiler {
 		}
 		private IEnumerable<byte> VisualLayer(int layer) {
 
+			
 			List<char> characters = new List<char>(DataParse.Wrapping.Keys);
 			Dictionary<char, uint[]> connect = new Dictionary<char, uint[]>();
 			List<Tile> fullTileset = new List<Tile>();
 
-			foreach (var name in ArtCompiler.LevelTilesets.Keys) {
-				fullTileset.AddRange(ArtCompiler.LevelTilesets[name].tiles);
+			{
+				List<string> found = new List<string>();
+				foreach (var t in DataParse.Wrapping.Keys) {
+					if (!found.Contains(DataParse.Wrapping[t].Tileset)) {
+						fullTileset.AddRange(ArtCompiler.LevelTilesets[DataParse.Wrapping[t].Tileset].tiles);
+						found.Add(DataParse.Wrapping[t].Tileset);
+					}
+				}
 			}
 
 			foreach (var tile in DataParse.Wrapping.Keys) {
@@ -317,7 +323,7 @@ namespace GBA_Compiler {
 							break;
 						}
 
-						Tile mappedTile = tileset.GetTile(tile);
+						Tile mappedTile = tileset.GetTile(tile??tileset.GetOGTile(0, 0));
 
 						retval = (ushort)(((fullTileset.IndexOf(mappedTile) + 1) << (Compiler.LargeTiles ? 2 : 0)) | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
 					}
@@ -336,7 +342,7 @@ namespace GBA_Compiler {
 
 			yield return count;
 			yield return (byte)(last       & 0xFF);
-			yield return (byte)((last >> 8));
+			yield return (byte)(last >> 8);
 
 			yield break;
 		}
