@@ -3,10 +3,10 @@ Engine/art/bin
 /GBA Compiler/GBA Compiler/bin/
 /GBA Compiler/GBA Compiler/obj/
 
-Engine/source/sprites.c
-Engine/source/sprites.h
-Engine/source/levels.c
-Engine/source/levels.h
+*sprites.c
+*sprites.h
+*levels.c
+*levels.h
 pixtro_develop.pnproj
 todo.txt
 

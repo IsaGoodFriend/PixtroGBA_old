@@ -95,37 +95,6 @@ namespace GBA_Compiler {
 
 			compiler.SaveTo(toSavePath, "levels");
 		}
-		private static CompressedLevel CompileLevelBin(string _path, CompileToC _compiler) {
-
-			// TODO: Add support for this at some point.
-
-			throw new NotImplementedException();
-
-			//using (BinaryReader reader = new BinaryReader(File.Open(_path, FileMode.Open))){
-
-
-			//	string name = reader.ReadString();
-
-			//	while (!string.IsNullOrWhiteSpace(name)) {
-
-			//		CompressedLevel level = new CompressedLevel();
-
-			//		level.Width = reader.ReadByte();
-			//		level.Height = reader.ReadByte();
-			//		level.
-
-			//		_compiler.BeginArray(CompileToC.ArrayType.Char, $"LVL_{name}");
-			//		_compiler.AddRange(level.BinaryData());
-			//		_compiler.EndArray();
-
-			//		name = reader.ReadString();
-			//	}
-
-
-			//}
-
-			//return null;
-		}
 
 
 		private static string currentType;
@@ -250,6 +219,109 @@ namespace GBA_Compiler {
 
 			return retval;
 		}
+		private static CompressedLevel CompileLevelBin(string _path, CompileToC _compiler) {
+
+			// TODO: Add support for this at some point.
+
+			var reader = new LevelBinReader(_path, "PIXTRO_LVL");
+
+			string baseName = Path.GetFileNameWithoutExtension(_path);
+
+			foreach (var node in reader.Nodes) {
+				switch (node.Name) {
+					case "level":
+						if (node.Children[0].Name != "meta")
+							continue;
+
+						CompressedLevel level = new CompressedLevel();
+						string levelName = null;
+
+						foreach (var child in node.Children) {
+							switch (child.Name) {
+								case "meta":
+									level.Width = child.GetInteger("width");
+									level.Height = child.GetInteger("height");
+									level.Layers = child.GetInteger("layers");
+									levelName = child["name"] as string;
+									break;
+								case "layer":
+									int layerIndex = child.GetInteger("index");
+									string[] values = (child["data"] as string).Split('\n');
+
+									for (int i = 0; i < values.Length; ++i) {
+										level.AddLine(layerIndex, i, values[i]);
+									}
+									break;
+								case "entity":
+
+									var ent = new CompressedLevel.Entity();
+
+									ent.x = child.GetInteger("x");
+									ent.y = child.GetInteger("y");
+									if (child.Attributes["type"] is string) {
+										ent.type = CompressedLevel.DataParse.EntityIndex[child.Attributes["type"] as string];
+									}
+									else {
+										ent.type = (byte)child.GetInteger("type");
+									}
+
+									level.entities.Add(ent);
+
+									foreach (var attr in child.Attributes.Keys) {
+										switch (attr) {
+											case "x":
+											case "y":
+											case "name":
+											case "type":
+												break;
+											default:
+												if (child.Attributes[attr] is string) {
+													ent.data.Add(ParseEntityMeta(child.Attributes[attr] as string));
+												}
+												else {
+													ent.data.Add((byte)child.GetInteger(attr));
+												}
+
+												break;
+										}
+
+									}
+
+									entLocalCount++;
+									entGlobalCount++;
+									entSectionCount[CompressedLevel.DataParse]++;
+
+									currentType = child["name"] as string;
+
+									if (!typeLocalCount.ContainsKey(currentType)) {
+										typeLocalCount.Add(currentType, 0);
+										typeGlobalCount.Add(currentType, 0);
+										typeSectionCount[CompressedLevel.DataParse].Add(currentType, 0);
+									}
+									typeLocalCount[currentType]++;
+									typeGlobalCount[currentType]++;
+									typeSectionCount[CompressedLevel.DataParse][currentType]++;
+
+
+									break;
+							}
+						}
+
+						_compiler.BeginArray(CompileToC.ArrayType.Char, $"LVL_{baseName}_{levelName}");
+
+						_compiler.AddRange(level.BinaryData());
+
+						_compiler.EndArray();
+
+						break;
+
+					case "meta":
+						break;
+				}
+			}
+
+			return null;
+		}
 		private static CompressedLevel CompileLevelTxt(string _path) {
 			CompressedLevel retval = new CompressedLevel();
 
@@ -286,6 +358,17 @@ namespace GBA_Compiler {
 
 								var entity = new CompressedLevel.Entity();
 
+								entity.x = int.Parse(split[1]);
+								entity.y = int.Parse(split[2]);
+
+								for (int i = 3; i < split.Length; ++i) {
+									entity.data.Add(ParseEntityMeta(split[i]));
+								}
+
+								entity.type = CompressedLevel.DataParse.EntityIndex[split[0]];
+
+								retval.entities.Add(entity);
+
 								entLocalCount++;
 								entGlobalCount++;
 								entSectionCount[CompressedLevel.DataParse]++;
@@ -301,17 +384,7 @@ namespace GBA_Compiler {
 								typeGlobalCount[currentType]++;
 								typeSectionCount[CompressedLevel.DataParse][currentType]++;
 
-								entity.type = CompressedLevel.DataParse.EntityIndex[split[0]];
 								
-
-								entity.x = int.Parse(split[1]);
-								entity.y = int.Parse(split[2]);
-
-								for (int i = 3; i < split.Length; ++i) {
-									entity.data.Add(ParseEntityMeta(split[i]));
-								}
-
-								retval.entities.Add(entity);
 							}
 							break;
 					}

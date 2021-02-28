@@ -14,6 +14,11 @@ The Pixtro game engine for GBA has many features at your disposal:
 - Support for multiple extra midgrounds for extra decal/decoration
 - An advanced level parsing system
 
+### Getting Started
+
+This engine works with devkitPro and it's features, so download and install that first.  It's also recommended that you use Programmer's Notepad.
+Put the compiler and .dll(s) into the 'tools/bin' folder.  Everything should then be ready.  Unzip the engine, open the project file, and build your game!
+
 ### Documentation
 
 Is... coming soon.  I hope?  No guarantees yet.
