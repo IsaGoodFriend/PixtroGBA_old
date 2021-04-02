@@ -1,5 +1,5 @@
 #include <maxmod.h>
-#include <tonc.h>
+#include "tonc_vscode.h"
 
 #include "soundbank.h"
 #include "soundbank_bin.h"

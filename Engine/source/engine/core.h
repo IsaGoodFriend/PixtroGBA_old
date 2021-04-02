@@ -1,8 +1,9 @@
 #pragma once
 
+
 #define __DEBUG__
 
-#include <tonc.h>
+#include "tonc_vscode.h"
 #include <string.h>
 
 #include "engine.h"

@@ -1,5 +1,5 @@
 //*
-#include <tonc.h>
+#include "tonc_vscode.h"
 
 #include "physics.h"
 #include "math.h"

@@ -3,7 +3,6 @@ Engine/art/bin
 Compiler/bin/
 Compiler/obj/
 Compiler/.vs/
-*/.vscode
 
 *sprites.c
 *sprites.h
@@ -12,9 +11,7 @@ Compiler/.vs/
 pixtro_develop.pnproj
 todo.txt
 
-*.code-workspace
 *.zip
-*.pnps
 *.elf
 *.gba
 *.suo

@@ -1,5 +1,5 @@
 #include "input.h"
-#include <tonc.h>
+#include "tonc_vscode.h"
 
 int last_pressed[10];
 

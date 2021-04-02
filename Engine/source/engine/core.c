@@ -1,4 +1,4 @@
-#include <tonc.h>
+#include "tonc_vscode.h"
 #include <string.h>
 
 #include "core.h"
