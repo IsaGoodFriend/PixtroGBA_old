@@ -1,5 +1,5 @@
 #include "engine.h"
-#include "tonc_vscode.h"
+#include <tonc.h>
 
 #include "pixtro_basic.h"
 
