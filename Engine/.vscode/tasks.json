@@ -1,26 +1,34 @@
 {
     "version": "2.0.0",
     "tasks": [
-        { 
+        {
             "label": "stop emulation",
-            "type":"shell",
+            "type": "shell",
             "windows": {
-                "command":"taskkill /im EmuHawk.exe /F"
+                "command": "taskkill /im EmuHawk.exe /F"
             }
         },
         {
             "label": "make debug",
             "type": "process",
             "command": "C:/devkitPro/tools/bin/pixtroCompiler.exe",
-            "args": ["DEBUG=1"],
+            "args": [
+                "DEBUG=1"
+            ],
             "problemMatcher": []
         },
         {
             "label": "make release",
             "type": "process",
             "command": "C:/devkitPro/tools/bin/pixtroCompiler.exe",
-            "args": ["DEBUG=0"],
-            "problemMatcher": []
+            "args": [
+                "DEBUG=0"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         },
         {
             "label": "clean",
@@ -30,7 +38,9 @@
         {
             "label": "gdb-debug",
             "type": "shell",
-            "dependsOn": ["make debug"],
+            "dependsOn": [
+                "make debug"
+            ],
             "isBackground": false,
             "windows": {
                 "command": "C:/Users/IsaGoodFriend/Downloads/BizHawk-2.5.0/EmuHawk.exe -g ${workspaceFolder}/${workspaceFolderBasename}.gba;sleep 5;echo debuggerReady"

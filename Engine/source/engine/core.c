@@ -74,7 +74,7 @@ void pixtro_init() {
 	// Setting first physics tile to be collidable
 	SET_TILE_DATA(0, SHAPE_FULL, 1);
 	
-	// Set the RNG seeds.  Change values to anything non 0
+	// Set the RNG seeds.  Values can be any positive integer
 	rng_seed(0xFA12B4, 0x2B5C72, 0x14F4D2);
 	
 	// Initialize graphics settings.  Must run before anything visual happens
@@ -93,13 +93,6 @@ void pixtro_init() {
 	
 	set_foreground_count(1);
 	finalize_layers();
-	
-	load_bg_pal(PAL_test, 0);
-	
-	LOAD_TILESET(test);
-	
-	load_collision(LVL_test);
-	load_midground(0);
 	
 	reset_cam();
 	
