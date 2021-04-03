@@ -7,7 +7,7 @@
             "request": "launch",
             "preLaunchTask": "gdb-debug", 
             "postDebugTask": "stop emulation",
-            "serverLaunchTimeout": 10000,
+            "serverLaunchTimeout": 1000,
             "stopAtEntry": true,
             "program": "${workspaceFolder}/${workspaceFolderBasename}.elf",
             "MIMode": "gdb",
@@ -22,17 +22,9 @@
                     "description": "Enable pretty-printing for gdb",
                     "ignoreFailures": true,
                         "text": "file ${workspaceFolder}/${workspaceFolderBasename}.elf -enable-pretty-printing"
-                    }]
-            },
-            "osx":{
-                "miDebuggerPath": "/opt/devkitPro/devkitARM/bin/arm-none-eabi-gdb",
-                "setupCommands": [
-                    {
-                    "description": "Enable pretty-printing for gdb",
-                    "ignoreFailures": true,
-                        "text": "file ${workspaceFolder}/${workspaceFolderBasename}.elf -enable-pretty-printing"
-                    }]
-            },
+                    }
+                ]
+            }
         }
     ]
 }
