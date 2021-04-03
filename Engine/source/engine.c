@@ -1,5 +1,5 @@
 #include "engine.h"
-#include <tonc.h>
+#include "tonc_vscode.h"
 
 #include "pixtro_basic.h"
 
@@ -15,6 +15,7 @@ void on_update() {
 	cam_y = FIXED2INT(entities[0].y) + entities[0].height - 10;
 }
 
+// Run before anything else happens in the game
 void init() {
 	
 	LOAD_ENTITY(character, 0);
@@ -45,6 +46,7 @@ void init() {
 	
 }
 
+// Run the first time the game is initialized.  Mainly used for setting default settings
 void init_settings() {
 	
 }

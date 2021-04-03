@@ -93,6 +93,24 @@ namespace GBA_Compiler {
 				compiler.EndArray();
 			}
 
+			foreach (var parse in parseData) {
+				compiler.BeginArray(CompileToC.ArrayType.UInt, "TILES_" + parse.Name);
+
+				List<Tile> fullTileset = new List<Tile>();
+
+				List<string> found = new List<string>();
+
+				foreach (var t in parse.Wrapping.Keys) {
+					if (!found.Contains(parse.Wrapping[t].Tileset)) {
+						found.Add(parse.Wrapping[t].Tileset);
+
+
+					}
+				}
+
+				compiler.EndArray();
+			}
+
 			compiler.SaveTo(toSavePath, "levels");
 		}
 

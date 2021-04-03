@@ -10,7 +10,6 @@ namespace GBA_Compiler {
 		public class TileWrapping {
 
 			public int[] Palettes;
-			public byte CollisionType;
 			public string Tileset;
 			public char[] Connections;
 			public Point[] Mapping;
@@ -192,57 +191,35 @@ namespace GBA_Compiler {
 			yield break;
 		}
 
-		private IEnumerable<byte> Header(){
-			yield return (byte)width;
-			yield return (byte)height;
+		private IEnumerable<byte> Header() {
+			foreach (byte b in BitConverter.GetBytes((short)width))
+				yield return b;
+			foreach (byte b in BitConverter.GetBytes((short)height))
+				yield return b;
 
 			foreach (var b in metadata.Keys) {
 				yield return b;
 				yield return metadata[b];
 			}
 			yield return 0xFF;
-
-			foreach (var b in Collision())
-				yield return b;
-
-			yield break;
-		}
-		private IEnumerable<byte> Collision() {
-
-			byte[] data = new byte[width * height];
-
-			int i = 0;
-
-			for (int y = 0; y < height; ++y)
-				for (int x = 0; x < width; ++x)
-					data[i++] = (byte)(levelData[0, x, y] == ' ' ? 0 : DataParse.Wrapping[levelData[0, x, y]].CollisionType);
-
-			byte last = data[0], count = 0;
-
-			for (i = 0; i < width * height; ++i) {
-				if (data[i] != last || count == 255) {
-					yield return count;
-					yield return last;
-
-					last = data[i];
-					count = 0;
-				}
-				++count;
-			}
-
-			yield return count;
-			yield return last;
-
+			
 			yield break;
 		}
 		private IEnumerable<byte> VisualLayer(int layer) {
 
+			
 			List<char> characters = new List<char>(DataParse.Wrapping.Keys);
 			Dictionary<char, uint[]> connect = new Dictionary<char, uint[]>();
 			List<Tile> fullTileset = new List<Tile>();
 
-			foreach (var name in ArtCompiler.LevelTilesets.Keys) {
-				fullTileset.AddRange(ArtCompiler.LevelTilesets[name].tiles);
+			{
+				List<string> found = new List<string>();
+				foreach (var t in DataParse.Wrapping.Keys) {
+					if (!found.Contains(DataParse.Wrapping[t].Tileset)) {
+						fullTileset.AddRange(ArtCompiler.LevelTilesets[DataParse.Wrapping[t].Tileset].tiles);
+						found.Add(DataParse.Wrapping[t].Tileset);
+					}
+				}
 			}
 
 			foreach (var tile in DataParse.Wrapping.Keys) {
@@ -346,7 +323,7 @@ namespace GBA_Compiler {
 							break;
 						}
 
-						Tile mappedTile = tileset.GetTile(tile);
+						Tile mappedTile = tileset.GetTile(tile??tileset.GetOGTile(0, 0));
 
 						retval = (ushort)(((fullTileset.IndexOf(mappedTile) + 1) << (Compiler.LargeTiles ? 2 : 0)) | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
 					}
@@ -365,7 +342,7 @@ namespace GBA_Compiler {
 
 			yield return count;
 			yield return (byte)(last       & 0xFF);
-			yield return (byte)((last >> 8));
+			yield return (byte)(last >> 8);
 
 			yield break;
 		}

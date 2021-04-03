@@ -1,7 +1,8 @@
 Engine/build/
 Engine/art/bin
-/GBA Compiler/GBA Compiler/bin/
-/GBA Compiler/GBA Compiler/obj/
+Compiler/bin/
+Compiler/obj/
+Compiler/.vs/
 
 *sprites.c
 *sprites.h
@@ -11,7 +12,6 @@ pixtro_develop.pnproj
 todo.txt
 
 *.zip
-*.pnps
 *.elf
 *.gba
 *.suo
@@ -19,5 +19,6 @@ todo.txt
 *.exe
 *.pdb
 *.csproj
+*.csproj.*
 *.wav
 *.mod

@@ -7,6 +7,7 @@ extern int drawing_flags;
 
 // Drawing flags
 #define DFLAG_CAM_FOLLOW		0x0001 // Do sprites use cam position data?
+#define DFLAG_CAM_BOUNDS		0x0002 // Keep the camera in the bounds of the level? (ONLY DISABLE IF YOU KNOW WHAT YOU'RE DOING)
 
 #define SET_DRAWING_FLAG(name)		drawing_flags |= DFLAG_##name;
 #define CLEAR_DRAWING_FLAG(name)	drawing_flags &= ~DFLAG_##name;

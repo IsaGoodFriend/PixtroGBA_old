@@ -27,6 +27,4 @@ MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 
 entities
 
-char	;4;3
-
 end

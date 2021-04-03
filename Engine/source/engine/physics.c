@@ -1,5 +1,5 @@
 //*
-#include <tonc.h>
+#include "tonc_vscode.h"
 
 #include "physics.h"
 #include "math.h"
@@ -15,11 +15,10 @@
 #define TILE_TYPE_MASK 		0x0000FF00
 #define TILE_SHAPE_MASK		0x000000FF
 
-unsigned int tile_types[128];
+unsigned int tile_types[256];
 
-unsigned int y_shift;
 unsigned int lvl_width, lvl_height;
-unsigned char *collision_data = (unsigned char*)0x02008000;
+unsigned short *tileset_data;
 
 int get_block(int x, int y) {
 	x -= x * (x < 0);
@@ -27,7 +26,11 @@ int get_block(int x, int y) {
 	x += ((lvl_width  - 1) - x) * (x >= lvl_width);
 	y += ((lvl_height - 1) - y) * (y >= lvl_height);
 	
-	return collision_data[x + (y << y_shift)];
+#ifdef LARGE_TILES
+	return (tileset_data[x + (y * lvl_width)] >> 2) & 0xFF;
+#else
+	return tileset_data[x + (y * lvl_width)] & 0xFF;
+#endif
 }
 
 unsigned int entity_physics(Entity *ent, int hit_mask) {
