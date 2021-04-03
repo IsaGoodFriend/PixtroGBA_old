@@ -35,9 +35,9 @@ typedef struct Entity
 #define ENT_COLLIDE_FLAG			0x00001000
 #define ENT_COLLIDE_SHIFT			12
 
-#define LOAD_ENTITY(name, i)	entity_inits[i] = name##_init;		\
-								entity_update[i] = name##_update;	\
-								entity_render[i] = name##_render
+#define LOAD_ENTITY(name, i)	entity_inits[i] = &name##_init;		\
+								entity_update[i] = &name##_update;	\
+								entity_render[i] = &name##_render
 
 extern unsigned int max_entities;
 
