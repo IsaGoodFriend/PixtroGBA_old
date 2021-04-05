@@ -15,35 +15,30 @@ void on_update() {
 	cam_y = FIXED2INT(entities[0].y) + entities[0].height - 10;
 }
 
+extern unsigned int lvl_width;
+
 // Run before anything else happens in the game
 void init() {
-	
-	LOAD_ENTITY(character, 0);
-	
-	LOAD_TILESET(test);
-	
-	load_bg_pal(PAL_test, 0);
-	load_obj_pal(PAL_character, 0);
-	
-	load_sprite(SPR_char_idle, 0, SPRITE32x32);
-	
-	set_layer_priority(1, 1);
-	set_layer_priority(2, 2);
-	set_layer_priority(3, 3);
-	
-	LOAD_BG(sample_ase, 1);
-	
+
 	set_foreground_count(1);
 	finalize_layers();
 	
-	load_collision((unsigned char*)LVL_test);
+	load_header((unsigned char*)LVL_test);
 	load_midground(0);
-	load_entities();
+	//load_entities();
 	
 	reset_cam();
 	
 	custom_update = &on_update;
-	
+
+	LOAD_BG(sample_ase, 1);
+	LOAD_ENTITY(character, 0);
+	LOAD_TILESET(test);
+
+	load_bg_pal(PAL_test, 0);
+	load_obj_pal(PAL_character, 0);
+	load_sprite(SPR_char_idle, 0, SPRITE32x32);
+
 }
 
 // Run the first time the game is initialized.  Mainly used for setting default settings

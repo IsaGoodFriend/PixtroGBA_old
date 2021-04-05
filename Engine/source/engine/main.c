@@ -7,7 +7,9 @@
 #include "core.h"
 
 int main() {
-	
+
+	// Init the game engine
+	pixtro_init();
 	
 	// Initialize maxmod with the soundbank
 	mmInitDefault( (mm_addr)soundbank_bin, AUDIO_CHANNELS );
@@ -15,13 +17,9 @@ int main() {
 	// Enable all channels for audio (the music and sfx aren't loud enough otherwise. might look into that later)
     REG_SNDDSCNT |= SDS_AR | SDS_AL | SDS_BR | SDS_BL;
 	
-	
 	// Add maxmod VBlank interrupt
 	irq_init(NULL);
 	irq_add( II_VBLANK, mmVBlank );
-	
-	// Init the game engine
-	pixtro_init();
 	
 	// Game loop
 	while (1) {

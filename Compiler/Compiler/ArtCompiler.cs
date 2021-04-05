@@ -21,7 +21,7 @@ namespace GBA_Compiler {
 
 		private class CompareTiles : IEqualityComparer<Tile> {
 			public bool Equals(Tile x, Tile y) {
-				return x.EqualTo(y, Tile.FlipStyle.X | Tile.FlipStyle.Y);
+				return x.EqualTo(y, Tile.FlipStyle.Both);
 			}
 
 			public int GetHashCode(Tile obj) {
@@ -38,7 +38,7 @@ namespace GBA_Compiler {
 			}
 			else {
 				foreach (var t in tiles) {
-					if (t.EqualTo(_tile, Tile.FlipStyle.X | Tile.FlipStyle.Y))
+					if (t.EqualTo(_tile, Tile.FlipStyle.Both))
 						return t;
 				}
 
@@ -74,7 +74,7 @@ namespace GBA_Compiler {
 
 		public Tile GetTile(Tile _version) {
 			foreach (var t in tiles) {
-				if (t.EqualTo(_version, Tile.FlipStyle.X | Tile.FlipStyle.Y))
+				if (t.EqualTo(_version, Tile.FlipStyle.Both))
 					return t;
 			}
 
@@ -115,10 +115,13 @@ namespace GBA_Compiler {
 		}
 	}
 	public class Tile {
-		public enum FlipStyle { X = 1, Y = 2, None = 0 }
+		[Flags]
+		public enum FlipStyle { X = 1, Y = 2, Both = X | Y, None = 0 }
 		private byte[] bitData;
 		private uint[] rawData;
 		private FlipStyle flipped;
+
+		private int sizeOfTile = 0;
 
 		public bool IsAir { get; private set; }
 
@@ -128,32 +131,43 @@ namespace GBA_Compiler {
 			bitData = new byte[64 * (_largeTile ? 4 : 1)];
 			rawData = new uint[8 * (_largeTile ? 4 : 1)];
 
+			sizeOfTile = _largeTile ? 16 : 8;
+
 			IsAir = true;
+			for (int j = 0; j < 8 * (_largeTile ? 4 : 1); ++j) {
+				rawData[j] = _GBA[j + _index];
 
-			for (int i = 0; i < 8 * (_largeTile ? 4 : 1); ++i) {
-				rawData[i] = _GBA[i + _index];
+				IsAir &= rawData[j] == 0;
+				
+				int i;
+				if (_largeTile){
+					i = (j >> 1) % 8;
+					i += (j % 2) * 16;
+					i += (j & 0xFF0) >> 1;
+				}
+				else
+					i = j;
 
-				IsAir &= rawData[i] == 0;
-
-				bitData[i << 3] =      (byte)(_GBA[i + _index] & 0x0000000F);
-				bitData[(i << 3) + 1] = (byte)((_GBA[i + _index] & 0x000000F0) >> 4);
-				bitData[(i << 3) + 2] = (byte)((_GBA[i + _index] & 0x00000F00) >> 8);
-				bitData[(i << 3) + 3] = (byte)((_GBA[i + _index] & 0x0000F000) >> 12);
-				bitData[(i << 3) + 4] = (byte)((_GBA[i + _index] & 0x000F0000) >> 16);
-				bitData[(i << 3) + 5] = (byte)((_GBA[i + _index] & 0x00F00000) >> 20);
-				bitData[(i << 3) + 6] = (byte)((_GBA[i + _index] & 0x0F000000) >> 24);
-				bitData[(i << 3) + 7] = (byte)((_GBA[i + _index] & 0xF0000000) >> 28);
+				bitData[ j << 3]		= (byte) (_GBA[i] & 0x0000000F);
+				bitData[(j << 3) + 1]	= (byte)((_GBA[i] & 0x000000F0) >> 4);
+				bitData[(j << 3) + 2]	= (byte)((_GBA[i] & 0x00000F00) >> 8);
+				bitData[(j << 3) + 3]	= (byte)((_GBA[i] & 0x0000F000) >> 12);
+				bitData[(j << 3) + 4]	= (byte)((_GBA[i] & 0x000F0000) >> 16);
+				bitData[(j << 3) + 5]	= (byte)((_GBA[i] & 0x00F00000) >> 20);
+				bitData[(j << 3) + 6]	= (byte)((_GBA[i] & 0x0F000000) >> 24);
+				bitData[(j << 3) + 7]	= (byte)((_GBA[i] & 0xF0000000) >> 28);
+				
 			}
 		}
 
 		public void Flip(FlipStyle _x) {
 			if (_x == FlipStyle.X) {
 				flipped ^= FlipStyle.X;
-				bitData.Flip(true, 8);
+				bitData.Flip(true, sizeOfTile);
 			}
 			else if (_x == FlipStyle.Y) {
 				flipped ^= FlipStyle.Y;
-				bitData.Flip(false, 8);
+				bitData.Flip(false, sizeOfTile);
 			}
 			else if (_x != FlipStyle.None) {
 				Flip(FlipStyle.X);
@@ -169,29 +183,31 @@ namespace GBA_Compiler {
 			Unflip();
 			_other.Unflip();
 
+			// values aren't the same size, so return false
+			if (_other.sizeOfTile != sizeOfTile || bitData.Length != _other.bitData.Length)
+				return false;
+
 			if (Enumerable.SequenceEqual(bitData, _other.bitData))
 				return true;
-
-			if ((flippable & FlipStyle.X) != FlipStyle.None) {
+			
+			// Check mirrored on X axis
+			if (flippable.HasFlag(FlipStyle.X)) {
 				Flip(FlipStyle.X);
 
 				if (Enumerable.SequenceEqual(bitData, _other.bitData))
 					return true;
 
-				if ((flippable & FlipStyle.Y) != FlipStyle.None) {
+				if (flippable.HasFlag(FlipStyle.Y)) {
 					Flip(FlipStyle.Y);
-
-					if (Enumerable.SequenceEqual(bitData, _other.bitData))
-						return true;
-
-					Flip(FlipStyle.X);
 
 					if (Enumerable.SequenceEqual(bitData, _other.bitData))
 						return true;
 				}
 
+				Unflip();
 			}
-			else if ((flippable & FlipStyle.Y) != FlipStyle.None) {
+			// Check mirrored on the y axis only
+			if (flippable.HasFlag(FlipStyle.Y)) {
 				Flip(FlipStyle.Y);
 
 				if (Enumerable.SequenceEqual(bitData, _other.bitData))
@@ -202,7 +218,7 @@ namespace GBA_Compiler {
 		}
 
 		public ushort GetFlipOffset(Tile _other) {
-			if (EqualTo(_other, FlipStyle.X | FlipStyle.Y))
+			if (EqualTo(_other, FlipStyle.Both))
 				return (ushort)flipped;
 
 			return 0;
@@ -219,46 +235,6 @@ namespace GBA_Compiler {
 					Console.WriteLine($"WARNING -- Background {_name} has a lot of tiles ({tiles.Count}).  It's recommended that you lower tile count");
 
 				return base.Data(_name);
-			}
-		}
-
-		public static T GetXY<T>(this T[] _array, int x, int y, int width) {
-			return _array[x + (y * width)];
-		}
-		public static void SetXY<T>(this T[] _array, int x, int y, int width, T value) {
-			_array[x + (y * width)] = value;
-		}
-		public static void Flip<T>(this T[] _array, bool X, int width) {
-			int height = _array.Length / width;
-
-			if (height * width != _array.Length)
-				return;
-
-			if (X) {
-				for (int x = 0; x < width / 2; ++x) {
-					for (int y = 0; y < height; ++y) {
-						int otherX = width - x - 1;
-
-						T temp = _array.GetXY(x, y, width);
-
-						_array.SetXY(x, y, width, _array.GetXY(otherX, y, width));
-
-						_array.SetXY(otherX, y, width, temp);
-					}
-				}
-			}
-			else {
-				for (int y = 0; y < height / 2; ++y) {
-					for (int x = 0; x < width; ++x) {
-						int otherY = height - y - 1;
-
-						T temp = _array.GetXY(x, y, width);
-
-						_array.SetXY(x, y, width, _array.GetXY(x, otherY, width));
-
-						_array.SetXY(x, otherY, width, temp);
-					}
-				}
 			}
 		}
 

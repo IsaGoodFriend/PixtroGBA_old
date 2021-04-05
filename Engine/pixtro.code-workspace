@@ -11,7 +11,6 @@
 			"**/.hg": true,
 			"**/CVS": true,
 			"**/.DS_Store": true,
-			"**/.vscode": true,
 			"**/build": true,
 			"**/sprites.*":true,
 			"**/levels.*":true,

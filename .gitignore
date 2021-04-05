@@ -1,7 +1,7 @@
 Engine/build/
 Engine/art/bin
-Compiler/bin/
-Compiler/obj/
+bin/
+obj/
 Compiler/.vs/
 
 *sprites.c

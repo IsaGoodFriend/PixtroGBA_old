@@ -68,12 +68,14 @@ extern void update_presses();
 // Initialize the game
 void pixtro_init() {
 	
+	set_level_region(0);
+	
 	// Resetting tileset values
 	reset_tilesets();
-	
+
 	// Setting first physics tile to be collidable
 	SET_TILE_DATA(0, SHAPE_FULL, 1);
-	
+
 	// Set the RNG seeds.  Values can be any positive integer
 	rng_seed(0xFA12B4, 0x2B5C72, 0x14F4D2);
 	
@@ -91,10 +93,8 @@ void pixtro_init() {
 	set_layer_priority(2, 2);
 	set_layer_priority(3, 3);
 	
-	set_foreground_count(1);
+	set_foreground_count(0);
 	finalize_layers();
-	
-	reset_cam();
 	
 	// Initialize the engine with user's code
 	init();

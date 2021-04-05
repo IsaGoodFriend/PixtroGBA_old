@@ -4,6 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/build/",
                 "C:/devkitPro/devkitARM/arm-none-eabi/include",
                 "C:/devkitPro/devkitARM/lib/gcc/arm-none-eabi/10.2.0/include",
                 "C:/devkitPro/libtonc/include/",
@@ -20,6 +21,7 @@
             "browse": {
                 "path": [
                     "${workspaceFolder}/**",
+					"${workspaceFolder}/build/",
                     "C:/devkitPro/devkitARM/arm-none-eabi/include",
                     "C:/devkitPro/devkitARM/lib/gcc/arm-none-eabi/10.2.0/include",
                     "C:/devkitPro/libtonc/include/",

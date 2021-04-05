@@ -206,7 +206,8 @@ namespace GBA_Compiler {
 			yield break;
 		}
 		private IEnumerable<byte> VisualLayer(int layer) {
-
+			
+			int x, y;
 			
 			List<char> characters = new List<char>(DataParse.Wrapping.Keys);
 			Dictionary<char, uint[]> connect = new Dictionary<char, uint[]>();
@@ -216,11 +217,22 @@ namespace GBA_Compiler {
 				List<string> found = new List<string>();
 				foreach (var t in DataParse.Wrapping.Keys) {
 					if (!found.Contains(DataParse.Wrapping[t].Tileset)) {
-						fullTileset.AddRange(ArtCompiler.LevelTilesets[DataParse.Wrapping[t].Tileset].tiles);
+						foreach (var tile in ArtCompiler.LevelTilesets[DataParse.Wrapping[t].Tileset].tiles)
+						if (!tile.IsAir)
+							fullTileset.Add(tile);
+						
 						found.Add(DataParse.Wrapping[t].Tileset);
 					}
 				}
 			}
+			LevelTileset testTileset = ArtCompiler.LevelTilesets["TILE_test"];
+			
+			for (y = 0; y < 3; ++y) for (x = 0; x < 3; ++x) {
+					
+				System.Console.WriteLine($"Tile Index at {x},{y} :: {fullTileset.IndexOf(testTileset.GetTile(x, y))}");
+			}
+
+			System.Console.WriteLine($"TilesetCount: {fullTileset.Count}");
 
 			foreach (var tile in DataParse.Wrapping.Keys) {
 
@@ -234,114 +246,121 @@ namespace GBA_Compiler {
 
 			uint[,] data = new uint[width, height];
 
-			for (int y = 0; y < height; ++y) {
-				for (int x = 0; x < width; ++x) {
+			for (y = 0; y < height; ++y) {
+				for (x = 0; x < width; ++x) {
 					data[x, y] = levelData[layer, x, y] == ' ' ? 0 : (uint)characters.IndexOf(levelData[layer, x, y]) + 1;
 				}
 			}
 
-			ushort last = 0;
+			ushort last = 0x1234;
 			byte count = 0;
 
-			for (int y = 0; y < height; ++y) {
-				for (int x = 0; x < width; ++x) {
-					ushort retval;
+			float getvalue(string _s) {
 
-					if (levelData[layer, x, y] == ' ') {
-						retval = 0;
-					}
-					else {
-						var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
+				string[] split = _s.Split('.');
 
-						Tile tile = null;
-						LevelTileset tileset = ArtCompiler.LevelTilesets[wrapping.Tileset];
-						uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping), testValue;
-
-						float getvalue(string _s) {
-
-							string[] split = _s.Split('.');
-
-							switch (split[0]) {
-								case "x":
-									return x;
-								case "y":
-									return y;
-								case "width":
-									return width;
-								case "height":
-									return height;
-								case "random":
-									if (split.Length == 2)
-										return Randomizer.Next(int.Parse(split[1]));
-									else
-										return Randomizer.Next(int.Parse(split[1]), int.Parse(split[2]));
-							}
-
-							return 0;
-						}
-
-						if (wrapping.MappingSpecial != null) 
-							foreach (string str in wrapping.MappingSpecial) {
-
-								var dp = new DataParser(str);
-
-								value <<= 1;
-								value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
-							}
-
-						foreach (var key in wrapping.TileMapping.Keys) {
-							testValue = wrapping.EnableMask[key];
-
-							if ((testValue & value) != testValue)
-								continue;
-
-							testValue = wrapping.DisableMask[key];
-
-							if ((testValue & (value)) != 0)
-								continue;
-
-							var point = wrapping.TileMapping[key].GetRandom(Randomizer);
-
-							if (wrapping.Offsets != null)
-								foreach (var o in wrapping.Offsets.Keys) {
-
-									testValue = wrapping.EnableMask[o];
-
-									if ((testValue & value) != testValue)
-										continue;
-
-									testValue = wrapping.DisableMask[o];
-
-									if ((testValue & (value)) != 0)
-										continue;
-
-									foreach (var exPoint in wrapping.Offsets[o])
-										point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
-								}
-
-							tile = tileset.GetOGTile(point.X, point.Y);
-							break;
-						}
-
-						Tile mappedTile = tileset.GetTile(tile??tileset.GetOGTile(0, 0));
-
-						retval = (ushort)(((fullTileset.IndexOf(mappedTile) + 1) << (Compiler.LargeTiles ? 2 : 0)) | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
-					}
-
-					if ((x != 0 || y != 0) && (retval != last || count == 255)) {
-						yield return count;
-						yield return (byte)(last       & 0xFF);
-						yield return (byte)((last >> 8));
-
-						last = retval;
-						count = 0;
-					}
-					++count;
+				switch (split[0]) {
+					case "x":
+						return x;
+					case "y":
+						return y;
+					case "width":
+						return width;
+					case "height":
+						return height;
+					case "random":
+						if (split.Length == 2)
+							return Randomizer.Next(int.Parse(split[1]));
+						else
+							return Randomizer.Next(int.Parse(split[1]), int.Parse(split[2]));
 				}
+
+				return 0;
 			}
 
+			for (y = 0; y < height; ++y) { for (x = 0; x < width; ++x) {
+				ushort retval;
+	
+				if (levelData[layer, x, y] == ' ') {
+					retval = 0;
+				}
+				else {
+					var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
+
+					Tile tile = null;
+					LevelTileset tileset = ArtCompiler.LevelTilesets[wrapping.Tileset];
+					uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping),
+						testValue;
+
+					if (wrapping.MappingSpecial != null) 
+						foreach (string str in wrapping.MappingSpecial) {
+
+							var dp = new DataParser(str);
+
+							value <<= 1;
+							value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
+						}
+
+					foreach (var key in wrapping.TileMapping.Keys) {
+						testValue = wrapping.EnableMask[key];
+
+						if ((testValue & value) != testValue)
+							continue;
+
+						testValue = wrapping.DisableMask[key];
+
+						if ((testValue & (value)) != 0)
+							continue;
+
+						var point = wrapping.TileMapping[key].GetRandom(Randomizer);
+
+						if (wrapping.Offsets != null)
+							foreach (var o in wrapping.Offsets.Keys) {
+
+								testValue = wrapping.EnableMask[o];
+
+								if ((testValue & value) != testValue)
+									continue;
+
+								testValue = wrapping.DisableMask[o];
+
+								if ((testValue & (value)) != 0)
+									continue;
+
+								foreach (var exPoint in wrapping.Offsets[o])
+									point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
+							}
+						
+						System.Console.WriteLine($"{point.X}, {point.Y}");
+						tile = tileset.GetOGTile(point.X, point.Y);
+						break;
+					}
+
+					Tile mappedTile = tileset.GetTile(tile??tileset.GetOGTile(0, 0));
+
+					retval = (ushort)fullTileset.IndexOf(mappedTile);
+					System.Console.WriteLine(retval);
+					retval = (ushort)((retval + 1) << (Compiler.LargeTiles ? 2 : 0));
+
+					retval = (ushort)(retval | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
+				}
+
+				if ((retval != last || count == 255)) {
+					if ((x != 0 || y != 0)) {
+						yield return count;
+						yield return (byte)(last & 0xFF);
+						yield return (byte)(last >> 8);
+
+						count = 0;
+					}
+
+					last = retval;
+				}
+				++count;
+			} }
+
 			yield return count;
-			yield return (byte)(last       & 0xFF);
+			yield return (byte)(last & 0xFF);
 			yield return (byte)(last >> 8);
 
 			yield break;

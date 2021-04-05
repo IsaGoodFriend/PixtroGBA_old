@@ -11,7 +11,7 @@
         {
             "label": "make debug",
             "type": "process",
-            "command": "C:/devkitPro/tools/bin/pixtroCompiler.exe",
+            "command": "C:/devkitPro/tools/bin/pixtro.exe",
             "args": [
                 "DEBUG=1"
             ],
@@ -20,7 +20,7 @@
         {
             "label": "make release",
             "type": "process",
-            "command": "C:/devkitPro/tools/bin/pixtroCompiler.exe",
+            "command": "C:/devkitPro/tools/bin/pixtro.exe",
             "args": [
                 "DEBUG=0"
             ],
@@ -29,6 +29,11 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "show assembly",
+            "type": "shell",
+            "command": "make -S"
         },
         {
             "label": "clean",

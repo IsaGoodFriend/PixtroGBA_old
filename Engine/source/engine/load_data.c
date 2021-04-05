@@ -42,6 +42,11 @@ extern int cam_x, cam_y, prev_cam_x, prev_cam_y;
 
 extern char level_meta[256];
 
+void set_level_region(char region_b) {
+	tileset_data = LEVEL_REGION_A;
+		
+}
+
 void load_collision(unsigned char *level_start){
 	
 	load_header(level_start);
