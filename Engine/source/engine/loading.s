@@ -61,10 +61,13 @@ load_midground:
 	ldr		r0, [r0]			@ r0 = lvl_info (get the pointer in lvl_info, not the pointer to lvl_info itself)
 	
 .ld_mid:
+	ldrb	r3, [r0, #1]		@ r3 = value
+	ldrb	r2, [r0, #2]
+	lsl		r2, #8
+	orr		r3, r2, r3
+
 	ldrb	r2, [r0]			@ r2 = count
-	add		r0, r0, #1
-	ldrh	r3, [r0]			@ r3 = value
-	add		r0, r0, #2
+	add		r0, r0, #3
 
 	@ while (r2 != 0) strh; r2--
 .ld_mid_store:

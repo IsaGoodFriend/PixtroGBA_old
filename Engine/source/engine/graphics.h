@@ -34,7 +34,7 @@ extern int drawing_flags;
 #define FLIP_Y			0x2000
 #define FLIP_XY			0x3000
 
-#define LOAD_TILESET(name)		load_tileset((unsigned short*)TILE_##name, TILE_##name##_len)
+#define LOAD_TILESET(name)		load_tileset((unsigned short*)TILESET_##name, TILESET_##name##_len)
 
 extern int cam_x, cam_y;
 

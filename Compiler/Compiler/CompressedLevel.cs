@@ -39,6 +39,7 @@ namespace GBA_Compiler {
 			}
 		}
 		public Dictionary<char, TileWrapping> Wrapping;
+		public List<Tile> fullTileset = null;
 
 		public Dictionary<string, byte> EntityIndex;
 
@@ -211,28 +212,27 @@ namespace GBA_Compiler {
 			
 			List<char> characters = new List<char>(DataParse.Wrapping.Keys);
 			Dictionary<char, uint[]> connect = new Dictionary<char, uint[]>();
-			List<Tile> fullTileset = new List<Tile>();
+			List<Tile> fullTileset;
 
-			{
+			// Get the full tileset data
+			if (DataParse.fullTileset != null)
+				fullTileset = DataParse.fullTileset;
+			else {
+				fullTileset = new List<Tile>();
+
 				List<string> found = new List<string>();
 				foreach (var t in DataParse.Wrapping.Keys) {
 					if (!found.Contains(DataParse.Wrapping[t].Tileset)) {
 						foreach (var tile in ArtCompiler.LevelTilesets[DataParse.Wrapping[t].Tileset].tiles)
-						if (!tile.IsAir)
+						if (!tile.IsAir && !fullTileset.Contains(tile, new Tileset.CompareTiles()))
 							fullTileset.Add(tile);
 						
 						found.Add(DataParse.Wrapping[t].Tileset);
 					}
 				}
-			}
-			LevelTileset testTileset = ArtCompiler.LevelTilesets["TILE_test"];
-			
-			for (y = 0; y < 3; ++y) for (x = 0; x < 3; ++x) {
-					
-				System.Console.WriteLine($"Tile Index at {x},{y} :: {fullTileset.IndexOf(testTileset.GetTile(x, y))}");
-			}
 
-			System.Console.WriteLine($"TilesetCount: {fullTileset.Count}");
+				DataParse.fullTileset = fullTileset;
+			}
 
 			foreach (var tile in DataParse.Wrapping.Keys) {
 
@@ -331,18 +331,17 @@ namespace GBA_Compiler {
 									point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
 							}
 						
-						System.Console.WriteLine($"{point.X}, {point.Y}");
 						tile = tileset.GetOGTile(point.X, point.Y);
 						break;
 					}
-
+					
 					Tile mappedTile = tileset.GetTile(tile??tileset.GetOGTile(0, 0));
 
-					retval = (ushort)fullTileset.IndexOf(mappedTile);
-					System.Console.WriteLine(retval);
-					retval = (ushort)((retval + 1) << (Compiler.LargeTiles ? 2 : 0));
-
-					retval = (ushort)(retval | (mappedTile.GetFlipOffset(tile) << 10) | (wrapping.Palettes[layer] << 12));
+					retval = (ushort)((fullTileset.IndexOf(mappedTile) + 1) << (Compiler.LargeTiles ? 2 : 0));
+					
+					retval = (ushort)(retval | (tile.GetFlipOffset(mappedTile) << 10) | (wrapping.Palettes[layer] << 12));
+					//System.Console.WriteLine("After:  " + retval.ToString("X4"));
+					//System.Console.WriteLine("");
 				}
 
 				if ((retval != last || count == 255)) {
@@ -353,7 +352,6 @@ namespace GBA_Compiler {
 
 						count = 0;
 					}
-
 					last = retval;
 				}
 				++count;

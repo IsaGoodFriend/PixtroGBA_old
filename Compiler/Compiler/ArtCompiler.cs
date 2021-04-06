@@ -19,7 +19,7 @@ namespace GBA_Compiler {
 			originalLayout = new Tile[x, y];
 		}
 
-		private class CompareTiles : IEqualityComparer<Tile> {
+		public class CompareTiles : IEqualityComparer<Tile> {
 			public bool Equals(Tile x, Tile y) {
 				return x.EqualTo(y, Tile.FlipStyle.Both);
 			}
@@ -127,6 +127,12 @@ namespace GBA_Compiler {
 
 		public uint[] RawData => rawData;
 
+		public byte this[int x, int y]{
+			get{
+				return bitData[x + (y * sizeOfTile)];
+			}
+		}
+
 		public Tile(uint[] _GBA, int _index, bool _largeTile) {
 			bitData = new byte[64 * (_largeTile ? 4 : 1)];
 			rawData = new uint[8 * (_largeTile ? 4 : 1)];
@@ -218,10 +224,26 @@ namespace GBA_Compiler {
 		}
 
 		public ushort GetFlipOffset(Tile _other) {
-			if (EqualTo(_other, FlipStyle.Both))
-				return (ushort)flipped;
+			
+			Unflip();
+			_other.Unflip();
 
-			return 0;
+			if (Enumerable.SequenceEqual(bitData, _other.bitData))
+				return 0;
+			
+			Flip(FlipStyle.X);
+			if (Enumerable.SequenceEqual(bitData, _other.bitData))
+				return 1;
+			
+			Flip(FlipStyle.Y);
+			if (Enumerable.SequenceEqual(bitData, _other.bitData))
+				return 3;
+			
+			Flip(FlipStyle.X);
+			if (Enumerable.SequenceEqual(bitData, _other.bitData))
+				return 2;
+			
+			return 0xFFFF;
 		}
 
 	}
@@ -415,6 +437,9 @@ namespace GBA_Compiler {
 
 			LevelTilesets = new Dictionary<string, LevelTileset>();
 
+			Compiler.Log("Skipping sprite compiling");
+			CompileTilesets(Path.Combine(_path, "tilesets"), new CompileToC());
+
 #if !DEBUG
 			bool needsRecompile = false;
 
@@ -430,8 +455,6 @@ namespace GBA_Compiler {
 			}
 			if (!needsRecompile)
 			{
-				Compiler.Log("Skipping sprite compiling");
-				CompileTilesets(Path.Combine(_path, "tilesets"), new CompileToC());
 				return;
 			}
 #endif
@@ -455,8 +478,8 @@ namespace GBA_Compiler {
 			Compiler.Log("Compiling backgrounds");
 			CompileBackgrounds(Path.Combine(_path, "backgrounds"), compiler);
 
-			Compiler.Log("Compiling tilesets");
-			CompileTilesets(Path.Combine(_path, "tilesets"), compiler);
+			//Compiler.Log("Compiling tilesets");
+			//CompileTilesets(Path.Combine(_path, "tilesets"), compiler);
 
 			Compiler.Log("Saving art to file");
 			compiler.SaveTo(toSavePath, "sprites");

@@ -22,16 +22,17 @@
 
 #define VIS_BLOCK_POS(x, y) (((x) & 0x1F) + (((y) & 0x1F) << 5))
 
-#define X_TILE_BUFFER 1
-#define Y_TILE_BUFFER 1
+#define X_TILE_BUFFER (1 * BLOCK_SIZE)
+#define Y_TILE_BUFFER (1 * BLOCK_SIZE)
 
 #define BLOCK_X		30
 #define BLOCK_Y		20
 
 #define BGOFS			((vu16*)(REG_BASE+0x0010))
 
-#define LEVEL_REGION_A		(unsigned short*)0x02002000
-#define LEVEL_REGION_B		(unsigned short*)0x02012000
+#define LEVEL_REGION_A		(unsigned short*)0x02020000
+#define LEVEL_REGION_B		(unsigned short*)0x02030000
+#define asdf				(unsigned short*)0x02002000
 
 unsigned char *lvl_info;
 
@@ -44,7 +45,6 @@ extern char level_meta[256];
 
 void set_level_region(char region_b) {
 	tileset_data = LEVEL_REGION_A;
-		
 }
 
 void load_collision(unsigned char *level_start){
@@ -181,15 +181,15 @@ void protect_cam(){
 	
 	if (foreground_count) {// TODO: add a flag that can disable this feature
 		
-		if (cam_x < BLOCK_SIZE)
-			cam_x = BLOCK_SIZE;
-		if (cam_y < BLOCK_SIZE)
-			cam_y = BLOCK_SIZE;
+		if (cam_x < X_TILE_BUFFER)
+			cam_x = X_TILE_BUFFER;
+		if (cam_y < Y_TILE_BUFFER)
+			cam_y = Y_TILE_BUFFER;
 			
-		if (cam_x + 240 + BLOCK_SIZE > BLOCK2INT(lvl_width))
-			cam_x = BLOCK2INT(lvl_width) - 240 - BLOCK_SIZE;
-		if (cam_y + 160 + BLOCK_SIZE > BLOCK2INT(lvl_height))
-			cam_y = BLOCK2INT(lvl_height) - 160 - BLOCK_SIZE;
+		if (cam_x + 240 + X_TILE_BUFFER > BLOCK2INT(lvl_width))
+			cam_x = BLOCK2INT(lvl_width) - 240 - X_TILE_BUFFER;
+		if (cam_y + 160 + Y_TILE_BUFFER > BLOCK2INT(lvl_height))
+			cam_y = BLOCK2INT(lvl_height) - 160 - Y_TILE_BUFFER;
 	}
 	
 	int i;
@@ -207,7 +207,6 @@ void copy_tiles(unsigned short *screen, unsigned short *data, int x, int y, int 
 	int i, vis, pos;
 	
 	if (0) {
-		
 		vis = data[0];
 		
 		len--;
@@ -215,11 +214,12 @@ void copy_tiles(unsigned short *screen, unsigned short *data, int x, int y, int 
 		data++;
 	}
 	
-	for (i = 0; i < (len & 0xFE); i += 2) {
+	for (i = 0; i < len; i += 2) {
 		
-		vis = data[i >> 1];
-		screen[i] =		vis | ((y ^ (vis >> 10)) & 0x1) | ((( vis >> 11) & 0x1) << 1);
-		screen[i + 1] =	vis | ((y ^ (vis >> 10)) & 0x1) | (((~vis >> 11) & 0x1) << 1);
+		vis = data[i >> 1];// & 0x0F) | 0x800;
+		
+		screen[i] =		vis | ((y ^ (vis >> 11)) & 0x1) | ((( vis >> 10) & 0x1) << 1);
+		screen[i + 1] =	vis | ((y ^ (vis >> 11)) & 0x1) | (((~vis >> 10) & 0x1) << 1);
 	}
 	
 	if (len & 0x1) {
@@ -334,11 +334,13 @@ void move_cam() {
 }
 void reset_cam() {
 	
+	// Get top left position
 	cam_x -= 120;
 	cam_y -= 80;
 	
 	protect_cam();
 	
+	// If there are no layers to set, don't change anything
 	if (foreground_count == 0)
 		goto skip_loadcam;
 	
@@ -366,25 +368,11 @@ void reset_cam() {
 		
 		copy_tiles(&foreground[p1], &tileset_data[p2], x, y, 32 - x);
 		
-		/*
-		if (midground)
-			memcpy(&midground[p1], &tileset_data[p2 + 0x2000], 64 - (x << 1));
-		if (background)
-			memcpy(&background[p1], &tileset_data[p2 + 0x4000], 64 - (x << 1));
-		
-		*/
 		p1 &= 0xFE0;
 		p2 += (32 - x) >> 1;
 		
 		copy_tiles(&foreground[p1], &tileset_data[p2], 0, y, x);
-		/*
-		memcpy(&foreground[p1], &tileset_data[p2], x << 1);
-		if (midground)
-			memcpy(&midground[p1], &tileset_data[p2 + 0x2000], (x << 1));
-		if (background)
-			memcpy(&background[p1], &tileset_data[p2 + 0x4000], (x << 1));
-		
-		*/
+
 		++y;
 	}
 	
@@ -392,7 +380,7 @@ void reset_cam() {
 	
 	prev_cam_x = cam_x;
 	prev_cam_y = cam_y;
-	
+
 	cam_x += 120;
 	cam_y += 80;
 }

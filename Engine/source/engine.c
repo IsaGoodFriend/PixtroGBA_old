@@ -33,7 +33,7 @@ void init() {
 
 	LOAD_BG(sample_ase, 1);
 	LOAD_ENTITY(character, 0);
-	LOAD_TILESET(test);
+	LOAD_TILESET(all);
 
 	load_bg_pal(PAL_test, 0);
 	load_obj_pal(PAL_character, 0);
