@@ -396,7 +396,7 @@ void reset_cam() {
 	if (foreground_count < 2)
 		midground = 0;
 	
-	val = 32;
+	val = 22;
 	while (val-- > 0){
 		
 		int p1 = VIS_BLOCK_POS(x, y);
@@ -543,7 +543,7 @@ void reset_cam() {
 	if (foreground_count < 2)
 		midground = 0;
 	
-	val = 32;
+	val = 22;
 	while (val-- > 0){
 		
 		int p1 = VIS_BLOCK_POS(x, y);

@@ -12,10 +12,10 @@ void update();
 void render();
 
 void on_update() {
-	if (cam_y < 80 + 64)
-		++cam_y;
-	if (cam_x < 120 + 64)
-		++cam_x;
+	//if (cam_y < 80 + 64)
+	//	++cam_y;
+	//if (cam_x < 120 + 64)
+	//	++cam_x;
 	//cam_x = 120 + 32;
 	//cam_x = FIXED2INT(entities[0].x);
 	//cam_y = FIXED2INT(entities[0].y) + entities[0].height - 10;
