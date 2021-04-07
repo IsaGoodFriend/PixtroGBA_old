@@ -2,6 +2,7 @@
 
 #include "sprites.h"
 #include "math.h"
+#include "engine.h"
 
 extern int drawing_flags;
 
@@ -34,7 +35,11 @@ extern int drawing_flags;
 #define FLIP_Y			0x2000
 #define FLIP_XY			0x3000
 
-#define LOAD_TILESET(name)		load_tileset((unsigned short*)TILESET_##name, TILESET_##name##_len)
+#ifdef LARGE_TILES
+#define LOAD_TILESET(name)		load_tileset((unsigned int*)TILESET_##name, (unsigned short*)TILE_MAPPING_##name, TILESET_##name##_len)
+#else
+#define LOAD_TILESET(name)		load_tileset((unsigned int*)TILESET_##name, TILESET_##name##_len)
+#endif
 
 extern int cam_x, cam_y;
 
@@ -43,8 +48,11 @@ void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, i
 void load_obj_pal(unsigned short *pal, int palIndex);
 void load_bg_pal(unsigned short *pal, int palIndex);
 
-void load_tileset(unsigned short *tiles, int count);
-void reset_tilesets();
+#ifdef LARGE_TILES
+void load_tileset(unsigned int *tiles, unsigned short *mapping, int count);
+#else
+void load_tileset(unsigned int *tiles, int count);
+#endif
 
 void draw(int x, int y, int sprite, int flip, int prio, int pal);
 void draw_affine(AffineMatrix matrix, int sprite, int prio, int pal);

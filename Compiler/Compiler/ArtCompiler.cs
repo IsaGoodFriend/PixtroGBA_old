@@ -106,6 +106,9 @@ namespace GBA_Compiler {
 		public LevelTileset(int x, int y) : base(x, y) {
 
 		}
+		public LevelTileset() : base() {
+
+		}
 		public override IEnumerable<uint> Data(string _name) {
 
 			foreach (var tile in tiles)
@@ -153,6 +156,7 @@ namespace GBA_Compiler {
 				}
 				else
 					i = j;
+				i += _index;
 
 				bitData[ j << 3]		= (byte) (_GBA[i] & 0x0000000F);
 				bitData[(j << 3) + 1]	= (byte)((_GBA[i] & 0x000000F0) >> 4);
@@ -437,24 +441,32 @@ namespace GBA_Compiler {
 
 			LevelTilesets = new Dictionary<string, LevelTileset>();
 
-			Compiler.Log("Skipping sprite compiling");
 			CompileTilesets(Path.Combine(_path, "tilesets"), new CompileToC());
 
 #if !DEBUG
 			bool needsRecompile = false;
 
 			long editTime = File.GetLastWriteTime(toSavePath + "\\sprites.c").Ticks;
+			
+			string[] folders = new string[]{ "backgrounds", "palettes", "particles", "sprites" };
 
-			foreach (var file in Directory.GetFiles(_path, "*", SearchOption.AllDirectories))
-			{
-				if (File.GetLastWriteTime(file).Ticks > editTime)
+			foreach (var folder in folders){
+				if (!Directory.Exists(Path.Combine(_path, folder)))
+					continue;
+				foreach (var file in Directory.GetFiles(Path.Combine(_path, folder), "*", SearchOption.AllDirectories))
 				{
-					needsRecompile = true;
-					break;
+					if (File.GetLastWriteTime(file).Ticks > editTime)
+					{
+						needsRecompile = true;
+						break;
+					}
 				}
+				if (needsRecompile)
+					break;
 			}
 			if (!needsRecompile)
 			{
+				Compiler.Log("Skipping sprite compiling");
 				return;
 			}
 #endif

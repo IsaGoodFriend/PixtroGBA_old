@@ -30,9 +30,10 @@
 
 #define BGOFS			((vu16*)(REG_BASE+0x0010))
 
-#define LEVEL_REGION_A		(unsigned short*)0x02020000
-#define LEVEL_REGION_B		(unsigned short*)0x02030000
-#define asdf				(unsigned short*)0x02002000
+#define TILE_INFO			((unsigned short*)0x02002000)
+
+#define LEVEL_REGION_A		 (unsigned short*)0x02020000
+#define LEVEL_REGION_B		 (unsigned short*)0x02030000
 
 unsigned char *lvl_info;
 
@@ -44,7 +45,7 @@ extern int cam_x, cam_y, prev_cam_x, prev_cam_y;
 extern char level_meta[256];
 
 void set_level_region(char region_b) {
-	tileset_data = LEVEL_REGION_A;
+	tileset_data = region_b ? LEVEL_REGION_B : LEVEL_REGION_A;
 }
 
 void load_collision(unsigned char *level_start){
@@ -186,9 +187,9 @@ void protect_cam(){
 		if (cam_y < Y_TILE_BUFFER)
 			cam_y = Y_TILE_BUFFER;
 			
-		if (cam_x + 240 + X_TILE_BUFFER > BLOCK2INT(lvl_width))
+		if (cam_x + 240 - X_TILE_BUFFER > BLOCK2INT(lvl_width))
 			cam_x = BLOCK2INT(lvl_width) - 240 - X_TILE_BUFFER;
-		if (cam_y + 160 + Y_TILE_BUFFER > BLOCK2INT(lvl_height))
+		if (cam_y + 160 - Y_TILE_BUFFER > BLOCK2INT(lvl_height))
 			cam_y = BLOCK2INT(lvl_height) - 160 - Y_TILE_BUFFER;
 	}
 	
@@ -204,30 +205,47 @@ void protect_cam(){
 }
 #ifdef LARGE_TILES
 void copy_tiles(unsigned short *screen, unsigned short *data, int x, int y, int len) {
-	int i, vis, pos;
-	
-	if (0) {
-		vis = data[0];
-		
+	int i;
+
+	if (x & 0x1) {
+		int vis = data[0];
+
+		int tile		= TILE_INFO[((vis & 0xFF) << 2)  | ((y ^ (vis >> 11)) & 0x1) | (((~vis >> 10) & 0x1) << 1)];
+		tile ^= vis & 0x0C00;
+		tile += vis & 0xF000;
+		screen[0]	= tile;
+
 		len--;
 		screen++;
 		data++;
 	}
 	
-	for (i = 0; i < len; i += 2) {
+	for (i = (len & ~0x1) - 2; i >= 0; i -= 2) {
 		
-		vis = data[i >> 1];// & 0x0F) | 0x800;
+		int vis = data[i >> 1];
 		
-		screen[i] =		vis | ((y ^ (vis >> 11)) & 0x1) | ((( vis >> 10) & 0x1) << 1);
-		screen[i + 1] =	vis | ((y ^ (vis >> 11)) & 0x1) | (((~vis >> 10) & 0x1) << 1);
+		int tile		= TILE_INFO[((vis & 0xFF) << 2) | ((y ^ (vis >> 11)) & 0x1) | ((( vis >> 10) & 0x1) << 1)];
+		tile ^= vis & 0x0C00;
+		tile += vis & 0xF000;
+		screen[i]		= tile;
+		
+		tile			= TILE_INFO[((vis & 0xFF) << 2)  | ((y ^ (vis >> 11)) & 0x1) | (((~vis >> 10) & 0x1) << 1)];
+		tile ^= vis & 0x0C00;
+		tile += vis & 0xF000;
+		screen[i + 1]	= tile;
 	}
 	
 	if (len & 0x1) {
+		int vis = data[len >> 1];
 		
+		int tile		= TILE_INFO[((vis & 0xFF) << 2) | ((y ^ (vis >> 11)) & 0x1) | ((( vis >> 10) & 0x1) << 1)];
+		tile ^= vis & 0x0C00;
+		tile += vis & 0xF000;
+		screen[len - 1]	= tile;
 	}
 }
 void move_cam() {
-	
+
 	cam_x -= 120;
 	cam_y -= 80;
 	
@@ -287,14 +305,23 @@ void move_cam() {
 				position = VIS_BLOCK_POS(startX, min);
 				
 				int vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width)];
-				foreground[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
+				
+				int tile		= TILE_INFO[((vis & 0xFF) << 2) | ((min ^ (vis >> 11)) & 0x1) | (((startX ^ (vis >> 10)) & 0x1) << 1)];
+				tile ^= vis & 0x0C00;
+				tile += vis & 0xF000;
+				foreground[position] = tile;
+
 				if (midground) {
-					vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width) + 0x2000];
-					midground[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
+					tile		= TILE_INFO[((vis & 0xFF) << 2) | ((min ^ (vis >> 11)) & 0x1) | (((startX ^ (vis >> 10)) & 0x1) << 1)];
+					tile ^= vis & 0x0C00;
+					tile += vis & 0xF000;
+					midground[position] = tile;
 				}
 				if (background) {
-					vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width) + 0x4000];
-					background[position] = vis | ((min ^ (vis >> 10)) & 0x1) | (((startX ^ (vis >> 11)) & 0x1) << 1);
+					tile		= TILE_INFO[((vis & 0xFF) << 2) | ((min ^ (vis >> 11)) & 0x1) | (((startX ^ (vis >> 10)) & 0x1) << 1)];
+					tile ^= vis & 0x0C00;
+					tile += vis & 0xF000;
+					background[position] = tile;
 				}
 			}
 			startX += dirX;
@@ -309,14 +336,23 @@ void move_cam() {
 				position = VIS_BLOCK_POS(min, startY);
 				
 				int vis = tileset_data[(min >> 1) + ((startY >> 1) * lvl_width)];
-				foreground[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);
+				
+				int tile		= TILE_INFO[((vis & 0xFF) << 2)| ((startY ^ (vis >> 11)) & 0x1) | (((min ^ (vis >> 10)) & 0x1) << 1)];
+				tile ^= vis & 0x0C00;
+				tile += vis & 0xF000;
+				foreground[position] = tile;
+
 				if (midground) {
-					vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width) + 0x2000];
-					midground[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);
+					tile		= TILE_INFO[((vis & 0xFF) << 2)| ((startY ^ (vis >> 11)) & 0x1) | (((min ^ (vis >> 10)) & 0x1) << 1)];
+					tile ^= vis & 0x0C00;
+					tile += vis & 0xF000;
+					midground[position] = tile;
 				}
 				if (background) {
-					vis = tileset_data[(startX >> 1) + ((min >> 1) * lvl_width) + 0x4000];
-					background[position] = vis | ((startY ^ (vis >> 10)) & 0x1) | (((min ^ (vis >> 11)) & 0x1) << 1);;
+					tile		= TILE_INFO[((vis & 0xFF) << 2)| ((startY ^ (vis >> 11)) & 0x1) | (((min ^ (vis >> 10)) & 0x1) << 1)];
+					tile ^= vis & 0x0C00;
+					tile += vis & 0xF000;
+					background[position] = tile;
 				}
 			}
 			startY += dirY;
@@ -349,7 +385,7 @@ void reset_cam() {
 	int x = INT2TILE(cam_x);
 	int y = INT2TILE(cam_y);
 	
-	x &= ~0x1;
+	//x &= ~0x1;
 	
 	unsigned short *foreground = se_mem[31];
 	unsigned short *midground  = se_mem[30];

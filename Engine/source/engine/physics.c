@@ -26,11 +26,7 @@ int get_block(int x, int y) {
 	x += ((lvl_width  - 1) - x) * (x >= lvl_width);
 	y += ((lvl_height - 1) - y) * (y >= lvl_height);
 	
-#ifdef LARGE_TILES
-	return (tileset_data[x + (y * lvl_width)] >> 2) & 0xFF;
-#else
 	return tileset_data[x + (y * lvl_width)] & 0xFF;
-#endif
 }
 
 unsigned int entity_physics(Entity *ent, int hit_mask) {

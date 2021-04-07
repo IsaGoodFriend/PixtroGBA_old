@@ -72,7 +72,7 @@ namespace GBA_Compiler {
 			}
 
 			ArtCompiler.Compile(RootPath + "\\art");
-			LevelCompiler.Compile(RootPath + "\\levels");
+			LevelCompiler.Compile(RootPath + "\\levels", RootPath + "\\art\\tilesets");
 
 #if DEBUG
 			Console.WriteLine("Finished");

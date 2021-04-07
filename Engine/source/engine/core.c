@@ -69,9 +69,6 @@ extern void update_presses();
 void pixtro_init() {
 	
 	set_level_region(0);
-	
-	// Resetting tileset values
-	reset_tilesets();
 
 	// Setting first physics tile to be collidable
 	SET_TILE_DATA(0, SHAPE_FULL, 1);

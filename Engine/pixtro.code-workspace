@@ -16,6 +16,9 @@
 			"**/levels.*":true,
 			"*.elf": true,
 			"*.gba": true
+		},
+		"files.associations": {
+			"type_traits": "cpp"
 		}
 	}
 }

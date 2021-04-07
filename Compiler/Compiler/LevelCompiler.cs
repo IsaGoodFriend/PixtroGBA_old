@@ -8,7 +8,7 @@ using System.Text;
 namespace GBA_Compiler {
 	public static class LevelCompiler {
 
-		public static void Compile(string _path) {
+		public static void Compile(string _path, string _tilesetPath) {
 			string toSavePath = Path.Combine(Compiler.RootPath, "source/engine");
 
 #if !DEBUG
@@ -24,9 +24,19 @@ namespace GBA_Compiler {
 					break;
 				}
 			}
+			if (!needsRecompile){
+				foreach (var file in Directory.GetFiles(_tilesetPath, "*", SearchOption.AllDirectories))
+				{
+					if (File.GetLastWriteTime(file).Ticks > editTime)
+					{
+						needsRecompile = true;
+						break;
+					}
+				}
+			}
 			if (!needsRecompile)
 			{
-				Compiler.Log("Skipping sprite compiling");
+				Compiler.Log("Skipping level compiling");
 				return;
 			}
 #endif
@@ -97,15 +107,48 @@ namespace GBA_Compiler {
 				if (parse.fullTileset == null)
 					return;
 				
-				compiler.BeginArray(CompileToC.ArrayType.UInt, "TILESET_" + parse.Name);
-				
-				foreach (var tile in parse.fullTileset){
-					compiler.AddRange(tile.RawData);
-				}
 
+				int length = 0;
+				compiler.BeginArray(CompileToC.ArrayType.UInt, "TILESET_" + parse.Name);
+
+				if (Compiler.LargeTiles) {
+					LevelTileset tileset = new LevelTileset();
+					foreach (var tile in parse.fullTileset) {
+						for (int i = 0; i < 4; ++i){
+							var newTile = new Tile(tile.RawData, i * 8, false);
+							if (!newTile.IsAir)
+								tileset.AddTile(newTile);
+						}
+					}
+					length = tileset.tiles.Count;
+
+					foreach (var tile in tileset.tiles){
+						compiler.AddRange(tile.RawData);
+					}
+					
+					compiler.EndArray();
+					compiler.BeginArray(CompileToC.ArrayType.UShort, "TILE_MAPPING_" + parse.Name);
+					
+					foreach (var tile in parse.fullTileset) {
+						for (int i = 0; i < 4; ++i){
+							var ogTile = new Tile(tile.RawData, i * 8, false);
+							var tilesetTile = tileset.GetTile(ogTile);
+							
+							ushort value = (ushort)(tileset.GetIndex(ogTile) + 1);
+							value |= (ushort)(ogTile.GetFlipOffset(tilesetTile) << 10);
+							compiler.AddValue(value);
+						}
+					}
+				}
+				else {
+					foreach (var tile in parse.fullTileset){
+						compiler.AddRange(tile.RawData);
+					}
+					length = parse.fullTileset.Count;
+				}
 				compiler.EndArray();
 
-				compiler.AddValueDefine($"TILESET_{parse.Name}_len", (parse.fullTileset.Count) * (Compiler.LargeTiles ? 4 : 1));
+				compiler.AddValueDefine($"TILESET_{parse.Name}_len", length);
 			}
 
 			compiler.SaveTo(toSavePath, "levels");

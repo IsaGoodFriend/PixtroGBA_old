@@ -22,15 +22,15 @@ typedef struct Routine
 	int at;
 } Routine;
 
-// hashing function used for labels
 
-unsigned int rt_hash(const char* name)
-{
-	unsigned int hash = 5381;
-	for (int i = 0; name[i] != '\0'; i++)
-		hash = ((hash << 5) + hash) + name[i];
-	return hash;
-}
+// hashing function used for labels
+// unsigned int rt_hash(const char* name) 
+// {
+// 	unsigned int hash = 5381;
+// 	for (int i = 0; name[i] != '\0'; i++)
+// 		hash = ((hash << 5) + hash) + name[i];
+// 	return hash;
+// }
 
 
 // Control Statements:

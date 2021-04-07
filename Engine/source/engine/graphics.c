@@ -67,6 +67,8 @@ int cam_x, cam_y, prev_cam_x, prev_cam_y;
 int sprite_count, prev_sprite_count;
 int affine_count;
 
+#define TILE_INFO			((unsigned short*)0x02002000)
+
 #define BANK_LIMIT			64
 #define BANK_MEM_START		0x60
 
@@ -82,7 +84,6 @@ OBJ_ATTR obj_buffer[SPRITE_LIMIT];
 OBJ_ATTR *sprite_pointer;
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
-int tileset_count;
 char is_rendering;
 
 void load_sprite(unsigned int *sprite, int index, int shape) {
@@ -167,19 +168,16 @@ void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, i
 	
 	anim_meta[index] |= shape << 16;
 }
-void load_tileset(unsigned short *tiles, int count) {
-
-	memcpy(&tile_mem[FG_TILESET][tileset_count], tiles, count << 5);
-	
-	tileset_count += count;
-}
-void reset_tilesets() {
 #ifdef LARGE_TILES
-	tileset_count = 4;
-#else
-	tileset_count = 1;
-#endif
+void load_tileset(unsigned int *tiles, unsigned short *mapping, int count) {
+	memcpy(&tile_mem[FG_TILESET][1], tiles, count << 5);
+	memcpy(TILE_INFO + 4, mapping, count << 3);
 }
+#else
+void load_tileset(unsigned int *tiles, int count) {
+	memcpy(&tile_mem[FG_TILESET][1], tiles, count << 5);
+}
+#endif
 void load_obj_pal(unsigned short *pal, int palIndex) {
 	memcpy(&pal_obj_mem[palIndex << 4], pal, copyPalette);
 }

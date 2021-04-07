@@ -384,7 +384,7 @@ namespace GBA_Compiler {
 			switch (arrayType) {
 				case ArrayType.Char:
 					obj = (char)obj;
-					retval = Convert.ToString(obj, 16);//.ToString("X2");
+					retval = obj.ToString("X2");
 					break;
 				case ArrayType.Short:
 					obj = (short)obj & 0x7FFF;
