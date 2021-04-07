@@ -437,7 +437,7 @@ namespace GBA_Compiler {
 		private static List<string> backgroundsCompiled = new List<string>();
 
 		public static void Compile(string _path) {
-			string toSavePath = Path.Combine(Compiler.RootPath, "source\\engine");
+			string toSavePath = Path.Combine(Compiler.RootPath, "build\\source");
 
 			LevelTilesets = new Dictionary<string, LevelTileset>();
 

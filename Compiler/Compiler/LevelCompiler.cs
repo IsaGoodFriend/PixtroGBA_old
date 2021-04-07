@@ -9,7 +9,7 @@ namespace GBA_Compiler {
 	public static class LevelCompiler {
 
 		public static void Compile(string _path, string _tilesetPath) {
-			string toSavePath = Path.Combine(Compiler.RootPath, "source/engine");
+			string toSavePath = Path.Combine(Compiler.RootPath, "build\\source");
 
 #if !DEBUG
 			bool needsRecompile = false;

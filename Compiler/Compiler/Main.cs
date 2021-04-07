@@ -45,7 +45,10 @@ namespace GBA_Compiler {
 #if DEBUG
 			RootPath = @"C:\Users\IsaGoodFriend\source\HomeBrew\PixtroGBA\Engine";
 #endif
-
+			// Make sure directory for build sources exists
+			Directory.CreateDirectory(Path.Combine(RootPath, "build/source"));
+			
+			// Check the engine.h header file for information on how to compile level (and other data maybe in the future idk)
 			foreach (string s in File.ReadAllLines(Path.Combine(RootPath, @"source\engine.h"))) {
 				if (s.StartsWith("#define")) {
 					string removeComments = s;
