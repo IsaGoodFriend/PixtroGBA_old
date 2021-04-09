@@ -258,7 +258,7 @@ namespace GBA_Compiler {
 				if (tiles.Count > 192)
 					throw new Exception();
 				if (tiles.Count > 128)
-					Console.WriteLine($"WARNING -- Background {_name} has a lot of tiles ({tiles.Count}).  It's recommended that you lower tile count");
+					Compiler.WarningLog($"Background {_name} has a lot of tiles ({tiles.Count}).  It's recommended that you lower tile count");
 
 				return base.Data(_name);
 			}
@@ -448,7 +448,7 @@ namespace GBA_Compiler {
 
 			long editTime = File.GetLastWriteTime(toSavePath + "\\sprites.c").Ticks;
 			
-			string[] folders = new string[]{ "backgrounds", "palettes", "particles", "sprites" };
+			string[] folders = new string[]{ "backgrounds", "palettes", "particles", "sprites", "titlecards" };
 
 			foreach (var folder in folders){
 				if (!Directory.Exists(Path.Combine(_path, folder)))
@@ -466,34 +466,35 @@ namespace GBA_Compiler {
 			}
 			if (!needsRecompile)
 			{
-				Compiler.Log("Skipping sprite compiling");
+				Compiler.Log("Skipping art compiling");
 				return;
 			}
 #endif
+			Compiler.Log("Compiling art assets");
 
 			tilesets = new Dictionary<string, BGTileSet>();
 			backgroundsCompiled = new List<string>();
 
 			var compiler = new CompileToC();
 
-			Compiler.Log("Compiling sprites");
+			Compiler.DebugLog("Compiling sprites");
 			CompileSprites(Path.Combine(_path, "sprites"), compiler);
 
-			Compiler.Log("Compiling palettes");
+			Compiler.DebugLog("Compiling palettes");
 			CompilePalettes(Path.Combine(_path, "palettes"), compiler);
 
-			Compiler.Log("Compiling particles");
+			Compiler.DebugLog("Compiling particles");
 			compiler.options |= CompileToC.CompileOptions.CompileEmptyArrays;
 			CompileParticles(Path.Combine(_path, "particles"), compiler);
 			compiler.options &= ~CompileToC.CompileOptions.CompileEmptyArrays;
 
-			Compiler.Log("Compiling backgrounds");
+			Compiler.DebugLog("Compiling backgrounds");
 			CompileBackgrounds(Path.Combine(_path, "backgrounds"), compiler);
 
-			//Compiler.Log("Compiling tilesets");
-			//CompileTilesets(Path.Combine(_path, "tilesets"), compiler);
+			Compiler.DebugLog("Compiling title cards");
+			CompileTitleCards(Path.Combine(_path, "titlecards"), compiler);
 
-			Compiler.Log("Saving art to file");
+			Compiler.DebugLog("Saving art to file");
 			compiler.SaveTo(toSavePath, "sprites");
 		}
 
@@ -820,8 +821,10 @@ namespace GBA_Compiler {
 						backgroundsCompiled.Add(name);
 
 					Bitmap map = new Bitmap(dataPath);
-					if (map.Width % 256 != 0 || map.Height % 256 != 0)
+					if (map.Width % 256 != 0 || map.Height % 256 != 0){
+						map.Dispose();
 						break;
+					}
 
 					Background bg = new Background(map, tiles);
 
@@ -902,6 +905,105 @@ namespace GBA_Compiler {
 					}
 			}
 		}
+
+		private static void CompileTitleCards(string _path, CompileToC _compiler) {
+			if (!Directory.Exists(_path))
+				return;
+			
+			// Get all the cards that the user wants to use, and compile only those.
+			string[] allCards = File.ReadAllLines(Path.Combine(_path, "order.txt"));
+
+			List<string> addedCards = new List<string>();
+
+			// foreach card, search for it and compile it if it exists.
+			foreach (var cardName in allCards){
+				if (string.IsNullOrWhiteSpace(cardName))
+					continue;
+				
+				string name, tag = null;
+				if (cardName.Contains(":")) {
+					tag = cardName.Split(':')[1];
+					name = cardName.Split(':')[0];
+				}
+				else
+					name = cardName;
+				
+				foreach (string s in Directory.GetFiles(_path)) {
+					// Found card, now compile it and stop searching for others of the same name
+					if (Path.GetFileNameWithoutExtension(s) == name){
+						addedCards.Add(name);
+						CompileTitleCard(s, _compiler, tag);
+						break;
+					}
+				}
+			}
+
+			_compiler.BeginArray(CompileToC.ArrayType.UShortPtr, "INTRO_CARDS");
+
+			foreach (var str in addedCards){
+				_compiler.AddValue($"(unsigned short*)CARD_{str}");
+				_compiler.AddValue($"(unsigned short*)CARDTILE_{str}");
+			}
+			_compiler.AddValue(0);
+
+			_compiler.EndArray();
+		}
+		private static void CompileTitleCard(string _path, CompileToC _compiler, string _aseLayer = null) {
+			string name = Path.GetFileNameWithoutExtension(_path);
+
+			BGTileSet tiles = null;
+			Background bg = null;
+
+			switch (Path.GetExtension(_path)) {
+				case ".bmp": {
+					if (_aseLayer != null) break;
+
+					Bitmap map = new Bitmap(_path);
+					if (map.Width != 240 || map.Height != 160){
+						map.Dispose();
+						break;
+					}
+
+					bg = new Background(map, tiles);
+
+					map.Dispose();
+
+					break;
+				}
+				case ".ase":
+					using (AsepriteReader read = new AsepriteReader(_path)) {
+						if (read.Width != 240 || read.Height != 160)
+							break;
+
+						List<FloatColor> palette = new List<FloatColor>(read.Colors);
+						
+						if (_aseLayer != null && read.LayerNames.Contains(_aseLayer)) {
+							bg = new Background(read, tiles, _aseLayer);
+						}
+						else{
+							bg = new Background(read, tiles, read.LayerNames[0]);
+						}
+
+						break;
+
+					}
+			}
+			if (bg == null)
+				return;
+			
+			_compiler.BeginArray(CompileToC.ArrayType.UShort, "CARD_" + name);
+
+			_compiler.AddRange(Enumerable.ToArray(bg.Data()));
+
+			_compiler.EndArray();
+
+			_compiler.BeginArray(CompileToC.ArrayType.UShort, "CARDTILE_" + name);
+
+			_compiler.AddRange(Enumerable.ToArray(bg.tileset.Data(name)));
+
+			_compiler.EndArray();
+		}
+
 
 		public static IEnumerable<uint> GetArrayFromSprite(int _width, int _height, IndexOnSprite _values, bool _largeTiles = false, bool _background = false) {
 

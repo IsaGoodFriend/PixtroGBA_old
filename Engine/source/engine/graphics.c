@@ -84,6 +84,8 @@ OBJ_ATTR obj_buffer[SPRITE_LIMIT];
 OBJ_ATTR *sprite_pointer;
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
+
+
 char is_rendering;
 
 void load_sprite(unsigned int *sprite, int index, int shape) {

@@ -15,6 +15,9 @@ namespace GBA_Compiler {
 			Short,
 			UInt,
 			Int,
+			CharPtr,
+			UShortPtr,
+			UIntPtr,
 		}
 #if BINARY
 		public enum CompileOptions
@@ -245,7 +248,7 @@ namespace GBA_Compiler {
 		private bool inArray;
 		private List<string> source, header;
 
-		private List<long> arrayValues;
+		private List<object> arrayValues;
 		private string arrayHeader;
 		ArrayType arrayType;
 
@@ -254,38 +257,53 @@ namespace GBA_Compiler {
 		public CompileToC() {
 			source = new List<string>();
 			header = new List<string>();
-			arrayValues = new List<long>();
+			arrayValues = new List<object>();
 		}
 
-		public void AddValue(long _value) {
+		private void CheckForErrors(bool addInteger){
 			if (!inArray)
 				throw new Exception();
+			
+			if (!arrayType.ToString().EndsWith("Ptr") && !addInteger)
+				throw new Exception();
+		}
+
+		public void AddValue(string _value){
+			if (long.TryParse(_value, out long resultval)){
+				AddValue(_value);
+			}
+			CheckForErrors(false);
+
+			arrayValues.Add(_value);
+		}
+		public void AddValue(long _value) {
+			CheckForErrors(true);
 
 			arrayValues.Add(_value);
 		}
 		public void AddRange(long[] _value) {
-			if (!inArray)
-				throw new Exception();
+			CheckForErrors(true);
 
-			arrayValues.AddRange(_value);
+			foreach (var val in _value)
+				arrayValues.Add(val);
 		}
 		public void AddRange(ushort[] _value) {
-			if (!inArray)
-				throw new Exception();
+			CheckForErrors(true);
 
-			arrayValues.AddRange(_value.Select(x => (long)x).ToArray());
+			foreach (var val in _value)
+				arrayValues.Add((long)val);
 		}
 		public void AddRange(uint[] _value) {
-			if (!inArray)
-				throw new Exception();
+			CheckForErrors(true);
 
-			arrayValues.AddRange(_value.Select(x => (long)x).ToArray());
+			foreach (var val in _value)
+				arrayValues.Add((long)val);
 		}
 		public void AddRange(byte[] _value) {
-			if (!inArray)
-				throw new Exception();
+			CheckForErrors(true);
 
-			arrayValues.AddRange(_value.Select(x => (long)x).ToArray());
+			foreach (var val in _value)
+				arrayValues.Add((long)val);
 		}
 
 		public void AddValueDefine(string _name, int _value) {
@@ -331,24 +349,43 @@ namespace GBA_Compiler {
 
 			switch (arrayType) {
 				case ArrayType.Char:
+				case ArrayType.CharPtr:
 					valueType = "unsigned char";
 					break;
 				case ArrayType.Int:
 				case ArrayType.UInt:
+				case ArrayType.UIntPtr:
 					valueType = "int";
 					break;
 				case ArrayType.Short:
 				case ArrayType.UShort:
+				case ArrayType.UShortPtr:
 					valueType = "short";
 					break;
 			}
+
+			bool integerArray = true;
+
 			if (arrayType.ToString().StartsWith("U"))
 				valueType = "unsigned " + valueType;
+			if (arrayType.ToString().EndsWith("Ptr")){
+				integerArray = false;
+				valueType += "*";
+			}
 
 			source.Add($"const {valueType} {arrayHeader}[{arrayValues.Count}] = {{ {end}");
 
 			for (int i = 0; i < arrayValues.Count; ++i) {
-				source.Add(CompileToString(arrayValues[i]) + ", " + ((i & 0xF) == 0xF ? $"{end}" : ""));
+			
+				string addVal;
+				if (integerArray){
+					addVal = CompileToString((long)arrayValues[i]);
+				}
+				else{
+					
+					addVal = (arrayValues[i] is long) ? ((long)arrayValues[i]).ToString() : (string)arrayValues[i];
+				}
+				source.Add(addVal + ", " + ((i & 0xF) == 0xF ? $"{end}" : ""));
 
 			}
 

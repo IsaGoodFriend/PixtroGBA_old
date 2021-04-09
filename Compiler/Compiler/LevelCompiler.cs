@@ -40,6 +40,7 @@ namespace GBA_Compiler {
 				return;
 			}
 #endif
+			Compiler.Log("Compiling levels");
 			var compiler = new CompileToC();
 
 			entGlobalCount = 0;

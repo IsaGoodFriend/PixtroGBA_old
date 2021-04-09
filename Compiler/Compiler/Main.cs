@@ -37,6 +37,8 @@ namespace GBA_Compiler {
 
 		public static string GameName { get; private set; }
 
+		private static bool Error;
+
 		static void Main(string[] _args) {
 
 			Arguments = _args;
@@ -92,24 +94,10 @@ namespace GBA_Compiler {
 			cmd.StartInfo = info;
 			cmd.Start();
 
+			if (Error)
+				return;
+
 			using (StreamWriter sw = cmd.StandardInput) {
-#if DEBUG
-				sw.WriteLine("cd " + RootPath);
-#endif
-
-				//sw.Write(@"C:\devkitPro\tools\bin\bin2s -H test.h ");
-
-				//foreach (var file in Directory.GetFiles(Path.Combine(RootPath, "art", "bin"))) {
-					//sw.Write(Path.Combine("art\\bin", Path.GetFileName(file)) + " ");
-				//}
-
-				//sw.WriteLine();
-				//return;
-
-				sw.WriteLine("cd " + RootPath);
-
-
-
 				if (Arguments.Contains("-clean"))
 					sw.WriteLine("make clean");
 				else
@@ -117,14 +105,33 @@ namespace GBA_Compiler {
 
 				if (Arguments.Contains("-run"))
 					sw.WriteLine($"{GameName}.gba");
-
 			}
 
 			cmd.WaitForExit();
 		}
 
+		public static void ErrorLog(object log) {
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.Write("ERROR -- ");
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.WriteLine(log.ToString());
+
+			Error = true;
+		}
+		public static void WarningLog(object log) {
+			Console.ForegroundColor = ConsoleColor.Yellow;
+			Console.Write("WARNING -- ");
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.WriteLine(log.ToString());
+		}
 		public static void Log(object log) {
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.WriteLine(log.ToString());
+			
+		}
+		public static void DebugLog(object log) {
 			if (HasArgument("-log")) {
+				Console.ForegroundColor = ConsoleColor.White;
 				Console.WriteLine(log.ToString());
 			}
 		}
