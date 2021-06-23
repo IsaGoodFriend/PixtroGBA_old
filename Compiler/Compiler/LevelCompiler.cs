@@ -7,6 +7,8 @@ using System.Text;
 
 namespace GBA_Compiler {
 	public static class LevelCompiler {
+		
+		static Dictionary<string, CompressedLevel> compiledLevels = new Dictionary<string, CompressedLevel>();
 
 		public static void Compile(string _path, string _tilesetPath) {
 			string toSavePath = Path.Combine(Compiler.RootPath, "build\\source");
@@ -60,12 +62,13 @@ namespace GBA_Compiler {
 			foreach (var level in Directory.GetFiles(_path, "*", SearchOption.AllDirectories)) {
 				var ext = Path.GetExtension(level);
 
-				var localPath = level.Replace(_path, "").Replace('/', '\\');
+				var localPath = level.Replace(_path, "");
 				if (localPath.StartsWith("\\"))
 					localPath = localPath.Substring(1);
-
-				if (localPath.StartsWith("meta"))
+				
+				if (localPath.StartsWith("meta") || localPath.StartsWith("packs\\"))
 					continue;
+				
 
 				CompressedLevel compressed = null;
 
@@ -96,11 +99,14 @@ namespace GBA_Compiler {
 
 				if (compressed == null)
 					continue;
-
-				compiler.BeginArray(CompileToC.ArrayType.Char, $"LVL_{Path.GetFileNameWithoutExtension(localPath)}");
-
+				
+				
+				localPath = $"LVL_{Path.GetFileNameWithoutExtension(localPath.Replace('/', '_').Replace('\\', '_'))}";
+				
+				compiledLevels.Add(localPath, compressed);
+				
+				compiler.BeginArray(CompileToC.ArrayType.Char, localPath);
 				compiler.AddRange(compressed.BinaryData());
-
 				compiler.EndArray();
 			}
 
@@ -108,7 +114,6 @@ namespace GBA_Compiler {
 				if (parse.fullTileset == null)
 					return;
 				
-
 				int length = 0;
 				compiler.BeginArray(CompileToC.ArrayType.UInt, "TILESET_" + parse.Name);
 
@@ -148,8 +153,40 @@ namespace GBA_Compiler {
 					length = parse.fullTileset.Count;
 				}
 				compiler.EndArray();
-
+				
 				compiler.AddValueDefine($"TILESET_{parse.Name}_len", length);
+			}
+			
+			foreach (var pack in Directory.GetFiles(Path.Combine(_path, "packs"))){
+				string name = Path.GetFileNameWithoutExtension(pack);
+				
+				compiler.BeginArray(CompileToC.ArrayType.UInt, "PACK_" + name);
+				
+				List<string> levelList = new List<string>();
+				
+				foreach (var level in File.ReadAllLines(pack)){
+					if (string.IsNullOrWhiteSpace(level))
+						continue;
+					levelList.Add("LVL_" + level);
+				}
+				
+				for (int i = 0; i < levelList.Count; ++i) {
+					if (i != 0){
+						compiler.AddValue(1);
+					}
+					compiler.AddValue("" + levelList[i]);
+					
+					CompressedLevel level = compiledLevels[levelList[i]];
+					
+					for (int j = 0; j < level.Layers; ++j){
+						compiler.AddValue((2) | (j << 4));
+					}
+					compiler.AddValue(3);
+				}
+				
+				compiler.AddValue(0);
+				
+				compiler.EndArray();
 			}
 
 			compiler.SaveTo(toSavePath, "levels");

@@ -40,7 +40,7 @@ namespace GBA_Compiler {
 		private static bool Error;
 
 		static void Main(string[] _args) {
-
+			
 			Arguments = _args;
 			RootPath = Directory.GetCurrentDirectory().Replace('/', '\\');
 
@@ -81,7 +81,6 @@ namespace GBA_Compiler {
 
 #if DEBUG
 			Console.WriteLine("Finished");
-			//Console.ReadLine();
 			return;
 #endif
 

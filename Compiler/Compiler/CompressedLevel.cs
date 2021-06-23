@@ -370,6 +370,7 @@ namespace GBA_Compiler {
 
 				yield return 0xFF;
 			}
+			yield return 0xFF;
 			yield break;
 		}
 

@@ -941,10 +941,10 @@ namespace GBA_Compiler {
 			_compiler.BeginArray(CompileToC.ArrayType.UShortPtr, "INTRO_CARDS");
 
 			foreach (var str in addedCards){
-				_compiler.AddValue($"(unsigned short*)CARD_{str}");
-				_compiler.AddValue($"(unsigned short*)CARDTILE_{str}");
+				//_compiler.AddValue($"(unsigned short*)CARD_{str}");
+				//_compiler.AddValue($"(unsigned short*)CARDTILE_{str}");
 			}
-			_compiler.AddValue(0);
+			//_compiler.AddValue(0);
 
 			_compiler.EndArray();
 		}

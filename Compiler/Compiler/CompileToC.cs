@@ -263,9 +263,6 @@ namespace GBA_Compiler {
 		private void CheckForErrors(bool addInteger){
 			if (!inArray)
 				throw new Exception();
-			
-			if (!arrayType.ToString().EndsWith("Ptr") && !addInteger)
-				throw new Exception();
 		}
 
 		public void AddValue(string _value){
@@ -376,20 +373,15 @@ namespace GBA_Compiler {
 			source.Add($"const {valueType} {arrayHeader}[{arrayValues.Count}] = {{ {end}");
 
 			for (int i = 0; i < arrayValues.Count; ++i) {
-			
-				string addVal;
-				if (integerArray){
-					addVal = CompileToString((long)arrayValues[i]);
-				}
-				else{
-					
-					addVal = (arrayValues[i] is long) ? ((long)arrayValues[i]).ToString() : (string)arrayValues[i];
-				}
+				
+				string addVal = arrayValues[i] is long ? CompileToString((long)arrayValues[i]) : (string)arrayValues[i];
+				
 				source.Add(addVal + ", " + ((i & 0xF) == 0xF ? $"{end}" : ""));
 
 			}
-
-			source.Add($"\n}}; {end}");
+			if (arrayValues.Count % 16 != 0)
+				source.Add("\n");
+			source.Add($"}}; {end}");
 
 			header.Add($"extern const {valueType} {arrayHeader}[{arrayValues.Count}];\n");
 		}
