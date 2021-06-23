@@ -75,6 +75,8 @@ int affine_count;
 // Max of 128 sprites
 #define SPRITE_LIMIT		128
 
+unsigned short colorbank_bg[256], colorbank_spr[256];
+
 // Sprite bank information
 int shapes[BANK_LIMIT], indexes[BANK_LIMIT], ordered[BANK_LIMIT];
 
@@ -83,8 +85,6 @@ unsigned int *anim_bank[BANK_LIMIT], anim_meta[BANK_LIMIT], wait_to_load[BANK_LI
 OBJ_ATTR obj_buffer[SPRITE_LIMIT];
 OBJ_ATTR *sprite_pointer;
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
-
-
 
 char is_rendering;
 
@@ -182,9 +182,11 @@ void load_tileset(unsigned int *tiles, int count) {
 #endif
 void load_obj_pal(unsigned short *pal, int palIndex) {
 	memcpy(&pal_obj_mem[palIndex << 4], pal, copyPalette);
+	memcpy(&colorbank_spr[palIndex << 3], pal, copyPalette);
 }
 void load_bg_pal(unsigned short *pal, int palIndex) {
 	memcpy(&pal_bg_mem[palIndex << 4], pal, copyPalette);
+	memcpy(&colorbank_bg[palIndex << 3], pal, copyPalette);
 }
 
 void draw_affine_big(AffineMatrix matrix, int sprite, int prio, int pal) {

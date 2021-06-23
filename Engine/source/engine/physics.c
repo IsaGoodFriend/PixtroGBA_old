@@ -31,7 +31,6 @@ int get_block(int x, int y) {
 
 unsigned int entity_physics(Entity *ent, int hit_mask) {
 	
-	
 	// Get the sign (-/+) of the velocity components
 	int sign_x = (ent->vel_x >> 31) | 1, sign_y = (ent->vel_y >> 31) | 1;
 	int y_is_pos= -(~(ent->vel_y) >> 31); // If y is positive, equals 1, else 0;

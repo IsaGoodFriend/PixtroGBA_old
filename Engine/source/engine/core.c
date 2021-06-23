@@ -9,8 +9,7 @@
 #include "math.h"
 #include "levels.h"
 #include "physics.h"
-
-#define SAVE_INDEX (save_file_number * SAVEFILE_LEN) + SETTING_LEN
+#include "loading.h"
 
 // Layers
 
@@ -33,26 +32,40 @@ int foreground_count;
 // Entities
 unsigned int max_entities;
 
-int (*entity_inits[32])(unsigned int* actor_index, unsigned char* data);
+int (*entity_inits[32])(unsigned int actor_index, unsigned char* data, unsigned char* is_loading);
 Entity entities[ENTITY_LIMIT];
 void (*entity_update[32])(int index);
 void (*entity_render[32])(int index);
 
 // Level data
 char level_meta[128];
+extern unsigned int lvl_width, lvl_height;
+extern unsigned short *tileset_data;
+unsigned short *loaded_levels_a[64], *loaded_levels_b[64];
+unsigned int *loading_levelpack;
+extern unsigned char *lvl_info;
+extern int level_loading;
+extern unsigned short *level_toload;
+extern unsigned int unloaded_entities[64];
+
+Routine loading_routine;
+void (*onfade_function)(Routine*);
+Routine onfade_routine;
 
 // Engine stuff
-unsigned int game_freeze, game_life;
-unsigned int fadeAmount, fading, loadIndex;
+unsigned int game_life, levelpack_life, level_life;
+unsigned int game_freeze;
+unsigned int engine_flags;
+int fade_timer;
 
-unsigned short* transition_style;
-void (*hBlankInterrupt)(int);
-
-unsigned int levelFlags, visualFlags;
+// Saveram
+#define SAVE_INDEX (save_file_number * SAVEFILE_LEN) + SETTING_LEN
 
 char save_data[SAVEFILE_LEN - 1], settings_file[SETTING_LEN - 1];
 int save_file_number;
 
+
+// Other
 void (*custom_update)(void);
 void (*custom_render)(void);
 
@@ -60,21 +73,32 @@ void load_settings();
 void interrupt();
 void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len, int size);
 
-extern void begin_drawing();
+extern void set_entities_location();
+
+extern void init();
+extern void init_settings();
+
 extern void rng_seed(unsigned int seed1, unsigned int seed2, unsigned int seed3);
+
+extern void begin_drawing();
 extern void update_particles();
 extern void update_presses();
+extern void load_entities();
 
 // Initialize the game
 void pixtro_init() {
 	
-	set_level_region(0);
+	loading_routine.at = -1;
+	loaded_levels_a[0] = (unsigned short*)0x02020000;
+	loaded_levels_b[0] = (unsigned short*)0x02030000;
+	
+	set_loading_region(0);
 
 	// Setting first physics tile to be collidable
 	SET_TILE_DATA(0, SHAPE_FULL, 1);
 
 	// Set the RNG seeds.  Values can be any positive integer
-	rng_seed(0xFA12B4, 0x2B5C72, 0x14F4D2);
+	rng_seed(RNG_SEED_1, RNG_SEED_2, RNG_SEED_3);
 	
 	// Initialize graphics settings.  Must run before anything visual happens
 	init_drawing();
@@ -104,20 +128,51 @@ void pixtro_update() {
 	// Increment game's life counter
 	game_life++;
 	
-	// Update inputs
-	update_presses();
+	if (fade_timer == 10)
+		fade_timer = 0;
 	
-	// Run over every active entity and run it's custom update
-	for (i = 0; i < max_entities; ++i){
-		if (!ENT_FLAG(ACTIVE, i) || !entity_update[ENT_TYPE(i)])
-			continue;
-		
-		entity_update[ENT_TYPE(i)](i);
+	if (fade_timer == 5) {
+		if (onfade_function) {
+			onfade_function(&onfade_routine);
+			
+			if (onfade_routine.at == -1){
+				onfade_function = NULL;
+				fade_timer = 6;
+			}
+		}
+		else{
+			fade_timer = 6;
+		}
+	}
+	else {
+		if (!fade_timer) {
+			// Update inputs
+			update_presses();
+			
+			// Run over every active entity and run it's custom update
+			for (i = 0; i < max_entities; ++i){
+				if (!ENT_FLAG(ACTIVE, i) || !entity_update[ENT_TYPE(i)])
+					continue;
+				
+				entity_update[ENT_TYPE(i)](i);
+			}
+			
+			// Custom update if desired
+			if (custom_update)
+				custom_update();
+			
+			if (KEY_DOWN_NOW(KEY_A)){
+				fade_timer = 1;
+			}
+		}
+		else
+			fade_timer++;
 	}
 	
-	// Custom update if desired
-	if (custom_update)
-		custom_update();
+	if (ENGINE_HAS_FLAG(LOADING_ASYNC)){
+		async_loading();
+	}
+	
 }
 
 // Rendering the game
@@ -151,6 +206,10 @@ void pixtro_render() {
 	
 	// Finalize the graphics and prepare for the next cycle
 	end_drawing();
+	
+	if (fade_timer) {
+		fade_black(fade_timer <= 5 ? fade_timer : (10 - fade_timer));
+	}
 }
 // Layer functions that don't need to be finalized
 void set_layer_visible(int layer, bool visible) {
@@ -266,6 +325,82 @@ void finalize_layers() {
 	
 	sbb -= 8;
 	bg_tile_allowance = sbb << 5;
+}
+
+// Level functions
+void move_to_level(int level, int section) {
+	tileset_data = section ? loaded_levels_b[level] : loaded_levels_a[level];
+	lvl_width = tileset_data[0];
+	lvl_height = tileset_data[1];
+	tileset_data += 3;
+	load_entities();
+}
+
+#define load_initialize()				\
+	if (loading_routine.at >= 0)		\
+		return;							\
+	set_loading_region(section);		\
+	reset_routine(loading_routine);		\
+	level_loading = 0;					\
+	loading_levelpack = level_pack;
+
+void load_levels(unsigned int* level_pack, int section) {
+	load_initialize();
+	
+	while (loading_routine.at >= 0){
+		async_loading();
+	}
+}
+void load_levels_async(unsigned int* level_pack, int section) {
+	load_initialize();
+	
+	SET_ENGINE_FLAG(LOADING_ASYNC);
+}
+void async_loading() {
+	
+	int data = loading_levelpack[0];
+	
+	rt_begin(loading_routine);
+	
+	load_header((unsigned char*)data);
+	loading_levelpack++;
+	
+	rt_while(data != 0);
+	
+	switch (data & 0xF) {
+		case 1:
+			level_loading++;
+			loaded_levels_a[level_loading] = level_toload;
+			
+			load_header((unsigned char*)loading_levelpack[1]);
+			loading_levelpack++;
+			break;
+		case 2:
+			load_midground();
+			break;
+		case 3:
+			set_entities_location();
+			break;
+	}
+	
+	loading_levelpack++;
+	
+	rt_step();
+	
+	REMOVE_ENGINE_FLAG(LOADING_ASYNC);
+	
+	rt_end();
+}
+
+// Basic engine functions
+void routine_on_fade(void (*function)(Routine*)){
+	onfade_function = function;
+	reset_routine(onfade_routine);
+}
+void start_fading() {
+	if (fade_timer)
+		return;
+	fade_timer = 1;
 }
 
 //Settings File

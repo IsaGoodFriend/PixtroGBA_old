@@ -29,23 +29,20 @@ void init() {
 	set_foreground_count(1);
 	finalize_layers();
 	
-	load_header((unsigned char*)LVL_test);
-	load_midground(0);
-	//load_entities();
-	
 	custom_update = &on_update;
 
 	LOAD_BG(sample_ase, 1);
 	LOAD_ENTITY(character, 0);
 	LOAD_TILESET(all);
-	
-	cam_x = 120 + 16;
-	reset_cam();
 
 	load_bg_pal(PAL_test, 0);
 	load_obj_pal(PAL_character, 0);
 	load_sprite(SPR_char_idle, 0, SPRITE32x32);
-
+	
+	load_levels(PACK_test, 0);
+	
+	move_to_level(0, 0);
+	reset_cam();
 }
 
 // Run the first time the game is initialized.  Mainly used for setting default settings

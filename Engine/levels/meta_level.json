@@ -6,6 +6,7 @@
 		"TilesetCollision" : {
 			"TILE_test" : 1
 		},
+		
 		"EntityIndex" : {
 			"char" : 0
 		},

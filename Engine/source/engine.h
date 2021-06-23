@@ -16,9 +16,6 @@
 // The max amount of entities in the game at one time
 #define ENTITY_LIMIT 		16
 
-void init();
-void init_settings();
-
-void char_init(unsigned int* actor_index, unsigned char* data);
-void char_update(int index);
-void char_render(int index);
+#define RNG_SEED_1          0xFA12B4
+#define RNG_SEED_2          0x2B5C72
+#define RNG_SEED_3          0x14F4D2

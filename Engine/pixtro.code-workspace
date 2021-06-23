@@ -18,7 +18,11 @@
 			"*.gba": true
 		},
 		"files.associations": {
-			"type_traits": "cpp"
+			"type_traits": "cpp",
+			"xtr1common": "cpp",
+			"utility": "cpp",
+			"typeinfo": "cpp",
+			"xutility": "c"
 		}
 	}
 }

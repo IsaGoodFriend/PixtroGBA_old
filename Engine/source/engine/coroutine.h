@@ -10,8 +10,7 @@
 // =================
 
 // Holds the state of a Coroutine
-typedef struct Routine
-{
+typedef struct {
 	// Current "waiting time" before we run the next block
 	int wait_for;
 
@@ -21,16 +20,15 @@ typedef struct Routine
 	// Current block of the routine
 	int at;
 } Routine;
+typedef struct {
+	void (*function)(Routine*);
+} RoutineFunction;
 
 
-// hashing function used for labels
-// unsigned int rt_hash(const char* name) 
-// {
-// 	unsigned int hash = 5381;
-// 	for (int i = 0; name[i] != '\0'; i++)
-// 		hash = ((hash << 5) + hash) + name[i];
-// 	return hash;
-// }
+#define reset_routine(routine)	\
+	routine.at = 0;				\
+	routine.repeat_for = 0;		\
+	routine.wait_for = 0;
 
 
 // Control Statements:
@@ -59,17 +57,21 @@ typedef struct Routine
         case __LINE__: {						\
 
 // Same as `rt_step` but can be jumped
-// to by using rt_goto(name)
-#define rt_label(name)							\
-            if (__mn) __rt->at = rt_hash(name);	\
+// to by using rt_goto(value)
+// Can be any positive 1-4 digit hex number.  Labels of different digit lengths will be considered unique
+#define rt_label(value)							\
+            if (__mn) {							\
+				__rt->at = 0x4000##value;		\
+			goto rt_label_##value; }			\
             } break;							\
-        case rt_hash(name): {					\
+        case 0x4000##value: {					\
+			rt_label_##value:
 
 // Repeats the following block for the given amount of frames
 #define rt_for(time)							\
         rt_step();								\
         if (__rt->repeat_for < time)    {		\
-            __rt->repeat_for++;		\
+            __rt->repeat_for++;					\
             __mn = 0;							\
         }										\
         else __rt->repeat_for = 0;				\
@@ -103,10 +105,17 @@ typedef struct Routine
         goto rt_end_of_routine					\
 
 // Goes to a given block labeled with `rt_label`
-#define rt_goto(name)							\
+#define rt_goto(value)							\
         do {									\
-            __rt->at = rt_hash(name);			\
+            __rt->at = 0x4000##value;			\
             goto rt_end_of_routine;				\
+        } while(0)								\
+
+// Goes to a given block labeled with `rt_label`
+#define rt_goto_now(value)						\
+        do {									\
+            __rt->at = 0x4000##value;			\
+            goto rt_label_##value;				\
         } while(0)								\
 
 // Restarts the entire Coroutine;

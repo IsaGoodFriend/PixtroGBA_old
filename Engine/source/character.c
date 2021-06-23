@@ -39,13 +39,10 @@ void roll_end(int, int);
 int normal_update(int);
 int roll_update(int);
 
-int character_init(unsigned int* actor_index, unsigned char* data) {
+int character_init(unsigned int actor_index, unsigned char* data, unsigned char* is_loading) {
 	
-	entities[*actor_index].ID |= ENT_ACTIVE_FLAG;
-	entities[*actor_index].width = CHAR_WIDTH;
-	entities[*actor_index].height = CHAR_HEIGHT;
-	
-	entities[*actor_index].flags[0] = 0;
+	entities[actor_index].width = CHAR_WIDTH;
+	entities[actor_index].height = CHAR_HEIGHT;
 	
 	init_statemachine(&char_machine, 2);
 	set_update(&char_machine, &normal_update, 0);
@@ -107,8 +104,6 @@ int normal_update(int index) {
 	else {
 		ent->vel_y = FIXED_APPROACH(ent->vel_y, MAX_FALL, GRAVITY);
 	}
-	
-	
 	
 	if (HAS_FLAG(GROUND, ent->flags[0])) {
 		if (KEY_DOWN_NOW(KEY_R) && INT_ABS(ent->vel_x) > 0x200) {

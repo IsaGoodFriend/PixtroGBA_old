@@ -3,13 +3,13 @@
 layer
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 MM                            MMMM
 MM                            MMMM
-M                             MMMM
-MMMMMMMMMMMMMMMMMM            MMMM
-MMMMMMMMMMMMMMMMMM            MMMM
-MMMMMMMMMMMMMMMMMM            MMMM
-MMMMMMMMMMMMMMMMMM            MMMM
+MM                            MMMM
+MM                            MMMM
+MM                            MMMM
+MM                            MMMM
 MM                            MMMM
 MM                            MMMM
 MM                            MMMM
@@ -18,9 +18,9 @@ MM                            MMMM
 MM                         MMMMMMM
 MM                         MMMMMMM
 MM                      MMMMMMMMMM
-MM          MMMMMMM     MMMMMMMMMM
-MM          MMMMMMMMM   MMMMMMMMMM
 MM                      MMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM

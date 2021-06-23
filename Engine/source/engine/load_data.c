@@ -35,127 +35,85 @@
 #define LEVEL_REGION_A		 (unsigned short*)0x02020000
 #define LEVEL_REGION_B		 (unsigned short*)0x02030000
 
+// the char array in rom of the current level being loaded
 unsigned char *lvl_info;
+// the short array where the level is currently loaded to in ram
+unsigned short *level_toload;
+// the start of the current level
+extern unsigned short *tileset_data;
+unsigned int unloaded_entities[64];
+int unload_index;
+
+int level_loading;
 
 extern int lvl_width, lvl_height;
-extern unsigned short *tileset_data;
 
 extern int cam_x, cam_y, prev_cam_x, prev_cam_y;
 
-extern char level_meta[256];
+extern char level_meta[128];
 
-void set_level_region(char region_b) {
-	tileset_data = region_b ? LEVEL_REGION_B : LEVEL_REGION_A;
+void set_loading_region(char region_b) {
+	level_toload = region_b ? LEVEL_REGION_B : LEVEL_REGION_A;
+}
+void set_entities_location() {
+	unsigned int *level_ptr = (unsigned int*)level_toload;
+	*level_ptr = lvl_info;
+	level_ptr += 1;
+	
+	level_toload = level_ptr;
 }
 
-void load_collision(unsigned char *level_start){
-	
-	load_header(level_start);
-	
-	unsigned int count = (lvl_info[0]);
-	unsigned int value = (lvl_info[1]);
-	
-	lvl_info += 2;
-	
-	unsigned char* cpyColl = tileset_data;
-	
-	int indexX, indexY;
-	
-	// decompress file data
-	// --- COLLISION ---
-	int r1 = (1 * lvl_width) - lvl_width;
-	unsigned int countT;
-	
-	for (indexY = 0; indexY < lvl_height; ++indexY){// by row
-		countT = (count > lvl_width) ? lvl_width : count; // get the mem set count value.  if larger than the width
-		
-		for (indexX = 0; indexX < lvl_width;)
-		{
-			memset(cpyColl, value, countT);
-			count -= countT;
-			indexX += countT;
-			cpyColl += countT;
-			
-			if (indexX < lvl_width)
-			{
-				count = lvl_info[0];
-				
-				countT = (count > (lvl_width - indexX)) ? (lvl_width - indexX) : count;	
-				
-				value = lvl_info[1];
-				lvl_info += 2;
-			}
-		}
-		cpyColl += r1;
-	}
-}
-void load_midgrounds(int index) {
-	
-	int indexX, indexY;
-	unsigned int count = lvl_info[0], countT;
-	unsigned int value = (lvl_info[2] << 8) | lvl_info[1];
-	
-	lvl_info += 3;
-	
-	unsigned short* cpyColl = &tileset_data[0x2000 * index];
-	
-	for (indexY = 0; indexY < lvl_height; ++indexY){// by row
-		countT = (count > lvl_width) ? lvl_width : count; // get the mem set count value.  if larger than the width
-		
-		for (indexX = 0; indexX < lvl_width;) {
-			int a = countT;
-			while (--a >= 0)
-				cpyColl[a] = value;
-			
-			count -= countT;
-			indexX += countT;
-			cpyColl += countT;
-			
-			if (indexX < lvl_width)
-			{
-				count = lvl_info[0];
-				
-				countT = (count > (lvl_width - indexX)) ? (lvl_width - indexX) : count;	
-				
-				value = lvl_info[2] << 8;
-				value |= lvl_info[1];
-				
-				lvl_info += 3;
-			}
-		}
-	}
-}
 void load_entities() {
+	lvl_info = tileset_data;
+	lvl_info += 4;
+	
+	int index;
+	for (index = 0; index < 128; ++index) {
+		level_meta[index] = 0;
+	}
+	
+	index = *lvl_info;
+	
+	while (index >= 128) {
+		level_meta[index] = lvl_info[1];
+		index = lvl_info[2];
+		
+		lvl_info += 2;
+	}
+	
+	lvl_info += lvl_width * lvl_height * 2;
 	
 	max_entities = 0;
 	
 	// unload entities
-	{
-		int index = 0;
-		for (; index < ENTITY_LIMIT; ++index){
+	for (; index < ENTITY_LIMIT; ++index){
+		
+		if (ENT_FLAG(PERSISTENT, index))
+		{
+			entities[max_entities] = entities[index];
 			
-			if (ENT_FLAG(PERSISTENT, index))
-			{
-				entities[max_entities] = entities[index];
-				
-				++max_entities;
-			}
-			else{
-				entities[index].flags[0] = 0;
-				entities[index].flags[1] = 0;
-			}
-			
+			++max_entities;
+		}
+		else{
+			entities[index].flags[0] = 0;
+			entities[index].flags[1] = 0;
+			entities[index].flags[2] = 0;
+			entities[index].flags[3] = 0;
 		}
 	}
 	
+	while (lvl_info[3] != 0x08)
+		lvl_info--;
+	
+	lvl_info = *((unsigned int**)lvl_info);
+	
 	// load entities
-	unsigned char type;
+	int type;
 	type = lvl_info[0];
 	lvl_info += 1;
 	
 	while (type != 255) {
-		unsigned char
-			x = lvl_info[0],
+		int x = lvl_info[0],
 			y = lvl_info[1];
 		
 		lvl_info += 2;
@@ -165,15 +123,23 @@ void load_entities() {
 		
 		entities[max_entities].x = BLOCK2FIXED(x);
 		entities[max_entities].y = BLOCK2FIXED(y);
-		entities[max_entities].ID = type | ENT_VISIBLE_FLAG;
+		entities[max_entities].ID = type | (level_loading << 8);
+		entities[max_entities].flags[4] = ENT_VISIBLE_FLAG | ENT_ACTIVE_FLAG;
+		
+		char is_loading = 1;
+		
+		int i;
+		for (i = 0; i < 64; ++i){
+			
+		}
 		
 		if (entity_inits[type])
-			lvl_info += entity_inits[type](&max_entities, lvl_info);
+			lvl_info += entity_inits[type](max_entities, lvl_info, &is_loading);
 		
-		++max_entities;
+		if (is_loading)
+			++max_entities;
 		
 		type = lvl_info[0];
-		
 		lvl_info += 1;
 	} 
 }
