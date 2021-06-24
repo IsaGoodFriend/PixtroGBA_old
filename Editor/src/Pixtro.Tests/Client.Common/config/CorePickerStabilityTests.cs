@@ -6,7 +6,7 @@ using Pixtro.Emulation.Cores;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace BizHawk.Tests.Client.Common.config
+namespace Pixtro.Tests.Client.Common.config
 {
 	[TestClass]
 	public sealed class CorePickerStabilityTests

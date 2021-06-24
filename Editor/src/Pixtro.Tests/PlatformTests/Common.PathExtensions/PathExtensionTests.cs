@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using PE = Pixtro.Common.PathExtensions.PathExtensions;
 
-namespace BizHawk.Tests.Common.PathExtensions
+namespace Pixtro.Tests.Common.PathExtensions
 {
 	[TestClass]
 	public class PathExtensionTests

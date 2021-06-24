@@ -4,7 +4,7 @@ using Pixtro.Client.Common;
 using Pixtro.Common;
 using Pixtro.Emulation.Common;
 
-namespace BizHawk.Tests.Client.Common.Display
+namespace Pixtro.Tests.Client.Common.Display
 {
 	[TestClass]
 	public class InputDisplayTests

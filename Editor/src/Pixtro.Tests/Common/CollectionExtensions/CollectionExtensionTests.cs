@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using CE = Pixtro.Common.CollectionExtensions.CollectionExtensions;
 
-namespace BizHawk.Tests.Common.CollectionExtensions
+namespace Pixtro.Tests.Common.CollectionExtensions
 {
 	[TestClass]
 	public class CollectionExtensionTests

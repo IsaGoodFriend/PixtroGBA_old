@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework><!-- some NuGet packages aren't for Standard, and are only loaded at runtime because EmuHawk is still Framework. More work will be required to move to Core. -->
+	</PropertyGroup>
+	<Import Project="../MainSlnCommon.props" />
+	<PropertyGroup>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Nullable>disable</Nullable>
+	</PropertyGroup>
+	<ItemGroup>
+		<Reference Include="NLua, Version=1.3.2.0, Culture=neutral, processorArchitecture=MSIL" SpecificVersion="false" HintPath="$(ProjectDir)../../Assets/dll/nlua/NLua.dll" Private="false" /><!-- don't copy, will be copied with Assets -->
+		<Reference Include="System.Data.SQLite, Version=1.0.105.2, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=AMD64" SpecificVersion="False" HintPath="$(ProjectDir)../../References/x64/SQLite/System.Data.SQLite.dll" Private="true" />
+		<PackageReference Include="SharpCompress" Version="0.28.3" />
+		<ProjectReference Include="$(ProjectDir)../Pixtro.Emulation.Cores/Pixtro.Emulation.Cores.csproj" />
+		<ProjectReference Include="$(ProjectDir)../Pixtro.Emuware.BizwareGL/Pixtro.Emuware.BizwareGL.csproj" />
+		<EmbeddedResource Include="Resources/**/*" />
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Update="movie/bk2/Bk2Movie.HeaderApi.cs" DependentUpon="Bk2Movie.cs" />
+		<Compile Update="movie/bk2/Bk2Movie.InputLog.cs" DependentUpon="Bk2Movie.cs" />
+		<Compile Update="movie/bk2/Bk2Movie.IO.cs" DependentUpon="Bk2Movie.cs" />
+		<Compile Update="movie/bk2/Bk2Movie.ModeApi.cs" DependentUpon="Bk2Movie.cs" />
+		<Compile Update="movie/tasproj/TasMovie.Editing.cs" DependentUpon="TasMovie.cs" />
+		<Compile Update="movie/tasproj/TasMovie.IO.cs" DependentUpon="TasMovie.cs" />
+	</ItemGroup>
+</Project>

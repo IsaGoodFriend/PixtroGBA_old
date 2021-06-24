@@ -8,7 +8,7 @@ using Pixtro.Common.IOExtensions;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace BizHawk.Tests.Client.Common.Dearchive
+namespace Pixtro.Tests.Client.Common.Dearchive
 {
 	[TestClass]
 	public class DearchivalTests

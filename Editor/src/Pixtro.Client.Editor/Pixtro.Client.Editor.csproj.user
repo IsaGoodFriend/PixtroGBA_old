@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup />
+  <ItemGroup>
+    <Compile Update="AVOut\FFmpegDownloaderForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="AVOut\FFmpegWriterForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="config\ControllerConfig\FeedbackBindControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="config\ControllerConfig\FeedbacksBindPanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="CoreFeatureAnalysis.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="FormBase.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GraphicsImplementations\RetainedGraphicsControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="LogWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.Events.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.FileLoader.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.Hotkey.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.Movie.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\CDL.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\Cheats\Cheats.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\Debugger\GenericDebugger.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\Debugger\GenericDebugger.Disassembler.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\Debugger\GenericDebugger.IControlMainform.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\Debugger\GenericDebugger.IToolForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\GameShark.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\GBA\GBAGPUView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\HexEditor\HexEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\Lua\LuaConsole.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\MultiDiskBundler\MultiDiskBundler.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\ToolBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\ToolFormBase.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\TraceLogger.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\VirtualPads\VirtualpadsTool.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\Watch\RamSearch.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="tools\Watch\RamWatch.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

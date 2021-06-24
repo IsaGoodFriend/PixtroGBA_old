@@ -1,6 +1,6 @@
 // This file (VersionInfo.gen.cs) is auto-generated. Any edits will be overwritten before compilation.
 
-namespace BizHawk.Common
+namespace Pixtro.Common
 {
 	public static partial class VersionInfo
 	{

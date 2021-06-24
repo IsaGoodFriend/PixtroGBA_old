@@ -6,7 +6,7 @@ using Pixtro.Common;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace BizHawk.Tests.Common.MultiPredicateSort
+namespace Pixtro.Tests.Common.MultiPredicateSort
 {
 	[TestClass]
 	public class MultiPredicateSortTests

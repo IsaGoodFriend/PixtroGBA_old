@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup />
+  <ItemGroup>
+    <Compile Update="ButtonEx\ButtonExBase.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="ButtonEx\LocSzButtonEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="ButtonEx\SzButtonEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="CheckBoxEx\CheckBoxEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="CheckBoxEx\CheckBoxExBase.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\MarginlessFLPBase.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\RowsOrColsFLP\SzColumnsToRightFLP.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\RowsOrColsFLP\SzRowsToBottomFLP.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\SingleRowOrColFLP\LocSingleColumnFLP.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\SingleRowOrColFLP\LocSingleRowFLP.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\SingleRowOrColFLP\LocSzSingleColumnFLP.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\SingleRowOrColFLP\LocSzSingleRowFLP.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\SingleRowOrColFLP\SingleColumnFLP.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FLPs\SingleRowOrColFLP\SingleRowFLP.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="GroupBoxEx\GroupBoxExBase.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="GroupBoxEx\LocSzGroupBoxEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="GroupBoxEx\SzGroupBoxEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LabelEx\LabelEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LabelEx\LabelExBase.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LabelEx\LocLabelEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LabelEx\LocSzLabelEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LabelEx\SzLabelEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LinkLabelEx\LinkLabelExBase.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LinkLabelEx\LocLinkLabelEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MenuEx\MenuItemEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MenuEx\MenuStripEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MenuEx\StatusLabelEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MenuEx\StatusStripEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MenuEx\ToolStripEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="NUDEx\SzNUDEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="RadioButtonEx\RadioButtonEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="RadioButtonEx\RadioButtonExBase.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="RadioButtonEx\SzRadioButtonEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="TabPageEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="TextBoxEx\SzTextBoxEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

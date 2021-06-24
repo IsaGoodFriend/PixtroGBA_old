@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+	</PropertyGroup>
+	<Import Project="../MainSlnCommon.props" />
+	<PropertyGroup>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Nullable>disable</Nullable>
+	</PropertyGroup>
+	<ItemGroup>
+		<Reference Include="SlimDX">
+		  <HintPath>..\..\References\x64\SlimDX.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Windows.Forms" />
+		<PackageReference Include="OpenTK" Version="3.3.1" PrivateAssets="all" NoWarn="NU1701" />
+		<ProjectReference Include="$(ProjectDir)../Pixtro.Emuware.OpenTK3/Pixtro.Emuware.OpenTK3.csproj" />
+	</ItemGroup>
+</Project>

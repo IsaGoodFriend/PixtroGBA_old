@@ -2,7 +2,7 @@ using Pixtro.Common;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace BizHawk.Tests
+namespace Pixtro.Tests
 {
 	public static class PlatformTestUtils
 	{

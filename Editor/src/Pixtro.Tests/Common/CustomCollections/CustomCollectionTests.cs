@@ -4,7 +4,7 @@ using Pixtro.Common;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace BizHawk.Tests.Common.CustomCollections
+namespace Pixtro.Tests.Common.CustomCollections
 {
 	[TestClass]
 	public class CustomCollectionTests

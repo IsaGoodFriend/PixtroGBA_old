@@ -4,7 +4,7 @@ using Pixtro.Common;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace BizHawk.Tests.Common
+namespace Pixtro.Tests.Common
 {
 	[TestClass]
 	public sealed class EndiannessUtilsTests

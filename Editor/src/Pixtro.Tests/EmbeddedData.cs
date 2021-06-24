@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 
-namespace BizHawk.Tests
+namespace Pixtro.Tests
 {
 	public static class EmbeddedData
 	{
@@ -10,7 +10,7 @@ namespace BizHawk.Tests
 
 		public static Stream GetStream(string group, string embedPath)
 		{
-			var fullPath = $"BizHawk.Tests.data.{group}.{embedPath}";
+			var fullPath = $"Pixtro.Tests.data.{group}.{embedPath}";
 			return Asm.GetManifestResourceStream(fullPath) ?? throw new InvalidOperationException($"Could not find the embedded resource {fullPath}");
 		}
 	}

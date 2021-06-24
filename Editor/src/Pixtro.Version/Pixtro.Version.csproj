@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+	</PropertyGroup>
+	<Import Project="../../Common.props" />
+	<PropertyGroup>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems><!-- no source files; VersionInfo.gen.cs is generated in Pixtro.Common -->
+		<NoWarn>$(NoWarn);CS2008</NoWarn>
+	</PropertyGroup>
+	<Target Name="PreBuild" AfterTargets="PreBuildEvent">
+		<Exec Condition=" '$(OS)' == 'Windows_NT' " Command="&quot;$(ProjectDir)..\..\Build\BizHawk.Build.Tool.exe&quot; GIT_REV --wc &quot;$(ProjectDir)..&quot; --template &quot;$(ProjectDir)VersionInfo.gen_template.cs&quot; --out &quot;$(ProjectDir)..\Pixtro.Common\VersionInfo.gen.cs&quot;" />
+		<Exec Condition=" '$(OS)' != 'Windows_NT' " Command="&quot;$(ProjectDir)../../Build/standin.sh&quot; &quot;$(ProjectDir)VersionInfo.gen_template.cs&quot; &quot;$(ProjectDir)..\Pixtro.Common\VersionInfo.gen.cs&quot;" />
+	</Target>
+	<ItemGroup>
+	  <Compile Include="VersionInfo.gen_template.cs" />
+	</ItemGroup>
+</Project>

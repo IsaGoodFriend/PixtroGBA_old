@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Pixtro.Common.StringExtensions;
 
-namespace BizHawk.Tests.Common.StringExtensions
+namespace Pixtro.Tests.Common.StringExtensions
 {
 	[TestClass]
 	public class StringExtensionTests

@@ -12,17 +12,7 @@
 /Editor/test_output/**
 /Editor/ExternalProjects/**
 /Editor/ExternalToolProjects/**
-/Editor/LibretroBridge/**
-/Editor/Assets/dll/**
-/Editor/Build/**
-/Editor/Dist/**
-/Editor/References/**
 
-/Editor/src/Pixtro.Invoke/**
-/Editor/src/Pixtro.Emuware.BizwareGL/**
-/Editor/src/Pixtro.Emuware.DirectX/**
-/Editor/src/Pixtro.Emuware.OpenTK3/**
-/Editor/src/Pixtro.Common/images/**
 
 **/Release/**
 **/Debug/**
@@ -44,19 +34,11 @@ todo.txt
 *.sln
 *.exe
 *.pdb
-*.csproj
-*.csproj.*
 *.wav
 *.mod
-*.dll
 *.pal
 *.ilk
 *.il
 *.tlog
 *.obj
 *.o
-*.gcda
-*.filters
-*.opendb
-*.props
-*.so

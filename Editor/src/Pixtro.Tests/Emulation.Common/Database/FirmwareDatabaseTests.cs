@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Pixtro.Common.StringExtensions;
 using Pixtro.Emulation.Common;
 
-namespace BizHawk.Tests.Emulation.Common
+namespace Pixtro.Tests.Emulation.Common
 {
 	[TestClass]
 	public class FirmwareDatabaseTests

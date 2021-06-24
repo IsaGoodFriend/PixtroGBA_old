@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Pixtro.Client.Common;
 using Pixtro.Client.Common.cheats;
 
-namespace BizHawk.Tests.Client.Common.cheats
+namespace Pixtro.Tests.Client.Common.cheats
 {
 	[TestClass]
 	public class CheatDecoderTests
