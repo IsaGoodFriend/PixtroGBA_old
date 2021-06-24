@@ -19,14 +19,10 @@ namespace Pixtro.Common
 		public static Stream EmbeddedResourceStream(string embedPath)
 		{
 			var fullPath = $"Pixtro.Common.{embedPath}";
-			string[] stuff = Asm.GetManifestResourceNames();
 
 			var value = Asm.GetManifestResourceStream(fullPath);
 
-			if (value == null)
-				throw new ArgumentException("resource at {fullPath} not found", nameof(embedPath));
-
-			return value;
+			return value ?? throw new ArgumentException("resource at {fullPath} not found", nameof(embedPath));
 			
 		}
 	}

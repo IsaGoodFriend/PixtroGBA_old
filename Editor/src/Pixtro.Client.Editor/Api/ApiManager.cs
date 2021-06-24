@@ -17,8 +17,24 @@ namespace Pixtro.Client.Editor
 		static ApiManager()
 		{
 			var list = new List<(Type, Type, ConstructorInfo, Type[])>();
-			foreach (var implType in Pixtro.Common.ReflectionCache.Types.Concat(Pixtro.Common.ReflectionCache.Types)
-				.Where(t => /*t.IsClass &&*/t.IsSealed)) // small optimisation; api impl. types are all sealed classes
+
+			var typeList = new List<Type>()
+			{
+				typeof(CommApi),
+				typeof(EmuClientApi),
+				typeof(EmulationApi),
+				typeof(GameInfoApi),
+				typeof(GuiApi),
+				typeof(InputApi),
+				typeof(JoypadApi),
+				typeof(MemoryApi),
+				typeof(MemoryEventsApi),
+				typeof(MemorySaveStateApi),
+				typeof(SaveStateApi),
+				typeof(SQLiteApi),
+			};
+
+			foreach (var implType in typeList.Where(t => /*t.IsClass &&*/t.IsSealed)) // small optimisation; api impl. types are all sealed classes
 			{
 				var interfaceType = implType.GetInterfaces().FirstOrDefault(t => typeof(IExternalApi).IsAssignableFrom(t) && t != typeof(IExternalApi));
 				if (interfaceType == null) continue; // if we couldn't determine what it's implementing, then it's not an api impl. type

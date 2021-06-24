@@ -12,10 +12,10 @@ namespace Pixtro.Emulation.Cores
 	/// </summary>
 	public class CoreInventory
 	{
-		private readonly Dictionary<string, List<Core>> _systems = new Dictionary<string, List<Core>>();
+		private readonly List<Core> _systems = new List<Core>();
 
 		/// <summary>keys are system IDs; values are core/ctor info for all that system's cores</summary>
-		public IReadOnlyDictionary<string, List<Core>> AllCores => _systems;
+		public List<Core> AllCores => _systems;
 
 		public readonly IReadOnlyCollection<Core> SystemsFlat;
 
@@ -147,53 +147,51 @@ namespace Pixtro.Emulation.Cores
 
 		public IEnumerable<Core> GetCores(string system)
 		{
-			_systems.TryGetValue(system, out var cores);
-			return cores ?? Enumerable.Empty<Core>();
+			return AllCores;
 		}
 
 		/// <summary>
 		/// create a core inventory, collecting all IEmulators from some assemblies
 		/// </summary>
-		public CoreInventory(IEnumerable<IEnumerable<Type>> assys)
+		public CoreInventory()
 		{
 			var systemsFlat = new Dictionary<Type, Core>();
 			void ProcessConstructor(Type type, CoreConstructorAttribute consAttr, CoreAttribute coreAttr, ConstructorInfo cons)
 			{
 				var core = new Core(type, consAttr, coreAttr, cons);
-				if (!_systems.TryGetValue(consAttr.System, out var ss))
-				{
-					ss = new List<Core>();
-					_systems.Add(consAttr.System, ss);
-				}
 
-				ss.Add(core);
+				_systems.Add(core);
+				
 				systemsFlat[type] = core;
 			}
-			foreach (var assy in assys)
+
+			var coreTypes = new Type[]{
+					typeof(Nintendo.GBA.MGBAHawk)
+				};
+
+			foreach (var typ in coreTypes)
 			{
-				foreach (var typ in assy)
+				if (!typ.IsAbstract && typ.GetInterfaces().Contains(typeof(IEmulator)))
 				{
-					if (!typ.IsAbstract && typ.GetInterfaces().Contains(typeof(IEmulator)))
+					var coreAttr = typ.GetCustomAttributes(typeof(CoreAttribute), false);
+					if (coreAttr.Length != 1)
+						throw new InvalidOperationException($"{nameof(IEmulator)} {typ} without {nameof(CoreAttribute)}s!");
+					var cons = typ.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+						.Where(c => c.GetCustomAttributes(typeof(CoreConstructorAttribute), false).Length > 0);
+					foreach(var con in cons)
 					{
-						var coreAttr = typ.GetCustomAttributes(typeof(CoreAttribute), false);
-						if (coreAttr.Length != 1)
-							throw new InvalidOperationException($"{nameof(IEmulator)} {typ} without {nameof(CoreAttribute)}s!");
-						var cons = typ.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-							.Where(c => c.GetCustomAttributes(typeof(CoreConstructorAttribute), false).Length > 0);
-						foreach(var con in cons)
+						foreach (var consAttr in con.GetCustomAttributes(typeof(CoreConstructorAttribute), false).Cast<CoreConstructorAttribute>())
 						{
-							foreach (var consAttr in con.GetCustomAttributes(typeof(CoreConstructorAttribute), false).Cast<CoreConstructorAttribute>())
-							{
-								ProcessConstructor(typ, consAttr, (CoreAttribute)coreAttr[0], con);
-							}
+							ProcessConstructor(typ, consAttr, (CoreAttribute)coreAttr[0], con);
 						}
 					}
 				}
 			}
+			
 			SystemsFlat = systemsFlat.Values;
 		}
 
-		public static readonly CoreInventory Instance = new CoreInventory(new[] { Pixtro.Common.ReflectionCache.Types });
+		public static readonly CoreInventory Instance = new CoreInventory();
 	}
 
 	public enum CorePriority
