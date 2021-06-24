@@ -1,0 +1,25 @@
+﻿using Pixtro.Emulation.Common;
+
+namespace Pixtro.Client.Editor
+{
+	public interface IVirtualPadControl
+	{
+		/// <summary>
+		/// Clears the pad and resets it to a logical default
+		/// </summary>
+		void Clear();
+
+		void UpdateValues();
+
+		/// <summary>
+		/// Sets the state of the control based on the given controller state
+		/// </summary>
+		/// <param name="controller">The controller state that the control will be set to</param>
+		void Set(IController controller);
+
+		/// <summary>
+		/// Gets or sets a value indicating whether or not the user can change the state of the control
+		/// </summary>
+		bool ReadOnly { get; set; }
+	}
+}
