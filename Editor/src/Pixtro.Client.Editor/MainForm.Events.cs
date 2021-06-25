@@ -13,6 +13,7 @@ using Pixtro.Client.Editor.ToolExtensions;
 using Pixtro.Common;
 using Pixtro.Emulation.Common;
 using Pixtro.WinForms.Controls;
+using Pixtro.Client.Editor.Projects;
 
 namespace Pixtro.Client.Editor
 {
@@ -20,12 +21,7 @@ namespace Pixtro.Client.Editor
 	{
 		private void FileSubMenu_DropDownOpened(object sender, EventArgs e)
 		{
-			SaveStateSubMenu.Enabled =
-				LoadStateSubMenu.Enabled =
-				SaveSlotSubMenu.Enabled =
-				Emulator.HasSavestates();
-
-			OpenRomMenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Open ROM"].Bindings;
+			OpenProjectMenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Open ROM"].Bindings;
 
 			var hasSaveRam = Emulator.HasSaveRam();
 			bool needBold = hasSaveRam && Emulator.AsSaveRam().SaveRamModified;
@@ -33,100 +29,36 @@ namespace Pixtro.Client.Editor
 			SaveRAMSubMenu.Enabled = hasSaveRam;
 			SaveRAMSubMenu.SetStyle(needBold ? FontStyle.Bold : FontStyle.Regular);
 
+			CloseProjectMenuItem.Enabled = Project != null;
+
+			NewProjectMenuItem.DropDownItems.Clear();
+			foreach (var temp in ProjectTemplate.Templates)
+			{
+				ToolStripMenuItem child;
+				NewProjectMenuItem.DropDownItems.Add(child = new ToolStripMenuItem { Enabled = true, Name = temp.Key, Text = temp.Value.meta.Name });
+
+				child.Click += CreateNewTemplate;
+			}
 		}
 
-		private void RecentRomMenuItem_DropDownOpened(object sender, EventArgs e)
+		private void CreateNewTemplate(object sender, EventArgs e)
 		{
-			RecentRomSubMenu.DropDownItems.Clear();
-			RecentRomSubMenu.DropDownItems.AddRange(Config.RecentRoms.RecentMenu(this, LoadRomFromRecent, "ROM", romLoading: true));
+			ToolStripMenuItem obj = sender as ToolStripMenuItem;
+
+			CreateProjectPath(ProjectTemplate.Templates[obj.Name]);
+		}
+
+		private void RecentProjectMenuItem_DropDownOpened(object sender, EventArgs e)
+		{
+			RecentProjectSubMenu.DropDownItems.Clear();
+			RecentProjectSubMenu.DropDownItems.AddRange(Config.RecentProjects.RecentMenu(this, LoadProjectFromRecent, "Projects", romLoading: true));
 		}
 
 		private bool HasSlot(int slot) => _stateSlots.HasSlot(Emulator, MovieSession.Movie, slot, SaveStatePrefix());
 
-		private void SaveStateSubMenu_DropDownOpened(object sender, EventArgs e)
+		private void ProjectSubMenu_DropDownOpened(object sender, EventArgs e)
 		{
-			void SetSlotFont(ToolStripMenuItemEx menu, int slot) => menu.SetStyle(
-				HasSlot(slot) ? (FontStyle.Italic | FontStyle.Bold) : FontStyle.Regular);
 
-			SetSlotFont(SaveState0MenuItem, 0);
-			SetSlotFont(SaveState1MenuItem, 1);
-			SetSlotFont(SaveState2MenuItem, 2);
-			SetSlotFont(SaveState3MenuItem, 3);
-			SetSlotFont(SaveState4MenuItem, 4);
-			SetSlotFont(SaveState5MenuItem, 5);
-			SetSlotFont(SaveState6MenuItem, 6);
-			SetSlotFont(SaveState7MenuItem, 7);
-			SetSlotFont(SaveState8MenuItem, 8);
-			SetSlotFont(SaveState9MenuItem, 9);
-
-			SaveState1MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 1"].Bindings;
-			SaveState2MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 2"].Bindings;
-			SaveState3MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 3"].Bindings;
-			SaveState4MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 4"].Bindings;
-			SaveState5MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 5"].Bindings;
-			SaveState6MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 6"].Bindings;
-			SaveState7MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 7"].Bindings;
-			SaveState8MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 8"].Bindings;
-			SaveState9MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 9"].Bindings;
-			SaveState0MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save State 0"].Bindings;
-			SaveNamedStateMenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Save Named State"].Bindings;
-		}
-
-		private void LoadStateSubMenu_DropDownOpened(object sender, EventArgs e)
-		{
-			LoadState1MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 1"].Bindings;
-			LoadState2MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 2"].Bindings;
-			LoadState3MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 3"].Bindings;
-			LoadState4MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 4"].Bindings;
-			LoadState5MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 5"].Bindings;
-			LoadState6MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 6"].Bindings;
-			LoadState7MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 7"].Bindings;
-			LoadState8MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 8"].Bindings;
-			LoadState9MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 9"].Bindings;
-			LoadState0MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load State 0"].Bindings;
-			LoadNamedStateMenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Load Named State"].Bindings;
-
-			AutoloadLastSlotMenuItem.Checked = Config.AutoLoadLastSaveSlot;
-
-			LoadState1MenuItem.Enabled = HasSlot(1);
-			LoadState2MenuItem.Enabled = HasSlot(2);
-			LoadState3MenuItem.Enabled = HasSlot(3);
-			LoadState4MenuItem.Enabled = HasSlot(4);
-			LoadState5MenuItem.Enabled = HasSlot(5);
-			LoadState6MenuItem.Enabled = HasSlot(6);
-			LoadState7MenuItem.Enabled = HasSlot(7);
-			LoadState8MenuItem.Enabled = HasSlot(8);
-			LoadState9MenuItem.Enabled = HasSlot(9);
-			LoadState0MenuItem.Enabled = HasSlot(0);
-		}
-
-		private void SaveSlotSubMenu_DropDownOpened(object sender, EventArgs e)
-		{
-			SelectSlot0MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 0"].Bindings;
-			SelectSlot1MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 1"].Bindings;
-			SelectSlot2MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 2"].Bindings;
-			SelectSlot3MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 3"].Bindings;
-			SelectSlot4MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 4"].Bindings;
-			SelectSlot5MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 5"].Bindings;
-			SelectSlot6MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 6"].Bindings;
-			SelectSlot7MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 7"].Bindings;
-			SelectSlot8MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 8"].Bindings;
-			SelectSlot9MenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Select State 9"].Bindings;
-			PreviousSlotMenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Previous Slot"].Bindings;
-			NextSlotMenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Next Slot"].Bindings;
-			SaveToCurrentSlotMenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Quick Save"].Bindings;
-			LoadCurrentSlotMenuItem.ShortcutKeyDisplayString = Config.HotkeyBindings["Quick Load"].Bindings;
-
-			SelectSlot0MenuItem.Checked = Config.SaveSlot == 0;
-			SelectSlot1MenuItem.Checked = Config.SaveSlot == 1;
-			SelectSlot2MenuItem.Checked = Config.SaveSlot == 2;
-			SelectSlot3MenuItem.Checked = Config.SaveSlot == 3;
-			SelectSlot4MenuItem.Checked = Config.SaveSlot == 4;
-			SelectSlot5MenuItem.Checked = Config.SaveSlot == 5;
-			SelectSlot6MenuItem.Checked = Config.SaveSlot == 6;
-			SelectSlot7MenuItem.Checked = Config.SaveSlot == 7;
-			SelectSlot8MenuItem.Checked = Config.SaveSlot == 8;
-			SelectSlot9MenuItem.Checked = Config.SaveSlot == 9;
 		}
 
 		private void SaveRamSubMenu_DropDownOpened(object sender, EventArgs e)
@@ -136,7 +68,31 @@ namespace Pixtro.Client.Editor
 
 		private void OpenRomMenuItem_Click(object sender, EventArgs e)
 		{
-			OpenRom();
+			OpenProject();
+		}
+		private void CloseProjectMenuItem_Click(object sender, EventArgs e)
+		{
+			CloseProject();
+		}
+
+		private void BuildProjectMenuItem_Click(object sender, EventArgs e)
+		{
+			BuildProject(false);
+		}
+
+		private void BuildReleaseMenuItem_Click(object sender, EventArgs e)
+		{
+			BuildProject(true);
+		}
+
+		private void RunProjectMenuItem_Click(object sender, EventArgs e)
+		{
+			RunProject();
+		}
+
+		private void BuildAndRunMenuItem_Click(object sender, EventArgs e)
+		{
+			BuildAndRun();
 		}
 
 		private void OpenAdvancedMenuItem_Click(object sender, EventArgs e)
@@ -205,82 +161,9 @@ namespace Pixtro.Client.Editor
 			Console.WriteLine($"Closing rom clicked DONE Frame: {Emulator.Frame} Emulator: {Emulator.GetType().Name}");
 		}
 
-		private void Savestate1MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave1");
-		private void Savestate2MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave2");
-		private void Savestate3MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave3");
-		private void Savestate4MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave4");
-		private void Savestate5MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave5");
-		private void Savestate6MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave6");
-		private void Savestate7MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave7");
-		private void Savestate8MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave8");
-		private void Savestate9MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave9");
-		private void Savestate0MenuItem_Click(object sender, EventArgs e) => SaveQuickSave("QuickSave0");
-
-		private void SaveNamedStateMenuItem_Click(object sender, EventArgs e) => SaveStateAs();
-
-		private void Loadstate1MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave1");
-		private void Loadstate2MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave2");
-		private void Loadstate3MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave3");
-		private void Loadstate4MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave4");
-		private void Loadstate5MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave5");
-		private void Loadstate6MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave6");
-		private void Loadstate7MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave7");
-		private void Loadstate8MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave8");
-		private void Loadstate9MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave9");
-		private void Loadstate0MenuItem_Click(object sender, EventArgs e) => LoadQuickSave("QuickSave0");
-
-		private void LoadNamedStateMenuItem_Click(object sender, EventArgs e) => LoadStateAs();
-
-		private void AutoloadLastSlotMenuItem_Click(object sender, EventArgs e)
-		{
-			Config.AutoLoadLastSaveSlot ^= true;
-		}
-
-		private void SelectSlotMenuItems_Click(object sender, EventArgs e)
-		{
-			if (sender == SelectSlot0MenuItem) Config.SaveSlot = 0;
-			else if (sender == SelectSlot1MenuItem) Config.SaveSlot = 1;
-			else if (sender == SelectSlot2MenuItem) Config.SaveSlot = 2;
-			else if (sender == SelectSlot3MenuItem) Config.SaveSlot = 3;
-			else if (sender == SelectSlot4MenuItem) Config.SaveSlot = 4;
-			else if (sender == SelectSlot5MenuItem) Config.SaveSlot = 5;
-			else if (sender == SelectSlot6MenuItem) Config.SaveSlot = 6;
-			else if (sender == SelectSlot7MenuItem) Config.SaveSlot = 7;
-			else if (sender == SelectSlot8MenuItem) Config.SaveSlot = 8;
-			else if (sender == SelectSlot9MenuItem) Config.SaveSlot = 9;
-
-			UpdateStatusSlots();
-			SaveSlotSelectedMessage();
-		}
-
-		private void PreviousSlotMenuItem_Click(object sender, EventArgs e)
-		{
-			PreviousSlot();
-		}
-
-		private void NextSlotMenuItem_Click(object sender, EventArgs e)
-		{
-			NextSlot();
-		}
-
-		private void SaveToCurrentSlotMenuItem_Click(object sender, EventArgs e)
-		{
-			SaveQuickSave($"QuickSave{Config.SaveSlot}");
-		}
-
-		private void LoadCurrentSlotMenuItem_Click(object sender, EventArgs e)
-		{
-			LoadQuickSave($"QuickSave{Config.SaveSlot}");
-		}
-
 		private void FlushSaveRAMMenuItem_Click(object sender, EventArgs e)
 		{
 			FlushSaveRAM();
-		}
-
-		private void ReadonlyMenuItem_Click(object sender, EventArgs e)
-		{
-			ToggleReadOnly();
 		}
 
 		private void RecordMovieMenuItem_Click(object sender, EventArgs e)
@@ -540,49 +423,6 @@ namespace Pixtro.Client.Editor
 			DisplayLagCounterMenuItem.Enabled = Emulator.CanPollInput();
 
 			DisplayMessagesMenuItem.Checked = Config.DisplayMessages;
-		}
-
-		private void WindowSizeSubMenu_DropDownOpened(object sender, EventArgs e)
-		{
-			x1MenuItem.Checked =
-				x2MenuItem.Checked =
-				x3MenuItem.Checked =
-				x4MenuItem.Checked =
-				x5MenuItem.Checked = false;
-
-			switch (Config.TargetZoomFactors[Emulator.SystemId])
-			{
-				case 1:
-					x1MenuItem.Checked = true;
-					break;
-				case 2:
-					x2MenuItem.Checked = true;
-					break;
-				case 3:
-					x3MenuItem.Checked = true;
-					break;
-				case 4:
-					x4MenuItem.Checked = true;
-					break;
-				case 5:
-					x5MenuItem.Checked = true;
-					break;
-				case 10:
-					mzMenuItem.Checked = true;
-					break;
-			}
-		}
-
-		private void WindowSize_Click(object sender, EventArgs e)
-		{
-			if (sender == x1MenuItem) Config.TargetZoomFactors[Emulator.SystemId] = 1;
-			if (sender == x2MenuItem) Config.TargetZoomFactors[Emulator.SystemId] = 2;
-			if (sender == x3MenuItem) Config.TargetZoomFactors[Emulator.SystemId] = 3;
-			if (sender == x4MenuItem) Config.TargetZoomFactors[Emulator.SystemId] = 4;
-			if (sender == x5MenuItem) Config.TargetZoomFactors[Emulator.SystemId] = 5;
-			if (sender == mzMenuItem) Config.TargetZoomFactors[Emulator.SystemId] = 10;
-
-			FrameBufferResized();
 		}
 
 		private void SwitchToFullscreenMenuItem_Click(object sender, EventArgs e)
@@ -1242,7 +1082,7 @@ namespace Pixtro.Client.Editor
 
 			ContextSeparator_AfterROM.Visible = OpenRomContextMenuItem.Visible || LoadLastRomContextMenuItem.Visible;
 
-			LoadLastRomContextMenuItem.Enabled = !Config.RecentRoms.Empty;
+			LoadLastRomContextMenuItem.Enabled = !Config.RecentProjects.Empty;
 			LoadLastMovieContextMenuItem.Enabled = !Config.RecentMovies.Empty;
 
 			if (movieIsActive)
@@ -1310,7 +1150,7 @@ namespace Pixtro.Client.Editor
 
 		private void LoadLastRomContextMenuItem_Click(object sender, EventArgs e)
 		{
-			LoadRomFromRecent(Config.RecentRoms.MostRecent);
+			//LoadRomFromRecent(Config.RecentRoms.MostRecent);
 		}
 
 		private void LoadLastMovieContextMenuItem_Click(object sender, EventArgs e)
@@ -1363,33 +1203,6 @@ namespace Pixtro.Client.Editor
 			{
 				Tools.Load<LogWindow>();
 				((LogWindow) Tools.Get<LogWindow>()).ShowReport("Dump Status Report", details);
-			}
-		}
-
-		private void SlotStatusButtons_MouseUp(object sender, MouseEventArgs e)
-		{
-			int slot = 0;
-			if (sender == Slot1StatusButton) slot = 1;
-			if (sender == Slot2StatusButton) slot = 2;
-			if (sender == Slot3StatusButton) slot = 3;
-			if (sender == Slot4StatusButton) slot = 4;
-			if (sender == Slot5StatusButton) slot = 5;
-			if (sender == Slot6StatusButton) slot = 6;
-			if (sender == Slot7StatusButton) slot = 7;
-			if (sender == Slot8StatusButton) slot = 8;
-			if (sender == Slot9StatusButton) slot = 9;
-			if (sender == Slot0StatusButton) slot = 0;
-
-			if (e.Button == MouseButtons.Left)
-			{
-				if (HasSlot(slot))
-				{
-					LoadQuickSave($"QuickSave{slot}");
-				}
-			}
-			else if (e.Button == MouseButtons.Right)
-			{
-				SaveQuickSave($"QuickSave{slot}");
 			}
 		}
 

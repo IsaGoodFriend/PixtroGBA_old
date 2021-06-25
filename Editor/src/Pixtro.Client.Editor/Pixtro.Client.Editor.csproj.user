@@ -20,6 +20,9 @@
     <Compile Update="FormBase.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="GraphicsImplementations\GraphicsControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Update="GraphicsImplementations\RetainedGraphicsControl.cs">
       <SubType>UserControl</SubType>
     </Compile>

@@ -13,17 +13,28 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="System.Net.Http" Version="4.3.4" />
-		<Reference Include="System.Windows.Forms" />
-		<Reference Include="System.IO.Compression" />
+		<Reference Include="System.Windows.Forms">
+		  <Private>false</Private>
+		</Reference>
+		<Reference Include="System.IO.Compression">
+		  <Private>false</Private>
+		</Reference>
 	</ItemGroup>
 	<ItemGroup>
-		<Reference Include="GongShell" HintPath="$(ProjectDir)../../References/GongShell.dll" Private="true" />
+		<Reference Include="GongShell" HintPath="$(ProjectDir)../../References/GongShell.dll" Private="false" />
 		<Reference Include="NLua, Version=1.3.2.0, Culture=neutral, processorArchitecture=MSIL" SpecificVersion="false" HintPath="$(ProjectDir)../../Assets/dll/nlua/NLua.dll" Private="false" /><!-- don't copy, will be copied with Assets -->
-		<Reference Include="PcxFileTypePlugin.HawkQuantizer" HintPath="$(ProjectDir)../../References/PcxFileTypePlugin.HawkQuantizer.dll" Private="true" />
+		<Reference Include="PcxFileTypePlugin.HawkQuantizer" HintPath="$(ProjectDir)../../References/PcxFileTypePlugin.HawkQuantizer.dll" Private="false" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="$(ProjectDir)../Pixtro.Emuware.DirectX/Pixtro.Emuware.DirectX.csproj" />
-		<ProjectReference Include="$(ProjectDir)../Pixtro.WinForms.Controls/Pixtro.WinForms.Controls.csproj" />
+		<ProjectReference Include="$(ProjectDir)../Pixtro.Emuware.DirectX/Pixtro.Emuware.DirectX.csproj">
+		  <Private></Private>
+		</ProjectReference>
+		<ProjectReference Include="$(ProjectDir)../Pixtro.WinForms.Controls/Pixtro.WinForms.Controls.csproj">
+		  <Private></Private>
+		</ProjectReference>
+		<ProjectReference Include="..\Pixtro.Compiler\Pixtro.Compiler.csproj">
+		  <Private></Private>
+		</ProjectReference>
 		<Compile Include="$(ProjectDir)../Pixtro.Common/OSTailoredCode.cs" />
 		<Compile Remove="Properties/Settings.Designer.cs" />
 		<EmbeddedResource Include="images/**/*" />
@@ -253,7 +264,7 @@
 		<Compile Update="CustomControls/ViewportPanel.cs" SubType="Component" />
 		<Compile Update="GraphicsImplementations/GLControlWrapper_GdiPlus.cs" SubType="Component" />
 		<Compile Update="GraphicsImplementations/GLControlWrapper_SlimDX9.cs" SubType="Component" />
-		<Compile Update="GraphicsImplementations/GraphicsControl.cs" SubType="UserControl" />
+		<Compile Update="GraphicsImplementations/GraphicsControl.cs" />
 		<Compile Update="GraphicsImplementations/GraphicsControl_TK.cs" SubType="UserControl" />
 		<Compile Update="GraphicsImplementations/RetainedGraphicsControl.cs" />
 		<Compile Update="LogWindow.cs" />
@@ -504,4 +515,57 @@
 		<Compile Update="tools/Watch/WatchValueBox.cs" SubType="Component" />
 		<Compile Update="UpdateChecker.cs" SubType="Code" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="mscorlib">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System.Core">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System.Data">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System.Drawing">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System.IO.Compression.FileSystem">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System.Numerics">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System.Runtime.Serialization">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System.Xml">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Update="System.Xml.Linq">
+	    <Private>false</Private>
+	  </Reference>
+	</ItemGroup>
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+	  <Exec Command="xcopy &quot;$(ProjectDir)..\..\..\Engine\source\engine\&quot; &quot;$(TargetDir)engineSource\&quot; /D /s /y&#xD;&#xA;xcopy &quot;$(ProjectDir)..\..\Assets\templates&quot; &quot;$(TargetDir)templates\&quot; /D /e /y&#xD;&#xA;xcopy &quot;$(ProjectDir)..\..\Assets\Makefile.txt&quot; &quot;$(TargetDir)&quot; /D /y&#xD;&#xA;for /r &quot;$(TargetDir)templates\&quot; %25%25f in (&quot;*.gitempty&quot;) do del %25%25f&#xD;&#xA;" />
+	</Target>
 </Project>

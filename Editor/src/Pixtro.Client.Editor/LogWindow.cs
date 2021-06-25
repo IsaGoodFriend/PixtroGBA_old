@@ -188,7 +188,6 @@ namespace Pixtro.Client.Editor
 				var gameDbEntry = Emulator.AsGameDBEntryGenerator().GenerateGameDbEntry();
 				gameDbEntry.Status = picker.PickedStatus;
 				Database.SaveDatabaseEntry(Path.Combine(PathUtils.ExeDirectoryPath, "gamedb", "gamedb_user.txt"), gameDbEntry);
-				MainForm.UpdateDumpInfo(gameDbEntry.Status);
 				HideShowGameDbButton();
 			}
 		}

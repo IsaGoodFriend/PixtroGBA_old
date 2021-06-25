@@ -21,54 +21,13 @@ namespace Pixtro.Client.Editor
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
 			this.MainformMenu = new Pixtro.WinForms.Controls.MenuStripEx();
 			this.FileSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.OpenRomMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.RecentRomSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
+			this.NewProjectMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.projectTemplatesWillGoHereToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.OpenProjectMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
+			this.CloseProjectMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.RecentProjectSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.toolStripSeparator3 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
 			this.toolStripMenuItem1 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
-			this.SaveStateSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState1MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState2MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState3MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState4MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState5MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState6MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState7MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState8MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState9MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveState0MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.toolStripSeparator6 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
-			this.SaveNamedStateMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadStateSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState1MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState2MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState3MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState4MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState5MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState6MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState7MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState8MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState9MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadState0MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.toolStripSeparator7 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
-			this.LoadNamedStateMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.toolStripSeparator21 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
-			this.AutoloadLastSlotMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveSlotSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot0MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot1MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot2MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot3MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot4MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot5MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot6MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot7MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot8MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SelectSlot9MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.PreviousSlotMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.NextSlotMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.toolStripSeparator5 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
-			this.SaveToCurrentSlotMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadCurrentSlotMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.SaveRAMSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.FlushSaveRAMMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.toolStripMenuItem2 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
@@ -81,14 +40,12 @@ namespace Pixtro.Client.Editor
 			this.HardResetMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.EmulatorMenuSeparator2 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
 			this.LoadedCoreNameMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
+			this.ProjectSubMenu = new System.Windows.Forms.ToolStripMenuItem();
+			this.BuildProjectMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.RunProjectMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.BuildAndRunMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.BuildReleaseMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.ViewSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.WindowSizeSubMenu = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.x1MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.x2MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.x3MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.x4MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.x5MenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.mzMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.SwitchToFullscreenMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.toolStripSeparator2 = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
 			this.DisplayFPSMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
@@ -171,29 +128,19 @@ namespace Pixtro.Client.Editor
 			this.AboutMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.A7800HawkCoreMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.MainStatusBar = new Pixtro.WinForms.Controls.StatusStripEx();
-			this.DumpStatusButton = new System.Windows.Forms.ToolStripDropDownButton();
+			this.AVIStatusLabel = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.EmuStatus = new Pixtro.WinForms.Controls.StatusLabelEx();
+			this.EditorLayoutSubmenu = new System.Windows.Forms.ToolStripDropDownButton();
+			this.baseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.PlayRecordStatusButton = new System.Windows.Forms.ToolStripDropDownButton();
 			this.PauseStatusButton = new System.Windows.Forms.ToolStripDropDownButton();
 			this.RebootStatusBarIcon = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.AVIStatusLabel = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.LedLightStatusLabel = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.SaveSlotsStatusLabel = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot1StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot2StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot3StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot4StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot5StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot6StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot7StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot8StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot9StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.Slot0StatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.CheatStatusButton = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.KeyPriorityStatusLabel = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.CoreNameStatusBarButton = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.ProfileFirstBootLabel = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.LinkConnectStatusBarButton = new Pixtro.WinForms.Controls.StatusLabelEx();
+			this.CoreNameStatusBarButton = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.UpdateNotification = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.MainFormContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
 			this.OpenRomContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
@@ -246,6 +193,7 @@ namespace Pixtro.Client.Editor
 			this.MainformMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.FileSubMenu,
             this.EmulationSubMenu,
+            this.ProjectSubMenu,
             this.ViewSubMenu,
             this.ConfigSubMenu,
             this.ToolsSubMenu,
@@ -259,273 +207,50 @@ namespace Pixtro.Client.Editor
 			// FileSubMenu
 			// 
 			this.FileSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.OpenRomMenuItem,
-            this.RecentRomSubMenu,
+            this.NewProjectMenuItem,
+            this.OpenProjectMenuItem,
+            this.CloseProjectMenuItem,
+            this.RecentProjectSubMenu,
             this.toolStripMenuItem1,
-            this.SaveStateSubMenu,
-            this.LoadStateSubMenu,
-            this.SaveSlotSubMenu,
             this.SaveRAMSubMenu,
             this.toolStripMenuItem2,
             this.ExitMenuItem});
 			this.FileSubMenu.Text = "&File";
 			this.FileSubMenu.DropDownOpened += new System.EventHandler(this.FileSubMenu_DropDownOpened);
 			// 
-			// OpenRomMenuItem
+			// NewProjectMenuItem
 			// 
-			this.OpenRomMenuItem.Text = "&Open Project";
-			this.OpenRomMenuItem.Click += new System.EventHandler(this.OpenRomMenuItem_Click);
+			this.NewProjectMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.projectTemplatesWillGoHereToolStripMenuItem});
+			this.NewProjectMenuItem.Name = "NewProjectMenuItem";
+			this.NewProjectMenuItem.Size = new System.Drawing.Size(150, 22);
+			this.NewProjectMenuItem.Text = "&New Project";
 			// 
-			// RecentRomSubMenu
+			// projectTemplatesWillGoHereToolStripMenuItem
 			// 
-			this.RecentRomSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+			this.projectTemplatesWillGoHereToolStripMenuItem.Enabled = false;
+			this.projectTemplatesWillGoHereToolStripMenuItem.Name = "projectTemplatesWillGoHereToolStripMenuItem";
+			this.projectTemplatesWillGoHereToolStripMenuItem.Size = new System.Drawing.Size(230, 22);
+			this.projectTemplatesWillGoHereToolStripMenuItem.Text = "Project templates will go here";
+			// 
+			// OpenProjectMenuItem
+			// 
+			this.OpenProjectMenuItem.Text = "&Open Project";
+			this.OpenProjectMenuItem.Click += new System.EventHandler(this.OpenRomMenuItem_Click);
+			// 
+			// CloseProjectMenuItem
+			// 
+			this.CloseProjectMenuItem.Name = "CloseProjectMenuItem";
+			this.CloseProjectMenuItem.Size = new System.Drawing.Size(150, 22);
+			this.CloseProjectMenuItem.Text = "&Close Project";
+			this.CloseProjectMenuItem.Click += new System.EventHandler(this.CloseProjectMenuItem_Click);
+			// 
+			// RecentProjectSubMenu
+			// 
+			this.RecentProjectSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripSeparator3});
-			this.RecentRomSubMenu.Text = "&Recent Project";
-			this.RecentRomSubMenu.DropDownOpened += new System.EventHandler(this.RecentRomMenuItem_DropDownOpened);
-			// 
-			// SaveStateSubMenu
-			// 
-			this.SaveStateSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.SaveState1MenuItem,
-            this.SaveState2MenuItem,
-            this.SaveState3MenuItem,
-            this.SaveState4MenuItem,
-            this.SaveState5MenuItem,
-            this.SaveState6MenuItem,
-            this.SaveState7MenuItem,
-            this.SaveState8MenuItem,
-            this.SaveState9MenuItem,
-            this.SaveState0MenuItem,
-            this.toolStripSeparator6,
-            this.SaveNamedStateMenuItem});
-			this.SaveStateSubMenu.Text = "&Save State";
-			this.SaveStateSubMenu.DropDownOpened += new System.EventHandler(this.SaveStateSubMenu_DropDownOpened);
-			// 
-			// SaveState1MenuItem
-			// 
-			this.SaveState1MenuItem.Text = "1";
-			this.SaveState1MenuItem.Click += new System.EventHandler(this.Savestate1MenuItem_Click);
-			// 
-			// SaveState2MenuItem
-			// 
-			this.SaveState2MenuItem.Text = "2";
-			this.SaveState2MenuItem.Click += new System.EventHandler(this.Savestate2MenuItem_Click);
-			// 
-			// SaveState3MenuItem
-			// 
-			this.SaveState3MenuItem.Text = "3";
-			this.SaveState3MenuItem.Click += new System.EventHandler(this.Savestate3MenuItem_Click);
-			// 
-			// SaveState4MenuItem
-			// 
-			this.SaveState4MenuItem.Text = "4";
-			this.SaveState4MenuItem.Click += new System.EventHandler(this.Savestate4MenuItem_Click);
-			// 
-			// SaveState5MenuItem
-			// 
-			this.SaveState5MenuItem.Text = "5";
-			this.SaveState5MenuItem.Click += new System.EventHandler(this.Savestate5MenuItem_Click);
-			// 
-			// SaveState6MenuItem
-			// 
-			this.SaveState6MenuItem.Text = "6";
-			this.SaveState6MenuItem.Click += new System.EventHandler(this.Savestate6MenuItem_Click);
-			// 
-			// SaveState7MenuItem
-			// 
-			this.SaveState7MenuItem.Text = "7";
-			this.SaveState7MenuItem.Click += new System.EventHandler(this.Savestate7MenuItem_Click);
-			// 
-			// SaveState8MenuItem
-			// 
-			this.SaveState8MenuItem.Text = "8";
-			this.SaveState8MenuItem.Click += new System.EventHandler(this.Savestate8MenuItem_Click);
-			// 
-			// SaveState9MenuItem
-			// 
-			this.SaveState9MenuItem.Text = "9";
-			this.SaveState9MenuItem.Click += new System.EventHandler(this.Savestate9MenuItem_Click);
-			// 
-			// SaveState0MenuItem
-			// 
-			this.SaveState0MenuItem.Text = "0";
-			this.SaveState0MenuItem.Click += new System.EventHandler(this.Savestate0MenuItem_Click);
-			// 
-			// SaveNamedStateMenuItem
-			// 
-			this.SaveNamedStateMenuItem.Text = "Save Named State...";
-			this.SaveNamedStateMenuItem.Click += new System.EventHandler(this.SaveNamedStateMenuItem_Click);
-			// 
-			// LoadStateSubMenu
-			// 
-			this.LoadStateSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.LoadState1MenuItem,
-            this.LoadState2MenuItem,
-            this.LoadState3MenuItem,
-            this.LoadState4MenuItem,
-            this.LoadState5MenuItem,
-            this.LoadState6MenuItem,
-            this.LoadState7MenuItem,
-            this.LoadState8MenuItem,
-            this.LoadState9MenuItem,
-            this.LoadState0MenuItem,
-            this.toolStripSeparator7,
-            this.LoadNamedStateMenuItem,
-            this.toolStripSeparator21,
-            this.AutoloadLastSlotMenuItem});
-			this.LoadStateSubMenu.Text = "&Load State";
-			this.LoadStateSubMenu.DropDownOpened += new System.EventHandler(this.LoadStateSubMenu_DropDownOpened);
-			// 
-			// LoadState1MenuItem
-			// 
-			this.LoadState1MenuItem.Text = "1";
-			this.LoadState1MenuItem.Click += new System.EventHandler(this.Loadstate1MenuItem_Click);
-			// 
-			// LoadState2MenuItem
-			// 
-			this.LoadState2MenuItem.Text = "2";
-			this.LoadState2MenuItem.Click += new System.EventHandler(this.Loadstate2MenuItem_Click);
-			// 
-			// LoadState3MenuItem
-			// 
-			this.LoadState3MenuItem.Text = "3";
-			this.LoadState3MenuItem.Click += new System.EventHandler(this.Loadstate3MenuItem_Click);
-			// 
-			// LoadState4MenuItem
-			// 
-			this.LoadState4MenuItem.Text = "4";
-			this.LoadState4MenuItem.Click += new System.EventHandler(this.Loadstate4MenuItem_Click);
-			// 
-			// LoadState5MenuItem
-			// 
-			this.LoadState5MenuItem.Text = "5";
-			this.LoadState5MenuItem.Click += new System.EventHandler(this.Loadstate5MenuItem_Click);
-			// 
-			// LoadState6MenuItem
-			// 
-			this.LoadState6MenuItem.Text = "6";
-			this.LoadState6MenuItem.Click += new System.EventHandler(this.Loadstate6MenuItem_Click);
-			// 
-			// LoadState7MenuItem
-			// 
-			this.LoadState7MenuItem.Text = "7";
-			this.LoadState7MenuItem.Click += new System.EventHandler(this.Loadstate7MenuItem_Click);
-			// 
-			// LoadState8MenuItem
-			// 
-			this.LoadState8MenuItem.Text = "8";
-			this.LoadState8MenuItem.Click += new System.EventHandler(this.Loadstate8MenuItem_Click);
-			// 
-			// LoadState9MenuItem
-			// 
-			this.LoadState9MenuItem.Text = "9";
-			this.LoadState9MenuItem.Click += new System.EventHandler(this.Loadstate9MenuItem_Click);
-			// 
-			// LoadState0MenuItem
-			// 
-			this.LoadState0MenuItem.Text = "0";
-			this.LoadState0MenuItem.Click += new System.EventHandler(this.Loadstate0MenuItem_Click);
-			// 
-			// LoadNamedStateMenuItem
-			// 
-			this.LoadNamedStateMenuItem.Text = "Load Named State...";
-			this.LoadNamedStateMenuItem.Click += new System.EventHandler(this.LoadNamedStateMenuItem_Click);
-			// 
-			// AutoloadLastSlotMenuItem
-			// 
-			this.AutoloadLastSlotMenuItem.Text = "Autoload last Slot";
-			this.AutoloadLastSlotMenuItem.Click += new System.EventHandler(this.AutoloadLastSlotMenuItem_Click);
-			// 
-			// SaveSlotSubMenu
-			// 
-			this.SaveSlotSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.SelectSlot0MenuItem,
-            this.SelectSlot1MenuItem,
-            this.SelectSlot2MenuItem,
-            this.SelectSlot3MenuItem,
-            this.SelectSlot4MenuItem,
-            this.SelectSlot5MenuItem,
-            this.SelectSlot6MenuItem,
-            this.SelectSlot7MenuItem,
-            this.SelectSlot8MenuItem,
-            this.SelectSlot9MenuItem,
-            this.PreviousSlotMenuItem,
-            this.NextSlotMenuItem,
-            this.toolStripSeparator5,
-            this.SaveToCurrentSlotMenuItem,
-            this.LoadCurrentSlotMenuItem});
-			this.SaveSlotSubMenu.Text = "Save S&lot";
-			this.SaveSlotSubMenu.DropDownOpened += new System.EventHandler(this.SaveSlotSubMenu_DropDownOpened);
-			// 
-			// SelectSlot0MenuItem
-			// 
-			this.SelectSlot0MenuItem.Text = "Select Slot 0";
-			this.SelectSlot0MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot1MenuItem
-			// 
-			this.SelectSlot1MenuItem.Text = "Select Slot 1";
-			this.SelectSlot1MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot2MenuItem
-			// 
-			this.SelectSlot2MenuItem.Text = "Select Slot 2";
-			this.SelectSlot2MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot3MenuItem
-			// 
-			this.SelectSlot3MenuItem.Text = "Select Slot 3";
-			this.SelectSlot3MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot4MenuItem
-			// 
-			this.SelectSlot4MenuItem.Text = "Select Slot 4";
-			this.SelectSlot4MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot5MenuItem
-			// 
-			this.SelectSlot5MenuItem.Text = "Select Slot 5";
-			this.SelectSlot5MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot6MenuItem
-			// 
-			this.SelectSlot6MenuItem.Text = "Select Slot 6";
-			this.SelectSlot6MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot7MenuItem
-			// 
-			this.SelectSlot7MenuItem.Text = "Select Slot 7";
-			this.SelectSlot7MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot8MenuItem
-			// 
-			this.SelectSlot8MenuItem.Text = "Select Slot 8";
-			this.SelectSlot8MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// SelectSlot9MenuItem
-			// 
-			this.SelectSlot9MenuItem.Text = "Select Slot 9";
-			this.SelectSlot9MenuItem.Click += new System.EventHandler(this.SelectSlotMenuItems_Click);
-			// 
-			// PreviousSlotMenuItem
-			// 
-			this.PreviousSlotMenuItem.Text = "Previous Slot";
-			this.PreviousSlotMenuItem.Click += new System.EventHandler(this.PreviousSlotMenuItem_Click);
-			// 
-			// NextSlotMenuItem
-			// 
-			this.NextSlotMenuItem.Text = "Next Slot";
-			this.NextSlotMenuItem.Click += new System.EventHandler(this.NextSlotMenuItem_Click);
-			// 
-			// SaveToCurrentSlotMenuItem
-			// 
-			this.SaveToCurrentSlotMenuItem.Text = "Save to Current Slot";
-			this.SaveToCurrentSlotMenuItem.Click += new System.EventHandler(this.SaveToCurrentSlotMenuItem_Click);
-			// 
-			// LoadCurrentSlotMenuItem
-			// 
-			this.LoadCurrentSlotMenuItem.Text = "Load Current Slot";
-			this.LoadCurrentSlotMenuItem.Click += new System.EventHandler(this.LoadCurrentSlotMenuItem_Click);
+			this.RecentProjectSubMenu.Text = "&Recent Project";
+			this.RecentProjectSubMenu.DropDownOpened += new System.EventHandler(this.RecentProjectMenuItem_DropDownOpened);
 			// 
 			// SaveRAMSubMenu
 			// 
@@ -583,10 +308,50 @@ namespace Pixtro.Client.Editor
 			this.LoadedCoreNameMenuItem.Enabled = false;
 			this.LoadedCoreNameMenuItem.Text = "Loaded core: <core name> (sysID)";
 			// 
+			// ProjectSubMenu
+			// 
+			this.ProjectSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.BuildProjectMenuItem,
+            this.RunProjectMenuItem,
+            this.BuildAndRunMenuItem,
+            this.BuildReleaseMenuItem});
+			this.ProjectSubMenu.Enabled = false;
+			this.ProjectSubMenu.Name = "ProjectSubMenu";
+			this.ProjectSubMenu.Size = new System.Drawing.Size(56, 19);
+			this.ProjectSubMenu.Text = "&Project";
+			this.ProjectSubMenu.DropDownOpened += new System.EventHandler(this.ProjectSubMenu_DropDownOpened);
+			// 
+			// BuildProjectMenuItem
+			// 
+			this.BuildProjectMenuItem.Name = "BuildProjectMenuItem";
+			this.BuildProjectMenuItem.Size = new System.Drawing.Size(150, 22);
+			this.BuildProjectMenuItem.Text = "&Build Project";
+			this.BuildProjectMenuItem.Click += new System.EventHandler(this.BuildProjectMenuItem_Click);
+			// 
+			// RunProjectMenuItem
+			// 
+			this.RunProjectMenuItem.Name = "RunProjectMenuItem";
+			this.RunProjectMenuItem.Size = new System.Drawing.Size(150, 22);
+			this.RunProjectMenuItem.Text = "&Run Project";
+			this.RunProjectMenuItem.Click += new System.EventHandler(this.RunProjectMenuItem_Click);
+			// 
+			// BuildAndRunMenuItem
+			// 
+			this.BuildAndRunMenuItem.Name = "BuildAndRunMenuItem";
+			this.BuildAndRunMenuItem.Size = new System.Drawing.Size(150, 22);
+			this.BuildAndRunMenuItem.Text = "Build And Run";
+			this.BuildAndRunMenuItem.Click += new System.EventHandler(this.BuildAndRunMenuItem_Click);
+			// 
+			// BuildReleaseMenuItem
+			// 
+			this.BuildReleaseMenuItem.Name = "BuildReleaseMenuItem";
+			this.BuildReleaseMenuItem.Size = new System.Drawing.Size(150, 22);
+			this.BuildReleaseMenuItem.Text = "Build Release";
+			this.BuildReleaseMenuItem.Click += new System.EventHandler(this.BuildReleaseMenuItem_Click);
+			// 
 			// ViewSubMenu
 			// 
 			this.ViewSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.WindowSizeSubMenu,
             this.SwitchToFullscreenMenuItem,
             this.toolStripSeparator2,
             this.DisplayFPSMenuItem,
@@ -602,48 +367,6 @@ namespace Pixtro.Client.Editor
             this.DisplayLogWindowMenuItem});
 			this.ViewSubMenu.Text = "&View";
 			this.ViewSubMenu.DropDownOpened += new System.EventHandler(this.ViewSubMenu_DropDownOpened);
-			// 
-			// WindowSizeSubMenu
-			// 
-			this.WindowSizeSubMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.x1MenuItem,
-            this.x2MenuItem,
-            this.x3MenuItem,
-            this.x4MenuItem,
-            this.x5MenuItem,
-            this.mzMenuItem});
-			this.WindowSizeSubMenu.Text = "&Window Size";
-			this.WindowSizeSubMenu.DropDownOpened += new System.EventHandler(this.WindowSizeSubMenu_DropDownOpened);
-			// 
-			// x1MenuItem
-			// 
-			this.x1MenuItem.Text = "&1x";
-			this.x1MenuItem.Click += new System.EventHandler(this.WindowSize_Click);
-			// 
-			// x2MenuItem
-			// 
-			this.x2MenuItem.Text = "&2x";
-			this.x2MenuItem.Click += new System.EventHandler(this.WindowSize_Click);
-			// 
-			// x3MenuItem
-			// 
-			this.x3MenuItem.Text = "&3x";
-			this.x3MenuItem.Click += new System.EventHandler(this.WindowSize_Click);
-			// 
-			// x4MenuItem
-			// 
-			this.x4MenuItem.Text = "&4x";
-			this.x4MenuItem.Click += new System.EventHandler(this.WindowSize_Click);
-			// 
-			// x5MenuItem
-			// 
-			this.x5MenuItem.Text = "&5x";
-			this.x5MenuItem.Click += new System.EventHandler(this.WindowSize_Click);
-			// 
-			// mzMenuItem
-			// 
-			this.mzMenuItem.Text = "&Max";
-			this.mzMenuItem.Click += new System.EventHandler(this.WindowSize_Click);
 			// 
 			// SwitchToFullscreenMenuItem
 			// 
@@ -1074,29 +797,18 @@ namespace Pixtro.Client.Editor
 			// MainStatusBar
 			// 
 			this.MainStatusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.DumpStatusButton,
+            this.AVIStatusLabel,
             this.EmuStatus,
+            this.EditorLayoutSubmenu,
             this.PlayRecordStatusButton,
             this.PauseStatusButton,
             this.RebootStatusBarIcon,
-            this.AVIStatusLabel,
             this.LedLightStatusLabel,
-            this.SaveSlotsStatusLabel,
-            this.Slot1StatusButton,
-            this.Slot2StatusButton,
-            this.Slot3StatusButton,
-            this.Slot4StatusButton,
-            this.Slot5StatusButton,
-            this.Slot6StatusButton,
-            this.Slot7StatusButton,
-            this.Slot8StatusButton,
-            this.Slot9StatusButton,
-            this.Slot0StatusButton,
             this.CheatStatusButton,
             this.KeyPriorityStatusLabel,
-            this.CoreNameStatusBarButton,
             this.ProfileFirstBootLabel,
             this.LinkConnectStatusBarButton,
+            this.CoreNameStatusBarButton,
             this.UpdateNotification});
 			this.MainStatusBar.Location = new System.Drawing.Point(0, 386);
 			this.MainStatusBar.Name = "MainStatusBar";
@@ -1104,15 +816,26 @@ namespace Pixtro.Client.Editor
 			this.MainStatusBar.SizingGrip = false;
 			this.MainStatusBar.TabIndex = 1;
 			// 
-			// DumpStatusButton
+			// AVIStatusLabel
 			// 
-			this.DumpStatusButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.DumpStatusButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-			this.DumpStatusButton.Name = "DumpStatusButton";
-			this.DumpStatusButton.ShowDropDownArrow = false;
-			this.DumpStatusButton.Size = new System.Drawing.Size(4, 20);
-			this.DumpStatusButton.Text = "No ROM loaded";
-			this.DumpStatusButton.Click += new System.EventHandler(this.DumpStatusButton_Click);
+			this.AVIStatusLabel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.AVIStatusLabel.Text = "AVI Capture";
+			// 
+			// EditorLayoutSubmenu
+			// 
+			this.EditorLayoutSubmenu.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+			this.EditorLayoutSubmenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.baseToolStripMenuItem});
+			this.EditorLayoutSubmenu.Name = "EditorLayoutSubmenu";
+			this.EditorLayoutSubmenu.Size = new System.Drawing.Size(44, 20);
+			this.EditorLayoutSubmenu.Text = "Base";
+			this.EditorLayoutSubmenu.ToolTipText = "Change the layout of the editor";
+			// 
+			// baseToolStripMenuItem
+			// 
+			this.baseToolStripMenuItem.Name = "baseToolStripMenuItem";
+			this.baseToolStripMenuItem.Size = new System.Drawing.Size(98, 22);
+			this.baseToolStripMenuItem.Text = "Base";
 			// 
 			// PlayRecordStatusButton
 			// 
@@ -1143,79 +866,9 @@ namespace Pixtro.Client.Editor
 			this.RebootStatusBarIcon.ToolTipText = "A reboot of the core is needed for a setting change to take effect";
 			this.RebootStatusBarIcon.Click += new System.EventHandler(this.PowerMenuItem_Click);
 			// 
-			// AVIStatusLabel
-			// 
-			this.AVIStatusLabel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.AVIStatusLabel.Text = "AVI Capture";
-			// 
 			// LedLightStatusLabel
 			// 
 			this.LedLightStatusLabel.ToolTipText = "Disk Drive LED Light";
-			// 
-			// SaveSlotsStatusLabel
-			// 
-			this.SaveSlotsStatusLabel.BackColor = System.Drawing.SystemColors.Control;
-			this.SaveSlotsStatusLabel.Text = "Save slots";
-			// 
-			// Slot1StatusButton
-			// 
-			this.Slot1StatusButton.Text = "1";
-			this.Slot1StatusButton.ToolTipText = "Save slot 1";
-			this.Slot1StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot2StatusButton
-			// 
-			this.Slot2StatusButton.Text = "2";
-			this.Slot2StatusButton.ToolTipText = "Save slot 2";
-			this.Slot2StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot3StatusButton
-			// 
-			this.Slot3StatusButton.Text = "3";
-			this.Slot3StatusButton.ToolTipText = "Save slot 3";
-			this.Slot3StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot4StatusButton
-			// 
-			this.Slot4StatusButton.Text = "4";
-			this.Slot4StatusButton.ToolTipText = "Save slot 4";
-			this.Slot4StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot5StatusButton
-			// 
-			this.Slot5StatusButton.Text = "5";
-			this.Slot5StatusButton.ToolTipText = "Save slot 5";
-			this.Slot5StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot6StatusButton
-			// 
-			this.Slot6StatusButton.Text = "6";
-			this.Slot6StatusButton.ToolTipText = "Save slot 6";
-			this.Slot6StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot7StatusButton
-			// 
-			this.Slot7StatusButton.Text = "7";
-			this.Slot7StatusButton.ToolTipText = "Save slot 7";
-			this.Slot7StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot8StatusButton
-			// 
-			this.Slot8StatusButton.Text = "8";
-			this.Slot8StatusButton.ToolTipText = "Save slot 8";
-			this.Slot8StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot9StatusButton
-			// 
-			this.Slot9StatusButton.Text = "9";
-			this.Slot9StatusButton.ToolTipText = "Save slot 9";
-			this.Slot9StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
-			// 
-			// Slot0StatusButton
-			// 
-			this.Slot0StatusButton.Text = "0";
-			this.Slot0StatusButton.ToolTipText = "Save slot 0";
-			this.Slot0StatusButton.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SlotStatusButtons_MouseUp);
 			// 
 			// CheatStatusButton
 			// 
@@ -1227,10 +880,6 @@ namespace Pixtro.Client.Editor
 			this.KeyPriorityStatusLabel.Margin = new System.Windows.Forms.Padding(5, 3, 5, 0);
 			this.KeyPriorityStatusLabel.Text = "KeyPriority";
 			this.KeyPriorityStatusLabel.Click += new System.EventHandler(this.KeyPriorityStatusLabel_Click);
-			// 
-			// CoreNameStatusBarButton
-			// 
-			this.CoreNameStatusBarButton.Text = "<core name>";
 			// 
 			// ProfileFirstBootLabel
 			// 
@@ -1247,6 +896,10 @@ namespace Pixtro.Client.Editor
 			this.LinkConnectStatusBarButton.Text = "Link connection is currently enabled";
 			this.LinkConnectStatusBarButton.ToolTipText = "Link connection is currently enabled";
 			this.LinkConnectStatusBarButton.Click += new System.EventHandler(this.LinkConnectStatusBarButton_Click);
+			// 
+			// CoreNameStatusBarButton
+			// 
+			this.CoreNameStatusBarButton.Text = "<core name>";
 			// 
 			// UpdateNotification
 			// 
@@ -1509,32 +1162,10 @@ namespace Pixtro.Client.Editor
 		#endregion
 
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx FileSubMenu;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx OpenRomMenuItem;
+		private Pixtro.WinForms.Controls.ToolStripMenuItemEx OpenProjectMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripMenuItem1;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ExitMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveStateSubMenu;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState1MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState2MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState3MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState4MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState5MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState6MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState7MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState8MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState9MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveState0MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadStateSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripMenuItem2;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState1MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState2MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState3MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState4MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState5MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState6MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState7MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState8MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState9MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadState0MenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx EmulationSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ViewSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ConfigSubMenu;
@@ -1551,40 +1182,13 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RamWatchMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RamSearchMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx HexEditorMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx WindowSizeSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator2;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplayFPSMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplayFrameCounterMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplayInputMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplayLagCounterMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RecentRomSubMenu;
+		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RecentProjectSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator3;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveSlotSubMenu;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot1MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot2MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot3MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot4MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot5MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot6MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot7MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot8MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot9MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SelectSlot0MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx PreviousSlotMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx NextSlotMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator5;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveToCurrentSlotMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadCurrentSlotMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator6;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveNamedStateMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator7;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadNamedStateMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx x1MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx x2MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx x3MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx x4MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx x5MenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx mzMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator9;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SoundMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SpeedSkipSubMenu;
@@ -1626,20 +1230,8 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx StopMovieContextMenuItem;
 		private System.Windows.Forms.ToolStripDropDownButton PauseStatusButton;
 		private System.Windows.Forms.ToolStripDropDownButton PlayRecordStatusButton;
-		private System.Windows.Forms.ToolStripDropDownButton DumpStatusButton;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ViewSubtitlesContextMenuItem;
 		private MenuStripEx MainformMenu;
-		private Pixtro.WinForms.Controls.StatusLabelEx SaveSlotsStatusLabel;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot1StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot2StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot3StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot4StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot5StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot6StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot7StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot8StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot9StatusButton;
-		private Pixtro.WinForms.Controls.StatusLabelEx Slot0StatusButton;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ViewCommentsContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplayLogWindowMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplaySubtitlesMenuItem;
@@ -1647,8 +1239,6 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RestartMovieContextMenuItem;
 		private Pixtro.WinForms.Controls.StatusLabelEx CheatStatusButton;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx AutofireMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx AutoloadLastSlotMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator21;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ShowMenuContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ForumsMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ScreenshotContextMenuItem;
@@ -1701,7 +1291,6 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx FeaturesMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveRAMSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx FlushSaveRAMMenuItem;
-		private Pixtro.WinForms.Controls.StatusLabelEx UpdateNotification;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx MultiDiskBundlerFileMenuItem;
 		private System.Windows.Forms.Timer timerMouseIdle;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx miUnthrottled;
@@ -1725,5 +1314,16 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveMovieAsContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx A7800HawkCoreMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator8;
+		private System.Windows.Forms.ToolStripMenuItem NewProjectMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem ProjectSubMenu;
+		private System.Windows.Forms.ToolStripMenuItem BuildProjectMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem CloseProjectMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem RunProjectMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem BuildAndRunMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem BuildReleaseMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem projectTemplatesWillGoHereToolStripMenuItem;
+		private StatusLabelEx UpdateNotification;
+		private System.Windows.Forms.ToolStripDropDownButton EditorLayoutSubmenu;
+		private System.Windows.Forms.ToolStripMenuItem baseToolStripMenuItem;
 	}
 }

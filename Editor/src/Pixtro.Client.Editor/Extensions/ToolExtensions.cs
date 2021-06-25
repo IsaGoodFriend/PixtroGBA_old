@@ -28,7 +28,7 @@ namespace Pixtro.Client.Editor.ToolExtensions
 					string caption = filename;
 					string path = filename;
 					string physicalPath = filename;
-					bool crazyStuff = true;
+					bool crazyStuff = false;
 
 					//sentinel for newer format OpenAdvanced type code
 					if (romLoading)

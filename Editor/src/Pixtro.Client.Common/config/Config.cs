@@ -61,6 +61,8 @@ namespace Pixtro.Client.Common
 			PathEntries.ResolveWithDefaults();
 			HotkeyBindings.ResolveWithDefaults();
 			PathEntries.RefreshTempPath();
+			if (string.IsNullOrEmpty(TemplatesFolder) || !Directory.Exists(TemplatesFolder))
+				TemplatesFolder = Path.Combine(Directory.GetCurrentDirectory(), "templates");
 		}
 
 		/// <summary>
@@ -91,12 +93,14 @@ namespace Pixtro.Client.Common
 
 		public ZoomFactors TargetZoomFactors { get; set; } = new ZoomFactors();
 
+		public string TemplatesFolder { get; set; } = "";
+
 		// choose between 0 and 256
 		public int TargetScanlineFilterIntensity { get; set; } = 128;
 		public int TargetDisplayFilter { get; set; }
 		public int DispFinalFilter { get; set; } = 0; // None
 		public string DispUserFilterPath { get; set; } = "";
-		public RecentFiles RecentRoms { get; set; } = new RecentFiles(10);
+		public RecentFiles RecentProjects { get; set; } = new RecentFiles(10);
 		public bool PauseWhenMenuActivated { get; set; } = true;
 		public bool SaveWindowPosition { get; set; } = true;
 		public bool StartPaused { get; set; }

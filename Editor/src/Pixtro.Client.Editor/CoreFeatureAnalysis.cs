@@ -202,12 +202,7 @@ namespace Pixtro.Client.Editor
 			CoreTree.ImageList.Images.Add("Bad", Properties.Resources.ExclamationRed);
 			CoreTree.ImageList.Images.Add("Unknown", Properties.Resources.RetroQuestion);
 
-			var possibleCoreTypes = CoreInventory.Instance.SystemsFlat
-				.OrderByDescending(core => core.CoreAttr.Released)
-				.ThenBy(core => core.Name)
-				.ToList();
-
-			toolStripStatusLabel1.Text = $"Total: {possibleCoreTypes.Count} Released: {KnownCores.Values.Count(c => c.Released)} Profiled: {KnownCores.Count}";
+			toolStripStatusLabel1.Text = $"Total: {1} Released: {KnownCores.Values.Count(c => c.Released)} Profiled: {KnownCores.Count}";
 
 			CoreTree.Nodes.Clear();
 			CoreTree.BeginUpdate();
@@ -221,23 +216,6 @@ namespace Pixtro.Client.Editor
 					coreNode.Expand();
 				}
 				CoreTree.Nodes.Add(coreNode);
-			}
-
-			foreach (var core in possibleCoreTypes)
-			{
-				if (!KnownCores.ContainsKey(core.Name))
-				{
-					string img = "Unknown";
-					var coreNode = new TreeNode
-					{
-						Text = core.Name + (core.CoreAttr.Released ? "" : " (UNRELEASED)"),
-						ForeColor = core.CoreAttr.Released ? Color.Black : Color.DarkGray,
-						ImageKey = img,
-						SelectedImageKey = img,
-						StateImageKey = img
-					};
-					CoreTree.Nodes.Add(coreNode);
-				}
 			}
 
 			CoreTree.EndUpdate();

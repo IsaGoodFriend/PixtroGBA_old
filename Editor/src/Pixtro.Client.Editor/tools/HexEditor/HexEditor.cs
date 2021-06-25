@@ -893,7 +893,7 @@ namespace Pixtro.Client.Editor
 		{
 			get
 			{
-				string path = Config.RecentRoms.MostRecent;
+				string path = Config.RecentProjects.MostRecent;
 
 				if (string.IsNullOrWhiteSpace(path))
 				{
@@ -913,7 +913,7 @@ namespace Pixtro.Client.Editor
 		{
 			get
 			{
-				string path = Config.RecentRoms.MostRecent;
+				string path = Config.RecentProjects.MostRecent;
 
 				if (string.IsNullOrWhiteSpace(path))
 				{
@@ -1319,9 +1319,9 @@ namespace Pixtro.Client.Editor
 		private void LoadTableFileMenuItem_Click(object sender, EventArgs e)
 		{
 			string initialDirectory = Config.PathEntries.ToolsAbsolutePath();
-			var romName = Config.RecentRoms.MostRecent.Contains('|')
-				? Config.RecentRoms.MostRecent.Split('|').Last()
-				: Config.RecentRoms.MostRecent;
+			var romName = Config.RecentProjects.MostRecent.Contains('|')
+				? Config.RecentProjects.MostRecent.Split('|').Last()
+				: Config.RecentProjects.MostRecent;
 
 			using var ofd = new OpenFileDialog
 			{

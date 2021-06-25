@@ -20,8 +20,8 @@ using Pixtro.Client.Common;
 using Pixtro.Emuware.BizwareGL;
 
 using Pixtro.Emulation.Common;
-using Pixtro.Emulation.Cores;
 using Pixtro.Emulation.Cores.Nintendo.GBA;
+using Pixtro.Client.Editor.Projects;
 
 using Pixtro.Client.Editor.ToolExtensions;
 using Pixtro.Client.Editor.CoreExtensions;
@@ -29,6 +29,7 @@ using Pixtro.Client.Editor.CustomControls;
 using Pixtro.Common.PathExtensions;
 using Pixtro.Common.StringExtensions;
 using Pixtro.Emulation.Common.Base_Implementations;
+
 
 namespace Pixtro.Client.Editor
 {
@@ -166,10 +167,8 @@ namespace Pixtro.Client.Editor
 
 		private void SetImages()
 		{
-			OpenRomMenuItem.Image = Properties.Resources.OpenFile;
-			RecentRomSubMenu.Image = Properties.Resources.Recent;
-			PreviousSlotMenuItem.Image = Properties.Resources.MoveLeft;
-			NextSlotMenuItem.Image = Properties.Resources.MoveRight;
+			OpenProjectMenuItem.Image = Properties.Resources.OpenFile;
+			RecentProjectSubMenu.Image = Properties.Resources.Recent;
 			PauseMenuItem.Image = Properties.Resources.Pause;
 			RebootCoreMenuItem.Image = Properties.Resources.Reboot;
 			SwitchToFullscreenMenuItem.Image = Properties.Resources.Fullscreen;
@@ -193,7 +192,6 @@ namespace Pixtro.Client.Editor
 			OnlineHelpMenuItem.Image = Properties.Resources.Help;
 			FeaturesMenuItem.Image = Properties.Resources.KitchenSink;
 			AboutMenuItem.Image = Properties.Resources.CorpHawkSmall;
-			DumpStatusButton.Image = Properties.Resources.Blank;
 			PlayRecordStatusButton.Image = Properties.Resources.Blank;
 			PauseStatusButton.Image = Properties.Resources.Blank;
 			RebootStatusBarIcon.Image = Properties.Resources.Reboot;
@@ -329,6 +327,8 @@ namespace Pixtro.Client.Editor
 			Tools = new ToolManager(this, Config, DisplayManager, InputManager, Emulator, Game);
 			ExtToolManager = new ExternalToolManager(Config.PathEntries, () => (EmuClientApi.SystemIdConverter.Convert(Emulator.SystemId), Game.Hash));
 
+			ProjectTemplate.LoadTemplates();
+
 			// TODO GL - move these event handlers somewhere less obnoxious line in the On* overrides
 			Load += (o, e) =>
 			{
@@ -448,9 +448,9 @@ namespace Pixtro.Client.Editor
 					ShowMessageBox(owner: null, $"Failed to load {_argParser.cmdRom} specified on commandline");
 				}
 			}
-			else if (Config.RecentRoms.AutoLoad && !Config.RecentRoms.Empty)
+			else if (Config.RecentProjects.AutoLoad && !Config.RecentProjects.Empty)
 			{
-				LoadRomFromRecent(Config.RecentRoms.MostRecent);
+				LoadProjectFromRecent(Config.RecentProjects.MostRecent);
 			}
 
 			if (_argParser.audiosync.HasValue)
@@ -851,12 +851,12 @@ namespace Pixtro.Client.Editor
 		private ISoundProvider _currentSoundProvider = new NullSound(44100 / 60); // Reasonable default until we have a core instance
 
 		/// <remarks>don't use this, use <see cref="Config"/></remarks>
-		private Config _config;
+		private static Config _config;
 
-		private new Config Config
+		public static new Config Config
 		{
 			get => _config;
-			set => base.Config = _config = value;
+			set => _config = value;
 		}
 
 		private readonly IGL GL;
@@ -871,6 +871,35 @@ namespace Pixtro.Client.Editor
 
 		public IMovieSession MovieSession { get; }
 
+		private ProjectInfo proj;
+		public ProjectInfo Project
+		{
+			get { return proj; }
+			private set
+			{
+				if (proj != null)
+				{
+					proj.Dispose();
+				}
+
+				if (proj != null && (value == null || value.ProjectPath != proj.ProjectPath))
+				{
+					var result = MessageBox.Show("Warning!  You currently have a project open and I'm too lazy to check if it's been saved.  Do you want to close this project?", "Pixtro", MessageBoxButtons.YesNo);
+					if (result == DialogResult.No)
+						return;
+				}
+
+				if (value != null)
+				{
+					Config.RecentProjects.Add(value.ProjectPath);
+				}
+				proj = value;
+
+				ProjectSubMenu.Enabled = value != null;
+
+				UpdateWindowTitle();
+			}
+		}
 		public GameInfo Game { get; private set; }
 
 		/// <remarks>don't use this, use <see cref="Sound"/></remarks>
@@ -1141,6 +1170,8 @@ namespace Pixtro.Client.Editor
 
 		public void FrameBufferResized()
 		{
+			return;
+
 			// run this entire thing exactly twice, since the first resize may adjust the menu stacking
 			for (int i = 0; i < 2; i++)
 			{
@@ -1433,7 +1464,6 @@ namespace Pixtro.Client.Editor
 		private bool _wasPaused;
 		private bool _didMenuPause;
 
-		private bool _cursorHidden;
 		private bool _inFullscreen;
 		private Point _windowedLocation;
 		private bool _needsFullscreenOnLoad;
@@ -1495,20 +1525,16 @@ namespace Pixtro.Client.Editor
 					sb.Append($"{VersionInfo.CustomBuildString} ");
 				}
 
-				sb.Append(Emulator.IsNull() ? "BizHawk" : Emulator.GetSystemDisplayName());
+				sb.Append("Pixtro");
+
+				if (Project != null)
+				{
+					sb.Append($" - {Project.Name}");
+				}
 
 				if (VersionInfo.DeveloperBuild)
 				{
 					sb.Append(" (interim)");
-				}
-
-				if (!Emulator.IsNull())
-				{
-					sb.Append($" - {Game.Name}");
-					if (MovieSession.Movie.IsActive())
-					{
-						sb.Append($" - {Path.GetFileName(MovieSession.Movie.Filename)}");
-					}
 				}
 
 				return sb.ToString();
@@ -1521,7 +1547,7 @@ namespace Pixtro.Client.Editor
 			{
 				var sb = new StringBuilder();
 				if (!string.IsNullOrEmpty(VersionInfo.CustomBuildString)) sb.Append($"{VersionInfo.CustomBuildString} ");
-				sb.Append("BizHawk");
+				sb.Append("Pixtro");
 				if (VersionInfo.DeveloperBuild) sb.Append(" (interim)");
 				return sb.ToString();
 			}
@@ -1543,67 +1569,6 @@ namespace Pixtro.Client.Editor
 		{
 			Tools.UpdateToolsAfter();
 			HandleToggleLightAndLink();
-		}
-
-		public void UpdateDumpInfo(RomStatus? newStatus = null)
-		{
-			DumpStatusButton.Image = Properties.Resources.Blank;
-			DumpStatusButton.ToolTipText = "";
-
-			if (Emulator.IsNull() || Game.IsNullInstance())
-			{
-				return;
-			}
-
-			var status = newStatus == null
-				? Game.Status
-				: (Game.Status = newStatus.Value);
-			if (status == RomStatus.BadDump)
-			{
-				DumpStatusButton.Image = Properties.Resources.ExclamationRed;
-				DumpStatusButton.ToolTipText = "Warning: Bad ROM Dump";
-			}
-			else if (status == RomStatus.Overdump)
-			{
-				DumpStatusButton.Image = Properties.Resources.ExclamationRed;
-				DumpStatusButton.ToolTipText = "Warning: Overdump";
-			}
-			else if (status == RomStatus.NotInDatabase)
-			{
-				DumpStatusButton.Image = Properties.Resources.RetroQuestion;
-				DumpStatusButton.ToolTipText = "Warning: Unknown ROM";
-			}
-			else if (status == RomStatus.TranslatedRom)
-			{
-				DumpStatusButton.Image = Properties.Resources.Translation;
-				DumpStatusButton.ToolTipText = "Translated ROM";
-			}
-			else if (status == RomStatus.Homebrew)
-			{
-				DumpStatusButton.Image = Properties.Resources.HomeBrew;
-				DumpStatusButton.ToolTipText = "Homebrew ROM";
-			}
-			else if (Game.Status == RomStatus.Hack)
-			{
-				DumpStatusButton.Image = Properties.Resources.Hack;
-				DumpStatusButton.ToolTipText = "Hacked ROM";
-			}
-			else if (Game.Status == RomStatus.Unknown)
-			{
-				DumpStatusButton.Image = Properties.Resources.Hack;
-				DumpStatusButton.ToolTipText = "Warning: ROM of Unknown Character";
-			}
-			else
-			{
-				DumpStatusButton.Image = Properties.Resources.GreenCheck;
-				DumpStatusButton.ToolTipText = "Verified good dump";
-			}
-
-			if (_multiDiskMode)
-			{
-				DumpStatusButton.ToolTipText = "Multi-disk bundler";
-				DumpStatusButton.Image = Properties.Resources.RetroQuestion;
-			}
 		}
 
 		private bool _multiDiskMode;
@@ -1871,25 +1836,6 @@ namespace Pixtro.Client.Editor
 			}
 		}
 
-		private void LoadRomFromRecent(string rom)
-		{
-			var ioa = OpenAdvancedSerializer.ParseWithLegacy(rom);
-
-			var args = new LoadRomArgs
-			{
-				OpenAdvanced = ioa
-			};
-
-			// if(ioa is this or that) - for more complex behaviour
-			string romPath = ioa.SimplePath;
-
-			if (!LoadRom(romPath, args, out var failureIsFromAskSave))
-			{
-				if (failureIsFromAskSave) OSD.AddMessage("ROM loading cancelled; a tool had unsaved changes");
-				else Config.RecentRoms.HandleLoadError(this, romPath, rom);
-			}
-		}
-
 		private void SetPauseStatusBarIcon()
 		{
 			if (EmulatorPaused)
@@ -2003,14 +1949,6 @@ namespace Pixtro.Client.Editor
 			return DisplayManager.RenderVideoProvider(_currentVideoProvider);
 		}
 
-		private void SaveSlotSelectedMessage()
-		{
-			int slot = Config.SaveSlot;
-			string emptyPart = HasSlot(slot) ? "" : " (empty)";
-			string message = $"Slot {slot}{emptyPart} selected.";
-			AddOnScreenMessage(message);
-		}
-
 		/*internal*/public void Render()
 		{
 			if (Config.DispSpeedupFeatures == 0)
@@ -2077,6 +2015,128 @@ namespace Pixtro.Client.Editor
 		}
 
 		public static readonly string ConfigFileFSFilterString = new FilesystemFilter("Config File", new[] { "ini" }).ToString();
+
+		private void OpenProject()
+		{
+			using var ofd = new OpenFileDialog
+			{
+				InitialDirectory = Config.PathEntries.RomAbsolutePath(Emulator.SystemId),
+				Filter = ProjectInfo.Project_Filter,
+				RestoreDirectory = false,
+				FilterIndex = _lastOpenRomFilter
+			};
+
+			if (this.ShowDialogWithTempMute(ofd) != DialogResult.OK)
+				return;
+
+			OpenProjectInternal(ofd.FileName);
+		}
+		public void CloseProject()
+		{
+			Project = null;
+		}
+		public bool BuildProject(bool releaseBuild)
+		{
+			string exeFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+			if (File.Exists(Path.Combine(exeFolder, "dll", "output.elf")))
+				File.Delete(Path.Combine(exeFolder, "dll", "output.elf"));
+			if (File.Exists(Path.Combine(exeFolder, "dll", "output.gba")))
+				File.Delete(Path.Combine(exeFolder, "dll", "output.gba"));
+
+
+			string[] replacements = new string[]
+			{
+				exeFolder,
+				releaseBuild ? Path.Combine(Path.GetDirectoryName(Project.ProjectPath), Project.Name) : Path.Combine(exeFolder, "dll", "output"),
+			};
+
+			for (int i = 0; i < replacements.Length; ++i)
+			{
+				replacements[i] = replacements[i].Replace('\\', '/');
+				if (replacements[i].EndsWith("/"))
+					replacements[i] = replacements[i].Substring(0, replacements[i].Length - 1);
+			}
+
+			using (var makeRead = new StreamReader(File.Open(Path.Combine(exeFolder, "Makefile.txt"), FileMode.Open)))
+			{
+				using (var makeWrite = new StreamWriter(File.Create(Path.Combine(exeFolder, "Makefile"))))
+				{
+					while (!makeRead.EndOfStream)
+					{
+						string input = makeRead.ReadLine();
+						if (input.Contains('{'))
+						{
+							for (int i = 0; i < replacements.Length; ++i)
+							{
+								input = input.Replace($"{{{i}}}", replacements[i]);
+							}
+						}
+						makeWrite.WriteLine(input);
+					}
+				}
+			}
+
+
+			string[] args = new string[]{
+					"--enginePath", Path.Combine(exeFolder),
+				};
+
+#if DEBUG
+			Compiler.Compiler.Compile(Path.GetDirectoryName(Project.ProjectPath), args);
+#else
+			try
+			{
+				Compiler.Compiler.Compile(Path.GetDirectoryName(Project.ProjectPath), args);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine(e);
+			}
+#endif
+			return true;
+		}
+		public void RunProject()
+		{
+			LoadRom(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba"));
+			//LoadRom(@"C:\Users\IsaGoodFriend\Downloads\BizHawk-2.5.0\roms\WarioLand4\WarioLand4Original.gba");
+		}
+		public bool BuildAndRun()
+		{
+			if (!BuildProject(false))
+				return false;
+
+			RunProject();
+			return true;
+		}
+
+		private void LoadProjectFromRecent(string path)
+		{
+			if (!File.Exists(path))
+			{
+				Config.RecentProjects.HandleLoadError(this, path);
+			}
+			else
+			{
+				OpenProjectInternal(path);
+			}
+		}
+
+		private void CreateProjectPath(ProjectTemplate template)
+		{
+			using var ofd = new SaveFileDialog
+			{
+				InitialDirectory = Config.PathEntries.RomAbsolutePath(Emulator.SystemId),
+				Filter = ProjectInfo.Project_Filter,
+				RestoreDirectory = false,
+				FilterIndex = _lastOpenRomFilter
+			};
+
+			if (this.ShowDialogWithTempMute(ofd) != DialogResult.OK)
+				return;
+
+			CreateNewProjectInternal(template, ofd.FileName);
+		}
 
 		private void OpenRom()
 		{
@@ -2269,60 +2329,9 @@ namespace Pixtro.Client.Editor
 			}
 		}
 
-		private Color SlotForeColor(int slot)
-		{
-			return HasSlot(slot)
-				? Config.SaveSlot == slot
-					? SystemColors.HighlightText
-					: SystemColors.WindowText
-				: SystemColors.GrayText;
-		}
-
-		private Color SlotBackColor(int slot)
-		{
-			return  Config.SaveSlot == slot
-				? SystemColors.Highlight
-				: SystemColors.Control;
-		}
-
 		public void UpdateStatusSlots()
 		{
 			_stateSlots.Update(Emulator, MovieSession.Movie, SaveStatePrefix());
-
-			Slot0StatusButton.ForeColor = SlotForeColor(0);
-			Slot1StatusButton.ForeColor = SlotForeColor(1);
-			Slot2StatusButton.ForeColor = SlotForeColor(2);
-			Slot3StatusButton.ForeColor = SlotForeColor(3);
-			Slot4StatusButton.ForeColor = SlotForeColor(4);
-			Slot5StatusButton.ForeColor = SlotForeColor(5);
-			Slot6StatusButton.ForeColor = SlotForeColor(6);
-			Slot7StatusButton.ForeColor = SlotForeColor(7);
-			Slot8StatusButton.ForeColor = SlotForeColor(8);
-			Slot9StatusButton.ForeColor = SlotForeColor(9);
-
-			Slot0StatusButton.BackColor = SlotBackColor(0);
-			Slot1StatusButton.BackColor = SlotBackColor(1);
-			Slot2StatusButton.BackColor = SlotBackColor(2);
-			Slot3StatusButton.BackColor = SlotBackColor(3);
-			Slot4StatusButton.BackColor = SlotBackColor(4);
-			Slot5StatusButton.BackColor = SlotBackColor(5);
-			Slot6StatusButton.BackColor = SlotBackColor(6);
-			Slot7StatusButton.BackColor = SlotBackColor(7);
-			Slot8StatusButton.BackColor = SlotBackColor(8);
-			Slot9StatusButton.BackColor = SlotBackColor(9);
-
-			SaveSlotsStatusLabel.Visible =
-				Slot0StatusButton.Visible =
-				Slot1StatusButton.Visible =
-				Slot2StatusButton.Visible =
-				Slot3StatusButton.Visible =
-				Slot4StatusButton.Visible =
-				Slot5StatusButton.Visible =
-				Slot6StatusButton.Visible =
-				Slot7StatusButton.Visible =
-				Slot8StatusButton.Visible =
-				Slot9StatusButton.Visible =
-				Emulator.HasSavestates();
 		}
 
 		public BitmapBuffer CaptureOSD()
@@ -3528,12 +3537,7 @@ namespace Pixtro.Client.Editor
 
 					// restarts the lua console if a different rom is loaded.
 					// im not really a fan of how this is done..
-					if (Config.RecentRoms.Empty || Config.RecentRoms.MostRecent != openAdvancedArgs)
-					{
-						Tools.Restart<LuaConsole>();
-					}
 
-					Config.RecentRoms.Add(openAdvancedArgs);
 					JumpLists.AddRecentItem(openAdvancedArgs, ioa.DisplayName);
 
 					// Don't load Save Ram if a movie is being loaded
@@ -3627,8 +3631,34 @@ namespace Pixtro.Client.Editor
 			_stateSlots.ClearRedoList();
 			UpdateStatusSlots();
 			UpdateCoreStatusBarButton();
-			UpdateDumpInfo();
 			SetMainformMovieInfo();
+		}
+
+		private void OpenProjectInternal(string path)
+		{
+			Project = new ProjectInfo(path);
+		}
+
+		private bool CreateNewProjectInternal(ProjectTemplate template, string path)
+		{
+			try
+			{
+				// TODO: How do we want to handle saving over a project file that already exists?  Delete everything in the folder?  Just rename it?  Don't create a new project?
+				if (File.Exists(path))
+					return false;
+
+				string dir = Path.GetDirectoryName(path);
+
+				template.CopyTo(dir);
+
+				Project = new ProjectInfo(path);
+			}
+			catch
+			{
+				return false;
+			}
+
+			return true;
 		}
 
 		private void CommitCoreSettingsToConfig()
@@ -3994,154 +4024,6 @@ namespace Pixtro.Client.Editor
 			}
 
 			return true;
-		}
-
-		private void SaveStateAs()
-		{
-			if (!Emulator.HasSavestates())
-			{
-				return;
-			}
-
-
-			if (IsSavestateSlave)
-			{
-				Master.SaveStateAs();
-				return;
-			}
-
-			var path = Config.PathEntries.SaveStateAbsolutePath(Game.System);
-
-			var file = new FileInfo(path);
-			if (file.Directory != null && !file.Directory.Exists)
-			{
-				file.Directory.Create();
-			}
-
-			using var sfd = new SaveFileDialog
-			{
-				AddExtension = true,
-				DefaultExt = "State",
-				Filter = new FilesystemFilterSet(FilesystemFilter.EmuHawkSaveStates).ToString(),
-				InitialDirectory = path,
-				FileName = $"{SaveStatePrefix()}.QuickSave0.State"
-			};
-
-			if (this.ShowDialogWithTempMute(sfd) == DialogResult.OK)
-			{
-				SaveState(sfd.FileName, sfd.FileName);
-			}
-		}
-
-		private void LoadStateAs()
-		{
-			if (!Emulator.HasSavestates())
-			{
-				return;
-			}
-
-			if (IsSavestateSlave)
-			{
-				Master.LoadStateAs();
-				return;
-			}
-
-			using var ofd = new OpenFileDialog
-			{
-				InitialDirectory = Config.PathEntries.SaveStateAbsolutePath(Game.System),
-				Filter = new FilesystemFilterSet(FilesystemFilter.EmuHawkSaveStates).ToString(),
-				RestoreDirectory = true
-			};
-
-			if (this.ShowDialogWithTempMute(ofd) != DialogResult.OK) return;
-
-			if (!File.Exists(ofd.FileName))
-			{
-				return;
-			}
-
-			LoadState(ofd.FileName, Path.GetFileName(ofd.FileName));
-		}
-
-		private void SelectSlot(int slot)
-		{
-			if (Emulator.HasSavestates())
-			{
-				if (IsSavestateSlave)
-				{
-					var handled = Master.SelectSlot(slot);
-					if (handled)
-					{
-						return;
-					}
-				}
-
-				Config.SaveSlot = slot;
-				SaveSlotSelectedMessage();
-				UpdateStatusSlots();
-			}
-		}
-
-		private void PreviousSlot()
-		{
-			if (Emulator.HasSavestates())
-			{
-				if (IsSavestateSlave)
-				{
-					var handled = Master.PreviousSlot();
-					if (handled)
-					{
-						return;
-					}
-				}
-
-				if (Config.SaveSlot == 0)
-				{
-					Config.SaveSlot = 9; // Wrap to end of slot list
-				}
-				else if (Config.SaveSlot > 9)
-				{
-					Config.SaveSlot = 9; // Meh, just in case
-				}
-				else
-				{
-					Config.SaveSlot--;
-				}
-
-				SaveSlotSelectedMessage();
-				UpdateStatusSlots();
-			}
-		}
-
-		private void NextSlot()
-		{
-			if (Emulator.HasSavestates())
-			{
-				if (IsSavestateSlave)
-				{
-					var handled = Master.NextSlot();
-					if (handled)
-					{
-						return;
-					}
-				}
-
-				if (Config.SaveSlot >= 9)
-				{
-					Config.SaveSlot = 0; // Wrap to beginning of slot list
-				}
-				else if (Config.SaveSlot < 0)
-				{
-					Config.SaveSlot = 0; // Meh, just in case
-				}
-				else
-				{
-					Config.SaveSlot++;
-				}
-
-				SaveSlotSelectedMessage();
-				UpdateStatusSlots();
-			}
 		}
 
 		private void CaptureRewind(bool suppressCaptureRewind)

@@ -11,6 +11,5 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<AdditionalFiles Include="$(ProjectDir)../../.stylecop.json" />
-		<Analyzer Include="$(ProjectDir)../../References/BizHawk.SrcGen.ReflectionCache.dll" />
 	</ItemGroup>
 </Project>
