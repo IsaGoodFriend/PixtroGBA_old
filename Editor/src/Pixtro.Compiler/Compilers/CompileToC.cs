@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace GBA_Compiler {
+namespace Pixtro.Compiler {
 
 	public class CompileToC {
 		public enum ArrayType {

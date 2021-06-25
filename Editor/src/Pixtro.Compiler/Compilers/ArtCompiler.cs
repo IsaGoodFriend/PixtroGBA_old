@@ -4,7 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 
-namespace GBA_Compiler {
+namespace Pixtro.Compiler {
 	public delegate uint IndexOnSprite(int x, int y);
 	public class Tileset {
 
@@ -429,6 +429,13 @@ namespace GBA_Compiler {
 			}
 		}
 
+		public static void StartCompiling()
+		{
+			palettesFromSprites.Clear();
+			tilesets.Clear();
+			backgroundsCompiled.Clear();
+		}
+
 		private static Dictionary<string, Color[]> palettesFromSprites = new Dictionary<string, Color[]>();
 
 		public static Dictionary<string, LevelTileset> LevelTilesets;
@@ -436,8 +443,10 @@ namespace GBA_Compiler {
 		private static Dictionary<string, BGTileSet> tilesets = new Dictionary<string, BGTileSet>();
 		private static List<string> backgroundsCompiled = new List<string>();
 
-		public static void Compile(string _path) {
-			string toSavePath = Path.Combine(Compiler.RootPath, "build\\source");
+		public static void Compile(string _path)
+		{
+			StartCompiling();
+			string toSavePath = Path.Combine(Compiler.Settings.ProjectPath, "build\\source");
 
 			LevelTilesets = new Dictionary<string, LevelTileset>();
 
@@ -514,7 +523,7 @@ namespace GBA_Compiler {
 
 						palettesFromSprites.Add(name, palette.ToArray());
 
-						LevelTileset tileset = new LevelTileset(map.Width >> (Compiler.LargeTiles ? 4 : 3), map.Height >> (Compiler.LargeTiles ? 4 : 3));
+						LevelTileset tileset = new LevelTileset(map.Width >> (Compiler.Settings.LargeTiles ? 4 : 3), map.Height >> (Compiler.Settings.LargeTiles ? 4 : 3));
 
 
 						uint getValueSmall (int x, int y) {
@@ -522,12 +531,12 @@ namespace GBA_Compiler {
 						};
 
 						tileset.AddTiles(
-							GetArrayFromSprite(map.Width, map.Height, getValueSmall, Compiler.LargeTiles).GetEnumerator(),
-							Compiler.LargeTiles);
+							GetArrayFromSprite(map.Width, map.Height, getValueSmall, Compiler.Settings.LargeTiles).GetEnumerator(),
+							Compiler.Settings.LargeTiles);
 
 						LevelTilesets.Add(name, tileset);
 
-						_compiler.AddValueDefine(name + "_len", tileset.tiles.Count << (Compiler.LargeTiles ? 2 : 0));
+						_compiler.AddValueDefine(name + "_len", tileset.tiles.Count << (Compiler.Settings.LargeTiles ? 2 : 0));
 
 						_compiler.BeginArray(CompileToC.ArrayType.UInt, name);
 						_compiler.AddRange(Enumerable.ToArray(tileset.Data("asdf")));
@@ -543,11 +552,11 @@ namespace GBA_Compiler {
 
 							int index = 0;
 
-							foreach (var array in read.GetSprites(_largeTiles: Compiler.LargeTiles)) {
+							foreach (var array in read.GetSprites(_largeTiles: Compiler.Settings.LargeTiles)) {
 								string tName =  $"{name}_{index++}";
 
 								var tileset = new LevelTileset(read.Width >> 3, read.Height >> 3);
-								tileset.AddTiles(array.Cast<uint>().GetEnumerator(), Compiler.LargeTiles);
+								tileset.AddTiles(array.Cast<uint>().GetEnumerator(), Compiler.Settings.LargeTiles);
 
 								_compiler.BeginArray(CompileToC.ArrayType.UInt, tName);
 								_compiler.AddRange(array);

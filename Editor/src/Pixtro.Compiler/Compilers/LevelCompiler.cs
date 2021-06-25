@@ -5,13 +5,20 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace GBA_Compiler {
-	public static class LevelCompiler {
-		
+namespace Pixtro.Compiler {
+	public static class LevelCompiler
+	{
+		public static void StartCompiling()
+		{
+			compiledLevels.Clear();
+		}
+
 		static Dictionary<string, CompressedLevel> compiledLevels = new Dictionary<string, CompressedLevel>();
 
-		public static void Compile(string _path, string _tilesetPath) {
-			string toSavePath = Path.Combine(Compiler.RootPath, "build\\source");
+		public static void Compile(string _path, string _tilesetPath)
+		{
+			StartCompiling();
+			string toSavePath = Path.Combine(Compiler.Settings.ProjectPath, "build\\source");
 
 #if !DEBUG
 			bool needsRecompile = false;
@@ -117,7 +124,7 @@ namespace GBA_Compiler {
 				int length = 0;
 				compiler.BeginArray(CompileToC.ArrayType.UInt, "TILESET_" + parse.Name);
 
-				if (Compiler.LargeTiles) {
+				if (Compiler.Settings.LargeTiles) {
 					LevelTileset tileset = new LevelTileset();
 					foreach (var tile in parse.fullTileset) {
 						for (int i = 0; i < 4; ++i){
@@ -319,7 +326,7 @@ namespace GBA_Compiler {
 
 			// TODO: Add support for this at some point.
 
-			var reader = new LevelBinReader(_path, "PIXTRO_LVL");
+			var reader = new BinaryFileParser(_path, "PIXTRO_LVL");
 
 			string baseName = Path.GetFileNameWithoutExtension(_path);
 
@@ -338,11 +345,11 @@ namespace GBA_Compiler {
 									level.Width = child.GetInteger("width");
 									level.Height = child.GetInteger("height");
 									level.Layers = child.GetInteger("layers");
-									levelName = child["name"] as string;
+									levelName = child.GetString("name");
 									break;
 								case "layer":
 									int layerIndex = child.GetInteger("index");
-									string[] values = (child["data"] as string).Split('\n');
+									string[] values = (child.GetString("data")).Split('\n');
 
 									for (int i = 0; i < values.Length; ++i) {
 										level.AddLine(layerIndex, i, values[i]);
@@ -387,7 +394,7 @@ namespace GBA_Compiler {
 									entGlobalCount++;
 									entSectionCount[CompressedLevel.DataParse]++;
 
-									currentType = child["name"] as string;
+									currentType = child.GetString("name");
 
 									if (!typeLocalCount.ContainsKey(currentType)) {
 										typeLocalCount.Add(currentType, 0);

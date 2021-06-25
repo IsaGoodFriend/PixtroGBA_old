@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
-namespace GBA_Compiler {
+namespace Pixtro.Compiler {
 	public class LevelParse {
 		public class TileWrapping {
 

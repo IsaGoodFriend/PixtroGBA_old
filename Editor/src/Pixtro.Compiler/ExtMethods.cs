@@ -7,7 +7,7 @@ using System.Text;
 using System.Drawing;
 using Newtonsoft.Json;
 
-namespace GBA_Compiler {
+namespace Pixtro.Compiler {
     public static class ExtMethods {
 
 		public static T GetXY<T>(this T[] _array, int x, int y, int width) {

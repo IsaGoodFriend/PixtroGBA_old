@@ -5,7 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 
-namespace GBA_Compiler {
+namespace Pixtro.Compiler {
 
 	public enum BlendType : ushort {
 		Normal = 0,
