@@ -10,8 +10,10 @@
 /Editor/output64/**
 /Editor/packaged_output/**
 /Editor/test_output/**
+/Editor/TestProjects/**
 /Editor/ExternalProjects/**
 /Editor/ExternalToolProjects/**
+/Editor/packages/**
 
 
 **/Release/**
@@ -24,7 +26,6 @@
 *levels.h
 RandomTestStuff.cs
 pixtro_develop.pnproj
-todo.txt
 
 *.gz
 *.zip
