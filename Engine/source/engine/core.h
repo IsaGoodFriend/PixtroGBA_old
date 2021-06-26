@@ -89,9 +89,18 @@ extern unsigned int game_life, levelpack_life, level_life;
 extern unsigned int game_freeze;
 extern unsigned int engine_flags;
 
+#ifdef __DEBUG__
+
+#define ENG_DFLAG_PAUSE_UPDATES 0x00000001
+
+extern unsigned int debug_engine_flags;
+#define ENGINE_DEBUGFLAG(name) (debug_engine_flags & ENG_DFLAG_##name)
+
+#endif
+
 // Enabled when the engine is loading levels async
 #define LOADING_ASYNC
-#define ENG_FLAG_LOADING_ASYNC 0x0001
+#define ENG_FLAG_LOADING_ASYNC 0x00000001
 
 #define ENGINE_HAS_FLAG(name) (engine_flags & ENG_FLAG_##name)
 #define SET_ENGINE_FLAG(name) (engine_flags |= ENG_FLAG_##name)

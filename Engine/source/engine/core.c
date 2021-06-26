@@ -56,6 +56,9 @@ Routine onfade_routine;
 unsigned int game_life, levelpack_life, level_life;
 unsigned int game_freeze;
 unsigned int engine_flags;
+#ifdef __DEBUG__
+unsigned int debug_engine_flags;
+#endif
 int fade_timer;
 
 // Saveram
@@ -151,12 +154,16 @@ void pixtro_update()
 	}
 	else
 	{
-		// Update engine when not fading
-		if (!fade_timer)
-		{
-			// Update inputs
-			update_presses();
+		// Update inputs
+		update_presses();
 
+		// Update engine when not fading
+#ifdef __DEBUG__
+		if (!fade_timer && !ENGINE_DEBUGFLAG(PAUSE_UPDATES))
+#else
+		if (!fade_timer)
+#endif
+		{
 			// Run over every active entity and run it's custom update
 			for (i = 0; i < max_entities; ++i)
 			{
