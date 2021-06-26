@@ -52,12 +52,12 @@ namespace Pixtro.Client.Editor
 				submenu.DropDownItems.AddRange(coreNames.Select(coreName => {
 					var entry = new ToolStripMenuItem { Text = coreName };
 					entry.Click += ClickHandler;
-					return (ToolStripItem) entry;
+					return (ToolStripItem)entry;
 				}).ToArray());
 				submenu.DropDownOpened += (openedSender, openedArgs) =>
 				{
 					Config.PreferredCores.TryGetValue(groupLabel, out var preferred);
-					foreach (ToolStripMenuItem entry in ((ToolStripMenuItem) openedSender).DropDownItems) entry.Checked = entry.Text == preferred;
+					foreach (ToolStripMenuItem entry in ((ToolStripMenuItem)openedSender).DropDownItems) entry.Checked = entry.Text == preferred;
 				};
 				CoresSubMenu.DropDownItems.Add(submenu);
 			}
@@ -90,7 +90,6 @@ namespace Pixtro.Client.Editor
 			_statusBarDiskLightOffImage = Properties.Resources.LightOff;
 			_linkCableOn = Properties.Resources.Connect16X16;
 			_linkCableOff = Properties.Resources.NoConnect16X16;
-			UpdateCoreStatusBarButton();
 			if (Config.FirstBoot)
 			{
 				ProfileFirstBootLabel.Visible = true;
@@ -129,14 +128,14 @@ namespace Pixtro.Client.Editor
 						|| Path.GetFileName(tuple.Item1) == requestedExtToolDll
 						|| Path.GetFileNameWithoutExtension(tuple.Item1) == requestedExtToolDll);
 
-					if(foundIndex != -1)
+					if (foundIndex != -1)
 						loaded = Tools.LoadExternalToolForm(enabled[foundIndex].Item1, enabled[foundIndex].Item2, skipExtToolWarning: true);
 				}
 				catch
 				{
 				}
 
-				if(loaded == null)
+				if (loaded == null)
 					Console.WriteLine($"requested ext. tool dll {requestedExtToolDll} could not be loaded");
 			}
 		}
@@ -198,7 +197,6 @@ namespace Pixtro.Client.Editor
 			AVIStatusLabel.Image = Properties.Resources.Blank;
 			LedLightStatusLabel.Image = Properties.Resources.LightOff;
 			KeyPriorityStatusLabel.Image = Properties.Resources.Both;
-			CoreNameStatusBarButton.Image = Properties.Resources.CorpHawkSmall;
 			ProfileFirstBootLabel.Image = Properties.Resources.Profile;
 			LinkConnectStatusBarButton.Image = Properties.Resources.Connect16X16;
 			OpenRomContextMenuItem.Image = Properties.Resources.OpenFile;
@@ -536,7 +534,7 @@ namespace Pixtro.Client.Editor
 			}
 
 			// set up networking before Lua
-			byte[] NetworkingTakeScreenshot() => (byte[]) new ImageConverter().ConvertTo(MakeScreenshotImage().ToSysdrawingBitmap(), typeof(byte[]));
+			byte[] NetworkingTakeScreenshot() => (byte[])new ImageConverter().ConvertTo(MakeScreenshotImage().ToSysdrawingBitmap(), typeof(byte[]));
 			NetworkingHelpers = (
 				_argParser.HTTPAddresses == null
 					? null
@@ -905,6 +903,7 @@ namespace Pixtro.Client.Editor
 			}
 		}
 		public GameInfo Game { get; private set; }
+		public GameCommunicator RamCommunication { get; private set; }
 
 		/// <remarks>don't use this, use <see cref="Sound"/></remarks>
 		private Sound _sound;
@@ -1730,7 +1729,9 @@ namespace Pixtro.Client.Editor
 			}
 		}
 
-		private static readonly IList<Type> SpecializedTools = ReflectionCache.Types
+		private static readonly IList<Type> SpecializedTools = new Type[]{ 
+			typeof(GbaGpuView),
+		}
 			.Where(t => typeof(IToolForm).IsAssignableFrom(t) && !t.IsAbstract)
 			.Where(t => t.GetCustomAttribute<SpecializedToolAttribute>() != null)
 			.ToList();
@@ -2118,7 +2119,7 @@ namespace Pixtro.Client.Editor
 			if (releaseBuild)
 			{
 				File.Move(
-					Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba"),
+					Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.release.gba"),
 					Path.Combine(Project.ProjectDirectory, Project.Name + ".gba"));
 
 
@@ -2128,7 +2129,6 @@ namespace Pixtro.Client.Editor
 		public void RunProject()
 		{
 			LoadRom(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba"));
-			//LoadRom(@"C:\Users\IsaGoodFriend\Downloads\BizHawk-2.5.0\roms\WarioLand4\WarioLand4Original.gba");
 		}
 		public bool BuildAndRun()
 		{
@@ -2604,24 +2604,6 @@ namespace Pixtro.Client.Editor
 			return (ModifierKeys & Keys.Alt) != 0 || base.ProcessDialogChar(charCode);
 		}
 
-		private void UpdateCoreStatusBarButton()
-		{
-			var attributes = Emulator.Attributes();
-			var coreDispName = attributes.Released ? attributes.CoreName : $"(Experimental) {attributes.CoreName}";
-			LoadedCoreNameMenuItem.Text = $"Loaded core: {coreDispName} ({Emulator.SystemId})";
-			if (Emulator.IsNull())
-			{
-				CoreNameStatusBarButton.Visible = false;
-				return;
-			}
-
-			CoreNameStatusBarButton.Visible = true;
-
-			CoreNameStatusBarButton.Text = coreDispName;
-			CoreNameStatusBarButton.Image = Emulator.Icon();
-			CoreNameStatusBarButton.ToolTipText = attributes is PortedCoreAttribute ? "(ported) " : "";
-
-		}
 
 		private void ToggleKeyPriority()
 		{
@@ -3514,6 +3496,11 @@ namespace Pixtro.Client.Editor
 					string openAdvancedArgs = $"*{OpenAdvancedSerializer.Serialize(ioa)}";
 					Emulator.Dispose();
 					Emulator = loader.LoadedEmulator;
+
+					using (var fs = File.Open(Path.Combine(Project.ProjectDirectory, "build", "output.map"), FileMode.Open))
+						RamCommunication = new GameCommunicator(Emulator, new StreamReader(fs));
+					ServiceInjector.UpdateServices(_emulator.ServiceProvider, RamCommunication);
+
 					InputManager.SyncControls(Emulator, MovieSession, Config);
 
 					if (oaOpenrom != null && Path.GetExtension(oaOpenrom.Path.Replace("|", "")).ToLowerInvariant() == ".xml")
@@ -3659,8 +3646,8 @@ namespace Pixtro.Client.Editor
 			HandlePlatformMenus();
 			_stateSlots.ClearRedoList();
 			UpdateStatusSlots();
-			UpdateCoreStatusBarButton();
 			SetMainformMovieInfo();
+			RamCommunication.RomLoaded();
 		}
 
 		private void OpenProjectInternal(string path)

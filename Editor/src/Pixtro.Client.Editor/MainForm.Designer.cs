@@ -140,7 +140,6 @@ namespace Pixtro.Client.Editor
 			this.KeyPriorityStatusLabel = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.ProfileFirstBootLabel = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.LinkConnectStatusBarButton = new Pixtro.WinForms.Controls.StatusLabelEx();
-			this.CoreNameStatusBarButton = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.UpdateNotification = new Pixtro.WinForms.Controls.StatusLabelEx();
 			this.MainFormContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
 			this.OpenRomContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
@@ -808,7 +807,6 @@ namespace Pixtro.Client.Editor
             this.KeyPriorityStatusLabel,
             this.ProfileFirstBootLabel,
             this.LinkConnectStatusBarButton,
-            this.CoreNameStatusBarButton,
             this.UpdateNotification});
 			this.MainStatusBar.Location = new System.Drawing.Point(0, 386);
 			this.MainStatusBar.Name = "MainStatusBar";
@@ -896,10 +894,6 @@ namespace Pixtro.Client.Editor
 			this.LinkConnectStatusBarButton.Text = "Link connection is currently enabled";
 			this.LinkConnectStatusBarButton.ToolTipText = "Link connection is currently enabled";
 			this.LinkConnectStatusBarButton.Click += new System.EventHandler(this.LinkConnectStatusBarButton_Click);
-			// 
-			// CoreNameStatusBarButton
-			// 
-			this.CoreNameStatusBarButton.Text = "<core name>";
 			// 
 			// UpdateNotification
 			// 
@@ -1269,7 +1263,6 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx BatchRunnerMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplayConfigMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx extensionsToolStripMenuItem;
-		private Pixtro.WinForms.Controls.StatusLabelEx CoreNameStatusBarButton;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx toolStripMenuItem6;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx toolStripMenuItem7;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx toolStripMenuItem8;

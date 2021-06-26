@@ -13,7 +13,7 @@
                 "C:/devkitPro/libgba/include/"
             ],
             "defines": [
-                "_DEBUG",
+                "__DEBUG__",
                 "UNICODE",
                 "_UNICODE",
                 "ARM7",

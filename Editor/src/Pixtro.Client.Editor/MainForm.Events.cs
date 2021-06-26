@@ -941,7 +941,7 @@ namespace Pixtro.Client.Editor
 
 		private void HexEditorMenuItem_Click(object sender, EventArgs e)
 		{
-			Tools.Load<HexEditor>();
+			var editor = Tools.Load<HexEditor>();
 		}
 
 		private void TraceLoggerMenuItem_Click(object sender, EventArgs e)

@@ -565,6 +565,9 @@
 	    <Private>false</Private>
 	  </Reference>
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Projects\Editors\" />
+	</ItemGroup>
 	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
 	  <Exec Command="xcopy &quot;$(ProjectDir)..\..\..\Engine\source\engine\&quot; &quot;$(TargetDir)engineSource\&quot; /D /s /y&#xD;&#xA;xcopy &quot;$(ProjectDir)..\..\Assets\templates&quot; &quot;$(TargetDir)templates\&quot; /D /e /y&#xD;&#xA;xcopy &quot;$(ProjectDir)..\..\Assets\Makefile.txt&quot; &quot;$(TargetDir)&quot; /D /y&#xD;&#xA;for /r &quot;$(TargetDir)templates\&quot; %25%25f in (&quot;*.gitempty&quot;) do del %25%25f&#xD;&#xA;" />
 	</Target>

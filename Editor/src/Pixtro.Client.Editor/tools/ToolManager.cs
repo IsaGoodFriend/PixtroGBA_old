@@ -730,9 +730,14 @@ namespace Pixtro.Client.Editor
 		}
 
 		private static readonly Lazy<List<string>> LazyAsmTypes = new Lazy<List<string>>(() =>
-			Pixtro.Common.ReflectionCache.Types // Confining the search to only EmuHawk, for now at least, we may want to broaden for external tools one day
-				.Select(t => t.AssemblyQualifiedName)
-				.ToList());
+			{
+				return new List<string>{ 
+				typeof(HexEditor).AssemblyQualifiedName,
+				typeof(RamWatch).AssemblyQualifiedName,
+				typeof(RamSearch).AssemblyQualifiedName,
+				typeof(GbaGpuView).AssemblyQualifiedName,
+				};
+			});
 
 		public bool IsAvailable(Type tool)
 		{
