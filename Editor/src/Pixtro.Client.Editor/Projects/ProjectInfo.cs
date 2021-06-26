@@ -17,8 +17,11 @@ namespace Pixtro.Client.Editor.Projects
 
 
 		public readonly string ProjectPath;
+		public string ProjectDirectory => Path.GetDirectoryName(ProjectPath);
 		private Version formatVersion;
 		private BinaryFileWriter nodes;
+
+		public bool BuiltRelease = false;
 
 		public string Name => Path.GetFileNameWithoutExtension(ProjectPath);
 
@@ -93,7 +96,11 @@ namespace Pixtro.Client.Editor.Projects
 			Save();
 		}
 
-
+		public void CleanProject()
+		{
+			if (Directory.Exists(ProjectDirectory + "\\build"))
+				Directory.Delete(ProjectDirectory + "\\build", true);
+		}
 		public void Save()
 		{
 			nodes.Save(ProjectPath, "pixtro");

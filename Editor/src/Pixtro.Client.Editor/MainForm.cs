@@ -882,6 +882,9 @@ namespace Pixtro.Client.Editor
 					proj.Dispose();
 				}
 
+				if (value != null && proj != null && proj.ProjectPath == value.ProjectPath)
+					return;
+
 				if (proj != null && (value == null || value.ProjectPath != proj.ProjectPath))
 				{
 					var result = MessageBox.Show("Warning!  You currently have a project open and I'm too lazy to check if it's been saved.  Do you want to close this project?", "Pixtro", MessageBoxButtons.YesNo);
@@ -894,6 +897,7 @@ namespace Pixtro.Client.Editor
 					Config.RecentProjects.Add(value.ProjectPath);
 				}
 				proj = value;
+				proj.CleanProject();
 
 				ProjectSubMenu.Enabled = value != null;
 
@@ -2058,7 +2062,9 @@ namespace Pixtro.Client.Editor
 			string[] replacements = new string[]
 			{
 				exeFolder,
-				releaseBuild ? Path.Combine(Path.GetDirectoryName(Project.ProjectPath), Project.Name) : Path.Combine(exeFolder, "dll", "output"),
+				releaseBuild ? Path.Combine(Project.ProjectDirectory, Project.Name) : Path.Combine(exeFolder, "dll", "output"),
+				releaseBuild ? "" : "-D __DEBUG__ ",
+				releaseBuild ? ".release" : "",
 			};
 
 			for (int i = 0; i < replacements.Length; ++i)
@@ -2093,17 +2099,30 @@ namespace Pixtro.Client.Editor
 				};
 
 #if DEBUG
-			Compiler.Compiler.Compile(Path.GetDirectoryName(Project.ProjectPath), args);
+			if (Project.BuiltRelease != releaseBuild)
+			{
+				Project.CleanProject();
+				Project.BuiltRelease = releaseBuild;
+			}
+			Compiler.Compiler.Compile(Project.ProjectDirectory, args);
 #else
 			try
 			{
-				Compiler.Compiler.Compile(Path.GetDirectoryName(Project.ProjectPath), args);
+				Compiler.Compiler.Compile(Project.ProjectDirectory, args);
 			}
 			catch (Exception e)
 			{
 				Console.WriteLine(e);
 			}
 #endif
+			if (releaseBuild)
+			{
+				File.Move(
+					Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba"),
+					Path.Combine(Project.ProjectDirectory, Project.Name + ".gba"));
+
+
+			}
 			return true;
 		}
 		public void RunProject()

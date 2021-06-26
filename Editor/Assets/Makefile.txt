@@ -33,8 +33,8 @@ MUSIC		:= audio
 ARCH	:=	-marm -mthumb-interwork
 # ARCH_T	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O2\
-		-mcpu=arm7tdmi -mtune=arm7tdmi\
+CFLAGS	:=	-g -Wall -O2 {2}\
+		-mcpu=arm7tdmi -mtune=arm7tdmi \
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE)
@@ -136,9 +136,9 @@ else
 # main targets
 #---------------------------------------------------------------------------------
 
-$(OUTPUT).gba	:	$(OUTPUT).elf
+$(OUTPUT){3}.gba :	$(OUTPUT).elf
 
-$(OUTPUT).elf	:	$(OFILES)
+$(OUTPUT).elf	 :	$(OFILES)
 
 $(OFILES_SOURCES) : $(HFILES)
 

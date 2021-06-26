@@ -36,12 +36,10 @@ namespace Pixtro.Compiler {
 			public static string GamePath { get; set; }
 
 			public static bool LargeTiles { get; set; }
-			public static bool DeleteGame { get; set; }
 
 			public static void SetInitialArguments()
 			{
 				LargeTiles = false;
-				DeleteGame = false;
 				Clean = false;
 			}
 			public static void SetArguments(string[] args)
@@ -53,11 +51,8 @@ namespace Pixtro.Compiler {
 					switch (arg[0])
 					{
 						case "-c":
+						case "--clean":
 							Clean = true;
-
-							break;
-						case "-d":
-							DeleteGame = true;
 
 							break;
 						case "-p":
@@ -136,11 +131,6 @@ namespace Pixtro.Compiler {
 			//	}
 			//}
 
-
-			if (Settings.DeleteGame && File.Exists(Settings.GamePath)) {
-				File.Delete(Settings.GamePath);
-			}
-
 			ArtCompiler.Compile(Settings.ProjectPath + "\\art");
 			LevelCompiler.Compile(Settings.ProjectPath + "\\levels", Settings.ProjectPath + "\\art\\tilesets");
 
@@ -158,13 +148,8 @@ namespace Pixtro.Compiler {
 
 			using (StreamWriter sw = cmd.StandardInput) {
 
-				if (Settings.Clean)
-					sw.WriteLine("make clean");
-				else
-					sw.WriteLine($"make -C {Settings.ProjectPath} -f {Settings.EnginePath}/Makefile");
+				sw.WriteLine($"make -C {Settings.ProjectPath} -f {Settings.EnginePath}/Makefile {(Settings.Clean ? "clean" : "")}");
 
-				//if (Arguments.Contains("-run"))
-				//	sw.WriteLine($"{GameName}.gba");
 			}
 
 			cmd.WaitForExit();
