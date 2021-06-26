@@ -121,8 +121,10 @@ load_midground:
 	.code 32
 fade_black:
 	
+	@ if fade factor is zero, then set color value to default values
 	cmp		r0, #0
 	beq		.fade_allcolor
+	@ if fade factor is 5 or greater, make screen fully black
 	cmp		r0, #5
 	bge		.fade_allblack
 	
@@ -155,7 +157,7 @@ fade_black:
 	mov		r3, #512
 	
 	@ r2 = color_bank
-	ldr		r2, =colorbank_bg
+	ldr		r2, =colorbank
 	
 .fade_forloop:
 	
@@ -199,7 +201,7 @@ fade_black:
 	lsl		r0, #24
 
 	@ r1 = color_bank
-	ldr		r1, =colorbank_bg
+	ldr		r1, =colorbank
 	
 	mov		r2, #256
 .fadeac_forloop:

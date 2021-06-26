@@ -2037,6 +2037,16 @@ namespace Pixtro.Client.Editor
 		}
 		public bool BuildProject(bool releaseBuild)
 		{
+#if DEBUG
+			string sourceDir = Directory.GetCurrentDirectory();
+			sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(sourceDir));
+			sourceDir = Path.Combine(sourceDir, "Engine\\source\\engine");
+			string output = Path.Combine(Directory.GetCurrentDirectory(), "engineSource");
+			foreach (var file in Directory.GetFiles(sourceDir)) {
+				string path = file.Replace(sourceDir, output);
+				File.Copy(file, path, true);
+			}
+#endif
 			string exeFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
 			if (File.Exists(Path.Combine(exeFolder, "dll", "output.elf")))

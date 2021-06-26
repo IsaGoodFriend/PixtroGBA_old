@@ -6,6 +6,7 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/build/",
                 "${workspaceFolder}/build/source",
+                "${workspaceFolder}/../Editor/TestProjects/TestEmpty/source",
                 "C:/devkitPro/devkitARM/arm-none-eabi/include",
                 "C:/devkitPro/devkitARM/lib/gcc/arm-none-eabi/10.2.0/include",
                 "C:/devkitPro/libtonc/include/",
@@ -22,12 +23,12 @@
             "browse": {
                 "path": [
                     "${workspaceFolder}/**",
-					"${workspaceFolder}/build/",
-					"${workspaceFolder}/build/source",
+                    "${workspaceFolder}/build/",
+                    "${workspaceFolder}/build/source",
                     "C:/devkitPro/devkitARM/arm-none-eabi/include",
                     "C:/devkitPro/devkitARM/lib/gcc/arm-none-eabi/10.2.0/include",
                     "C:/devkitPro/libtonc/include/",
-					"C:/devkitPro/libgba/include/"
+                    "C:/devkitPro/libgba/include/"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""

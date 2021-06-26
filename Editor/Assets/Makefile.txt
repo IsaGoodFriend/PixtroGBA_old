@@ -67,10 +67,11 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 
 export OUTPUT	:=	{0}/dll/output
 
-export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+export VPATH	:= \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(GRAPHICS),$(CURDIR)/$(dir)) \
-			{0}/engineSource
+			{0}/engineSource \
+			$(foreach dir,$(SOURCES),$(CURDIR)/$(dir))
 			
 SOURCES += {0}/engineSource
 
@@ -102,7 +103,7 @@ endif
 
 export OFILES_BIN := $(addsuffix .o,$(BINFILES))
 
-export OFILES_SOURCES := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+export OFILES_SOURCES := $(CPPFILES:.cpp=.o) $(SFILES:.s=.o) $(CFILES:.c=.o)
 
 export OFILES := $(OFILES_BIN) $(OFILES_SOURCES)
 

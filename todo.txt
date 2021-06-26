@@ -33,10 +33,12 @@ TODO:
 
 
 TODO for Editor:
--- Implement the compiler.
--- Create the project format
+-- Implement the compiler. (done)
+-- Implement project templates (done)
+-- Create the project format (half done)
+	-- Actually figure out what data to put in here
 -- Add level editor.
--- Add multiple controls for different functions, and different functionality (like blender or unity)
+-- Add multiple control windows for different functions, and different functionality (like blender or unity)
 -- Add breakpoints for VSCode maybe? (assuming that's possible)
 -- Create debug code for the source for the editor to add functionality
 -- 

@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "..\\Editor\\TestProjects\\TestEmpty\\source"
 		}
 	],
 	"settings": {
@@ -12,8 +15,8 @@
 			"**/CVS": true,
 			"**/.DS_Store": true,
 			"**/build": true,
-			"**/sprites.*":true,
-			"**/levels.*":true,
+			"**/sprites.*": true,
+			"**/levels.*": true,
 			"*.elf": true,
 			"*.gba": true
 		},
