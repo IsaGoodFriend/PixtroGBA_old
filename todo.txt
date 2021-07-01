@@ -37,11 +37,17 @@ TODO for Editor:
 -- Implement project templates (done)
 -- Create the project format (half done)
 	-- Actually figure out what data to put in here
--- Add level editor.
 -- Add multiple control windows for different functions, and different functionality (like blender or unity)
 -- Add breakpoints for VSCode maybe? (assuming that's possible)
 -- Create debug code for the source for the editor to add functionality
--- 
+-- Add new panels:
+	-- Level Editor.
+		-- Include modes for editing the tilemap and the entities
+	-- Tilemap Editor
+	-- Sprite Editor
+	-- Palette Editor
+-- Update assets when edited outside of the editor
+	
 
 Possible ideas:
 -- Create custom name parsers for art/level arrays

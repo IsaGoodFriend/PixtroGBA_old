@@ -319,21 +319,24 @@ void draw(int x, int y, int sprite, int flip, int prio, int pal)
 
 void begin_drawing()
 {
-
 	is_rendering = 1;
 
 	int i;
 
 	for (i = 0; i < BANK_LIMIT; ++i)
 	{
-
 		if (wait_to_load[i])
 		{
-
 			load_sprite(wait_to_load[i] & 0x0FFFFFFF, i, (wait_to_load[i] >> 28));
 
 			wait_to_load[i] = 0;
 		}
+
+		// Don't animate sprites if update paused
+#ifdef __DEBUG__
+		if (ENGINE_DEBUGFLAG(PAUSE_UPDATES))
+			continue;
+#endif
 
 		if (!anim_bank[i])
 			continue;

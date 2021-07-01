@@ -604,6 +604,26 @@ namespace Pixtro.Client.Editor
 
 			for (; ; )
 			{
+				if (RamCommunication != null)
+				{
+					// Check to see if the game is waiting for the editor to establish the connection
+					if (RamCommunication.debug_game_flags.GetFlag(GameDebugFlags.Waiting))
+					{
+						RamCommunication.debug_game_flags.DisableFlags(GameDebugFlags.Waiting);
+
+						// Load in previous state if reloading game with saved data.  We're doing it this way instead of directly copying saveram to prevent potential misalignments from changed from mappings
+						if (previousSession != null)
+						{
+							RamCommunication.GetStateFrom(previousSession);
+
+							previousSession = null;
+						}
+						// TODO: Setup extra data for debugging
+
+						RamCommunication.debug_engine_flags.EnableFlags(BaseDebugFlags.Ready);
+					}
+				}
+
 				Input.Instance.Update();
 
 				// handle events and dispatch as a hotkey action, or a hotkey button, or an input button
@@ -913,6 +933,7 @@ namespace Pixtro.Client.Editor
 		}
 		public GameInfo Game { get; private set; }
 		public GameCommunicator RamCommunication { get; private set; }
+		private GameCommunicator previousSession;
 
 		/// <remarks>don't use this, use <see cref="Sound"/></remarks>
 		private Sound _sound;
@@ -1793,13 +1814,8 @@ namespace Pixtro.Client.Editor
 
 			var tempLayout = new EditorLayout(this);
 
-			tempLayout.layout = new EditorLayout.LayoutSplit()
-			{
-				Item1 = new EditorLayout.LayoutWindow(panel),
-				Item2 = new EditorLayout.LayoutWindow(panel),
-			};
+			tempLayout.layout = new EditorLayout.LayoutWindow(panel);
 			
-
 			currentLayouts.Add(("tempLayout", tempLayout));
 
 			_displayManagers.Add(new DisplayManager(Config, Emulator, InputManager, MovieSession, GL,
@@ -2142,6 +2158,8 @@ namespace Pixtro.Client.Editor
 				BuildProject(false);
 			}
 			LoadRom(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba"));
+
+
 		}
 		public bool BuildAndRun()
 		{
@@ -3646,6 +3664,7 @@ namespace Pixtro.Client.Editor
 				}
 
 				_isLoadingRom = false;
+
 			}
 		}
 
