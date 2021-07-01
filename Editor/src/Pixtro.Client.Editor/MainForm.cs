@@ -29,7 +29,7 @@ using Pixtro.Client.Editor.CustomControls;
 using Pixtro.Common.PathExtensions;
 using Pixtro.Common.StringExtensions;
 using Pixtro.Emulation.Common.Base_Implementations;
-
+using Pixtro.Emulation.Cores;
 
 namespace Pixtro.Client.Editor
 {
@@ -178,7 +178,6 @@ namespace Pixtro.Client.Editor
 			PathsMenuItem.Image = Properties.Resources.CopyFolder;
 			FirmwaresMenuItem.Image = Properties.Resources.Pcb;
 			MessagesMenuItem.Image = Properties.Resources.MessageConfig;
-			AutofireMenuItem.Image = Properties.Resources.Lightning;
 			RewindOptionsMenuItem.Image = Properties.Resources.Previous;
 			ProfilesMenuItem.Image = Properties.Resources.Profile;
 			SaveConfigMenuItem.Image = Properties.Resources.Save;
@@ -273,18 +272,9 @@ namespace Pixtro.Client.Editor
 				PauseEmulator,
 				SetMainformMovieInfo);
 
-			void MainForm_MouseClick(object sender, MouseEventArgs e)
-			{
-				AutohideCursor(false);
-				if (Config.ShowContextMenu && e.Button == MouseButtons.Right)
-				{
-					MainFormContextMenu.Show(PointToScreen(new Point(e.X, e.Y + MainformMenu.Height)));
-				}
-			}
-			void MainForm_MouseMove(object sender, MouseEventArgs e) => AutohideCursor(false);
-			void MainForm_MouseWheel(object sender, MouseEventArgs e) => MouseWheelTracker += e.Delta;
 			MouseClick += MainForm_MouseClick;
 			MouseMove += MainForm_MouseMove;
+			MouseUp += MainForm_MouseUp;
 
 			InitializeComponent();
 			Icon = Properties.Resources.Logo;
@@ -306,23 +296,9 @@ namespace Pixtro.Client.Editor
 				ShowMessageBox(owner: null, e.Message);
 			}
 
-			// TODO GL - a lot of disorganized wiring-up here
-			// installed separately on Unix (via package manager or from https://developer.nvidia.com/cg-toolkit-download), look in $PATH
-			_presentationPanel = new PresentationPanel(
-				Config,
-				GL,
-				ToggleFullscreen,
-				MainForm_MouseClick,
-				MainForm_MouseMove,
-				MainForm_MouseWheel)
-			{
-				GraphicsControl = { MainWindow = true }
-			};
-			DisplayManager = new DisplayManager(Config, Emulator, InputManager, MovieSession, GL, _presentationPanel, () => DisableSecondaryThrottling);
-			Controls.Add(_presentationPanel);
-			Controls.SetChildIndex(_presentationPanel, 0);
+			InitEditorLayout();
 
-			Tools = new ToolManager(this, Config, DisplayManager, InputManager, Emulator, Game);
+			Tools = new ToolManager(this, Config, _displayManagers[0], InputManager, Emulator, Game);
 			ExtToolManager = new ExternalToolManager(Config.PathEntries, () => (EmuClientApi.SystemIdConverter.Convert(Emulator.SystemId), Game.Hash));
 
 			ProjectTemplate.LoadTemplates();
@@ -367,10 +343,10 @@ namespace Pixtro.Client.Editor
 				_inResizeLoop = false;
 				SetWindowText();
 
-				if (_presentationPanel != null)
-				{
-					_presentationPanel.Resized = true;
-				}
+				//if (_presentationPanel != null)
+				//{
+				//	_presentationPanel.Resized = true;
+				//}
 
 				Sound?.StartSound();
 			};
@@ -394,7 +370,6 @@ namespace Pixtro.Client.Editor
 			InitControls();
 
 			InputManager.ActiveController = new Controller(NullController.Instance.Definition);
-			InputManager.AutoFireController = _autofireNullControls;
 			InputManager.AutofireStickyXorAdapter.SetOnOffPatternFromConfig(Config.AutofireOn, Config.AutofireOff);
 			try
 			{
@@ -576,11 +551,6 @@ namespace Pixtro.Client.Editor
 
 			SynchChrome();
 
-			_presentationPanel.Control.Paint += (o, e) =>
-			{
-				// I would like to trigger a repaint here, but this isn't done yet
-			};
-
 			if (!OSTailoredCode.IsUnixHost && !Config.SkipOutdatedOsCheck)
 			{
 				var (winVersion, win10Release) = OSTailoredCode.HostWindowsVersion.Value;
@@ -656,16 +626,6 @@ namespace Pixtro.Client.Editor
 				InputManager.ActiveController.ApplyAxisConstraints(null);
 
 				InputManager.ActiveController.OR_FromLogical(InputManager.ClickyVirtualPadController);
-				InputManager.AutoFireController.LatchFromPhysical(finalHostController);
-
-				if (InputManager.ClientControls["Autohold"])
-				{
-					InputManager.ToggleStickies();
-				}
-				else if (InputManager.ClientControls["Autofire"])
-				{
-					InputManager.ToggleAutoStickies();
-				}
 
 				// autohold/autofire must not be affected by the following inputs
 				InputManager.ActiveController.Overrides(InputManager.ButtonOverrideAdapter);
@@ -678,7 +638,10 @@ namespace Pixtro.Client.Editor
 				StepRunLoop_Core();
 				StepRunLoop_Throttle();
 
-				Render();
+				for (int i = 0; i < _displayManagers.Count; ++i)
+				{
+					Render(i);
+				}
 
 				CheckMessages();
 
@@ -710,11 +673,12 @@ namespace Pixtro.Client.Editor
 		protected override void Dispose(bool disposing)
 		{
 			// NOTE: this gets called twice sometimes. once by using() in Program.cs and once from winforms internals when the form is closed...
-			if (DisplayManager != null)
+			
+			foreach (var manage in _displayManagers)
 			{
-				DisplayManager.Dispose();
-				DisplayManager = null;
+				manage.Dispose();
 			}
+			_displayManagers.Clear();
 
 			if (disposing)
 			{
@@ -745,6 +709,42 @@ namespace Pixtro.Client.Editor
 		public bool BlockFrameAdvance { get; set; }
 
 		public event Action<bool> OnPauseChanged;
+
+		private List<(string name, EditorLayout layout)> currentLayouts = new List<(string name, EditorLayout layout)>();
+		private int layoutIndex;
+		public int CurrentLayoutIndex
+		{
+			get => layoutIndex;
+			set
+			{
+				if (layoutIndex != value)
+				{
+					ChangeLayout(value);
+				}
+			}
+		}
+		public string CurrentLayoutName
+		{
+			get => currentLayouts[layoutIndex].name;
+			set
+			{
+				if (currentLayouts[layoutIndex].name != value)
+				{
+					int index;
+					for (index = 0; index < currentLayouts.Count; ++index)
+						if (currentLayouts[index].name == value)
+							break;
+
+					if (index == currentLayouts.Count)
+						return;
+
+					CurrentLayoutIndex = index;
+				}
+			}
+		}
+		public EditorLayout CurrentLayout => currentLayouts[layoutIndex].layout;
+
+		public Rectangle EditorBounds => new Rectangle(0, MainformMenu.Bottom, ClientSize.Width, ClientSize.Height - (MainformMenu.Height + MainStatusBar.Height));
 
 		public string CurrentlyOpenRom { get; private set; } // todo - delete me and use only args instead
 		public LoadRomArgs CurrentlyOpenRomArgs { get; private set; }
@@ -806,7 +806,7 @@ namespace Pixtro.Client.Editor
 		/// </summary>
 		public static bool DisableSecondaryThrottling { get; set; }
 
-		public void AddOnScreenMessage(string message) => OSD.AddMessage(message);
+		public void AddOnScreenMessage(string message) { } // => OSD.AddMessage(message);
 
 		public void ClearHolds()
 		{
@@ -835,7 +835,7 @@ namespace Pixtro.Client.Editor
 			private set
 			{
 				_emulator = value;
-				_currentVideoProvider = value.AsVideoProviderOrDefault();
+				_emuVideoProvider = value.AsVideoProviderOrDefault();
 				_currentSoundProvider = value.AsSoundProviderOrDefault();
 			}
 		}
@@ -844,7 +844,7 @@ namespace Pixtro.Client.Editor
 
 		private readonly InputManager InputManager;
 
-		private IVideoProvider _currentVideoProvider = NullVideo.Instance;
+		private IVideoProvider _emuVideoProvider = NullVideo.Instance;
 
 		private ISoundProvider _currentSoundProvider = new NullSound(44100 / 60); // Reasonable default until we have a core instance
 
@@ -863,9 +863,9 @@ namespace Pixtro.Client.Editor
 
 		public readonly ToolManager Tools;
 
-		private DisplayManager DisplayManager;
+		private readonly List<DisplayManager> _displayManagers = new List<DisplayManager>();
 
-		private OSDManager OSD => DisplayManager.OSD;
+		private OSDManager OSD => null;
 
 		public IMovieSession MovieSession { get; }
 
@@ -877,13 +877,16 @@ namespace Pixtro.Client.Editor
 			{
 				if (proj != null)
 				{
+#if !DEBUG
+					proj.CleanProject();
+#endif
 					proj.Dispose();
 				}
 
 				if (value != null && proj != null && proj.ProjectPath == value.ProjectPath)
 					return;
 
-				if (proj != null && (value == null || value.ProjectPath != proj.ProjectPath))
+				if (value != null && proj != null)
 				{
 					var result = MessageBox.Show("Warning!  You currently have a project open and I'm too lazy to check if it's been saved.  Do you want to close this project?", "Pixtro", MessageBoxButtons.YesNo);
 					if (result == DialogResult.No)
@@ -893,9 +896,15 @@ namespace Pixtro.Client.Editor
 				if (value != null)
 				{
 					Config.RecentProjects.Add(value.ProjectPath);
+#if !DEBUG
+					value.CleanProject();
+#endif
+				}
+				else
+				{
+					CloseRom();
 				}
 				proj = value;
-				proj.CleanProject();
 
 				ProjectSubMenu.Enabled = value != null;
 
@@ -1067,13 +1076,13 @@ namespace Pixtro.Client.Editor
 
 			//if we found mouse coordinates (and why wouldn't we?) then translate them now
 			//NOTE: these must go together, because in the case of screen rotation, X and Y are transformed together
-			if(mouseX != null && mouseY != null)
+			if (mouseX != null && mouseY != null)
 			{
-				var p = DisplayManager.UntransformPoint(new Point((int) mouseX.Value.Value, (int) mouseY.Value.Value));
-				float x = p.X / (float)_currentVideoProvider.BufferWidth;
-				float y = p.Y / (float)_currentVideoProvider.BufferHeight;
-				finalHostController.AcceptNewAxis("WMouse X", (int) ((x * 20000) - 10000));
-				finalHostController.AcceptNewAxis("WMouse Y", (int) ((y * 20000) - 10000));
+				var p = new Point(0, 0);// DisplayManager.UntransformPoint(new Point((int) mouseX.Value.Value, (int) mouseY.Value.Value));
+				float x = p.X / (float)_emuVideoProvider.BufferWidth;
+				float y = p.Y / (float)_emuVideoProvider.BufferHeight;
+				finalHostController.AcceptNewAxis("WMouse X", (int)((x * 20000) - 10000));
+				finalHostController.AcceptNewAxis("WMouse Y", (int)((y * 20000) - 10000));
 			}
 
 		}
@@ -1120,7 +1129,7 @@ namespace Pixtro.Client.Editor
 
 		private void TakeScreenshotClientToClipboard()
 		{
-			using var bb = DisplayManager.RenderOffscreen(_currentVideoProvider, Config.ScreenshotCaptureOsd);
+			using var bb = _displayManagers[0].RenderOffscreen(_emuVideoProvider, Config.ScreenshotCaptureOsd);
 			bb.ToSysdrawingBitmap().ToClipBoard();
 			AddOnScreenMessage("Screenshot (client) saved to clipboard.");
 		}
@@ -1174,51 +1183,6 @@ namespace Pixtro.Client.Editor
 		public void FrameBufferResized()
 		{
 			return;
-
-			// run this entire thing exactly twice, since the first resize may adjust the menu stacking
-			for (int i = 0; i < 2; i++)
-			{
-				int zoom = Config.TargetZoomFactors[Emulator.SystemId];
-				var area = Screen.FromControl(this).WorkingArea;
-
-				int borderWidth = Size.Width - _presentationPanel.Control.Size.Width;
-				int borderHeight = Size.Height - _presentationPanel.Control.Size.Height;
-
-				// start at target zoom and work way down until we find acceptable zoom
-				Size lastComputedSize = new Size(1, 1);
-				for (; zoom >= 1; zoom--)
-				{
-					lastComputedSize = DisplayManager.CalculateClientSize(_currentVideoProvider, zoom);
-					if (lastComputedSize.Width + borderWidth < area.Width
-						&& lastComputedSize.Height + borderHeight < area.Height)
-					{
-						break;
-					}
-				}
-
-//				Util.DebugWriteLine($"For emulator framebuffer {new Size(_currentVideoProvider.BufferWidth, _currentVideoProvider.BufferHeight)}:");
-//				Util.DebugWriteLine($"  For virtual size {new Size(_currentVideoProvider.VirtualWidth, _currentVideoProvider.VirtualHeight)}:");
-//				Util.DebugWriteLine($"  Selecting display size {lastComputedSize}");
-
-				// Change size
-				Size = new Size(lastComputedSize.Width + borderWidth, lastComputedSize.Height + borderHeight);
-				PerformLayout();
-				_presentationPanel.Resized = true;
-
-				// Is window off the screen at this size?
-				if (!area.Contains(Bounds))
-				{
-					if (Bounds.Right > area.Right) // Window is off the right edge
-					{
-						Location = new Point(area.Right - Size.Width, Location.Y);
-					}
-
-					if (Bounds.Bottom > area.Bottom) // Window is off the bottom edge
-					{
-						Location = new Point(Location.X, area.Bottom - Size.Height);
-					}
-				}
-			}
 		}
 
 		private void SynchChrome()
@@ -1252,8 +1216,6 @@ namespace Pixtro.Client.Editor
 
 		public void ToggleFullscreen(bool allowSuppress = false)
 		{
-			AutohideCursor(false);
-
 			// prohibit this operation if the current controls include LMouse
 			if (allowSuppress)
 			{
@@ -1295,7 +1257,6 @@ namespace Pixtro.Client.Editor
 				WindowState = FormWindowState.Maximized; // be sure to do this after setting the chrome, otherwise it wont work fully
 				ResumeLayout();
 
-				_presentationPanel.Resized = true;
 			}
 			else
 			{
@@ -1488,7 +1449,7 @@ namespace Pixtro.Client.Editor
 		// input state which has been destined for client hotkey consumption are colesced here
 		private readonly InputCoalescer _hotkeyCoalescer = new InputCoalescer();
 
-		private readonly PresentationPanel _presentationPanel;
+		private readonly List<PresentationPanel> _presentationPanels = new List<PresentationPanel>();
 
 		// countdown for saveram autoflushing
 		public int AutoFlushSaveRamIn { get; set; }
@@ -1510,12 +1471,6 @@ namespace Pixtro.Client.Editor
 				if (!Config.DispChromeCaptionWindowed || _argParser._chromeless) return string.Empty; //TODO why would you want this? was this a previous attempt at static window titles?
 
 				var sb = new StringBuilder();
-
-				if (_inResizeLoop)
-				{
-					var size = _presentationPanel.NativeSize;
-					sb.Append($"({size.Width}x{size.Height})={(float) size.Width / size.Height} - ");
-				}
 
 				if (Config.DispSpeedupFeatures == 0)
 				{
@@ -1574,8 +1529,6 @@ namespace Pixtro.Client.Editor
 			HandleToggleLightAndLink();
 		}
 
-		private bool _multiDiskMode;
-
 		// Rom details as decided by MainForm, which shouldn't happen, the RomLoader or Core should be doing this
 		// Better is to just keep the game and rom hashes as properties and then generate the rom info from this
 		private string _defaultRomDetails = "";
@@ -1611,7 +1564,7 @@ namespace Pixtro.Client.Editor
 						{
 							// we're eating this one now. The possible negative consequence is that a user could lose
 							// their saveram and not know why
-//							ShowMessageBox(owner: null, "Error: tried to load saveram, but core would not accept it?");
+							//							ShowMessageBox(owner: null, "Error: tried to load saveram, but core would not accept it?");
 							return;
 						}
 
@@ -1729,7 +1682,7 @@ namespace Pixtro.Client.Editor
 			}
 		}
 
-		private static readonly IList<Type> SpecializedTools = new Type[]{ 
+		private static readonly IList<Type> SpecializedTools = new Type[]{
 			typeof(GbaGpuView),
 		}
 			.Where(t => typeof(IToolForm).IsAssignableFrom(t) && !t.IsAbstract)
@@ -1825,6 +1778,53 @@ namespace Pixtro.Client.Editor
 				Emulator,
 				Config.AutofireOn,
 				Config.AutofireOff);
+		}
+
+		private void InitEditorLayout()
+		{
+			var panel = new PresentationPanel(
+		 		Config,
+		 		GL,
+		 		MainForm_MouseClick,
+		 		PresentationPanel_MouseMove,
+		 		MainForm_MouseWheel);
+
+			_presentationPanels.Add(panel);
+
+			var tempLayout = new EditorLayout(this);
+
+			tempLayout.layout = new EditorLayout.LayoutSplit()
+			{
+				Item1 = new EditorLayout.LayoutWindow(panel),
+				Item2 = new EditorLayout.LayoutWindow(panel),
+			};
+			
+
+			currentLayouts.Add(("tempLayout", tempLayout));
+
+			_displayManagers.Add(new DisplayManager(Config, Emulator, InputManager, MovieSession, GL,
+				panel, () => DisableSecondaryThrottling));
+
+			Controls.Add(panel);
+			Controls.SetChildIndex(panel, 0);
+
+			tempLayout.layout.ResizeWindow(EditorBounds);
+
+			ChangeLayout(0);
+		}
+
+		private void ChangeLayout(int index)
+		{
+			layoutIndex = index;
+
+			var minSize = CurrentLayout.layout.MinimumSize();
+			minSize += new Size(Width - EditorBounds.Width, Height - EditorBounds.Height);
+
+			CurrentLayout.layout.ResizeWindow(EditorBounds);
+
+			MinimumSize = new Size(
+				Math.Max(minSize.Width, 475),
+				Math.Max(minSize.Height, 125));
 		}
 
 		private void LoadMoviesFromRecent(string path)
@@ -1945,23 +1945,28 @@ namespace Pixtro.Client.Editor
 			foreach (var args in todo) SingleInstanceProcessArgs(args);
 		}
 
-		private void AutohideCursor(bool hide)
-		{
-		}
-
 		public BitmapBuffer MakeScreenshotImage()
 		{
-			return DisplayManager.RenderVideoProvider(_currentVideoProvider);
+			return _displayManagers[0].RenderVideoProvider(_emuVideoProvider);
 		}
 
-		/*internal*/public void Render()
+		public void Render()
+		{
+			for (int i = 0; i < _displayManagers.Count; ++i)
+			{
+				Render(i);
+			}
+		}
+		public void Render(int index)
 		{
 			if (Config.DispSpeedupFeatures == 0)
 			{
 				return;
 			}
 
-			var video = _currentVideoProvider;
+			var video = _emuVideoProvider;
+			var display = _displayManagers[index];
+
 			Size currVideoSize = new Size(video.BufferWidth, video.BufferHeight);
 			Size currVirtualSize = new Size(video.VirtualWidth, video.VirtualHeight);
 
@@ -1986,9 +1991,9 @@ namespace Pixtro.Client.Editor
 			//rendering flakes out egregiously if we have a zero size
 			//can we fix it later not to?
 			if (isZero)
-				DisplayManager.Blank();
+				display.Blank();
 			else
-				DisplayManager.UpdateSource(video);
+				display.UpdateSource(video);
 		}
 
 		// sends a simulation of a plain alt key keystroke
@@ -2039,6 +2044,10 @@ namespace Pixtro.Client.Editor
 		public void CloseProject()
 		{
 			Project = null;
+		}
+		public void SaveProject()
+		{
+			proj.Save();
 		}
 		public bool BuildProject(bool releaseBuild)
 		{
@@ -2128,6 +2137,10 @@ namespace Pixtro.Client.Editor
 		}
 		public void RunProject()
 		{
+			if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba")))
+			{
+				BuildProject(false);
+			}
 			LoadRom(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba"));
 		}
 		public bool BuildAndRun()
@@ -2365,13 +2378,13 @@ namespace Pixtro.Client.Editor
 
 		public BitmapBuffer CaptureOSD()
 		{
-			var bb = DisplayManager.RenderOffscreen(_currentVideoProvider, true);
+			var bb = _displayManagers[0].RenderOffscreen(_emuVideoProvider, true);
 			bb.DiscardAlpha();
 			return bb;
 		}
 		public BitmapBuffer CaptureLua()
 		{
-			var bb = DisplayManager.RenderOffscreenLua(_currentVideoProvider);
+			var bb = _displayManagers[0].RenderOffscreenLua(_emuVideoProvider);
 			bb.DiscardAlpha();
 			return bb;
 		}
@@ -2575,10 +2588,6 @@ namespace Pixtro.Client.Editor
 			AddOnScreenMessage($"Display Vsync set to {(Config.VSync ? "on" : "off")}");
 		}
 
-		private void FdsInsertDiskMenuAdd(string name, string button, string msg)
-		{
-		}
-
 		private const int WmDeviceChange = 0x0219;
 
 		// Alt key hacks
@@ -2646,7 +2655,8 @@ namespace Pixtro.Client.Editor
 			Tools.Restart(Config, Emulator, Game);
 			ExtToolManager.Restart(Config.PathEntries);
 			Sound.Config = Config;
-			DisplayManager.UpdateGlobals(Config, Emulator);
+			foreach (var manage in _displayManagers)
+				manage.UpdateGlobals(Config, Emulator);
 			AddOnScreenMessage($"Config file loaded: {iniPath}");
 		}
 
@@ -2760,7 +2770,8 @@ namespace Pixtro.Client.Editor
 				_lastFastForwardingOrRewinding = isFastForwardingOrRewinding;
 
 				// client input-related duties
-				OSD.ClearGuiText();
+				if (OSD != null)
+					OSD.ClearGuiText();
 
 				CheatList.Pulse();
 
@@ -2840,11 +2851,6 @@ namespace Pixtro.Client.Editor
 
 				CheatList.Pulse();
 
-				if (Emulator.CanPollInput() && Emulator.AsInputPollable().IsLagFrame && Config.AutofireLagFrames)
-				{
-					InputManager.AutoFireController.IncrementStarts();
-				}
-
 				InputManager.AutofireStickyXorAdapter.IncrementLoops(Emulator.CanPollInput() && Emulator.AsInputPollable().IsLagFrame);
 
 				PressFrameAdvance = false;
@@ -2921,7 +2927,8 @@ namespace Pixtro.Client.Editor
 					" >>";
 			}
 
-			OSD.Fps = fpsString;
+			if (OSD != null)
+				OSD.Fps = fpsString;
 
 			// need to refresh window caption in this case
 			if (Config.DispSpeedupFeatures == 0)
@@ -3020,7 +3027,7 @@ namespace Pixtro.Client.Editor
 				}
 				else
 				{
-					aw.SetVideoParameters(_currentVideoProvider.BufferWidth, _currentVideoProvider.BufferHeight);
+					aw.SetVideoParameters(_emuVideoProvider.BufferWidth, _emuVideoProvider.BufferHeight);
 				}
 
 				aw.SetAudioParameters(44100, 2, 16);
@@ -3198,7 +3205,7 @@ namespace Pixtro.Client.Editor
 						{
 							bbIn = Config.AviCaptureOsd
 								? CaptureOSD()
-								: new BitmapBuffer(_currentVideoProvider.BufferWidth, _currentVideoProvider.BufferHeight, _currentVideoProvider.GetVideoBuffer());
+								: new BitmapBuffer(_emuVideoProvider.BufferWidth, _emuVideoProvider.BufferHeight, _emuVideoProvider.GetVideoBuffer());
 
 							bbIn.DiscardAlpha();
 
@@ -3208,7 +3215,7 @@ namespace Pixtro.Client.Editor
 							{
 								if (_avwriterpad)
 								{
-									g.Clear(Color.FromArgb(_currentVideoProvider.BackgroundColor));
+									g.Clear(Color.FromArgb(_emuVideoProvider.BackgroundColor));
 									g.DrawImageUnscaled(bmpIn, (bmpOut.Width - bmpIn.Width) / 2, (bmpOut.Height - bmpIn.Height) / 2);
 								}
 								else
@@ -3219,7 +3226,7 @@ namespace Pixtro.Client.Editor
 								}
 							}
 
-							output = new BmpVideoProvider(bmpOut, _currentVideoProvider.VsyncNumerator, _currentVideoProvider.VsyncDenominator);
+							output = new BmpVideoProvider(bmpOut, _emuVideoProvider.VsyncNumerator, _emuVideoProvider.VsyncDenominator);
 							disposableOutput = (IDisposable) output;
 						}
 						finally
@@ -3242,7 +3249,7 @@ namespace Pixtro.Client.Editor
 						}
 						else
 						{
-							output = _currentVideoProvider;
+							output = _emuVideoProvider;
 						}
 					}
 
@@ -3417,7 +3424,7 @@ namespace Pixtro.Client.Editor
 					ChooseArchive = LoadArchiveChooser,
 					ChoosePlatform = ChoosePlatformForRom,
 					Deterministic = deterministic,
-					MessageCallback = OSD.AddMessage,
+					MessageCallback = OSD == null ? null : OSD.AddMessage,
 					OpenAdvanced = args.OpenAdvanced
 				};
 				FirmwareManager.RecentlyServed.Clear();
@@ -3532,7 +3539,6 @@ namespace Pixtro.Client.Editor
 						}
 
 						_defaultRomDetails = xSw.ToString();
-						_multiDiskMode = true;
 					}
 
 					var romDetails = Emulator.RomDetails();
@@ -3587,8 +3593,11 @@ namespace Pixtro.Client.Editor
 					CurrentlyOpenRom = oaOpenrom?.Path ?? openAdvancedArgs;
 					CurrentlyOpenRomArgs = args;
 					OnRomChanged();
-					DisplayManager.UpdateGlobals(Config, Emulator);
-					DisplayManager.Blank();
+					foreach (var manage in _displayManagers)
+					{
+						manage.UpdateGlobals(Config, Emulator);
+						manage.Blank();
+					}
 					CreateRewinder();
 
 					InputManager.StickyXorAdapter.ClearStickies();
@@ -3642,7 +3651,6 @@ namespace Pixtro.Client.Editor
 
 		private void OnRomChanged()
 		{
-			SetWindowText();
 			HandlePlatformMenus();
 			_stateSlots.ClearRedoList();
 			UpdateStatusSlots();
@@ -3743,7 +3751,6 @@ namespace Pixtro.Client.Editor
 			Emulator.Dispose();
 			Emulator = new NullEmulator();
 			InputManager.ActiveController = new Controller(NullController.Instance.Definition);
-			InputManager.AutoFireController = _autofireNullControls;
 			RewireSound();
 			RebootStatusBarIcon.Visible = false;
 			GameIsClosing = false;
@@ -3765,7 +3772,8 @@ namespace Pixtro.Client.Editor
 				Tools.Restart(Config, Emulator, Game);
 				RewireSound();
 				ClearHolds();
-				DisplayManager.UpdateGlobals(Config, Emulator);
+				foreach (var manage in _displayManagers)
+					manage.UpdateGlobals(Config, Emulator);
 				InputManager.SyncControls(Emulator, MovieSession, Config);
 				Tools.UpdateCheatRelatedTools(null, null);
 				ExtToolManager.BuildToolStrip();
@@ -3884,7 +3892,6 @@ namespace Pixtro.Client.Editor
 				Tools.UpdateToolsBefore();
 				UpdateToolsAfter();
 				UpdateToolsLoadstate();
-				InputManager.AutoFireController.ClearStarts();
 
 				//we don't want to analyze how to intermix movies, rewinding, and states
 				//so purge rewind history when loading a state while doing a movie
@@ -4350,6 +4357,47 @@ namespace Pixtro.Client.Editor
 
 			//BANZAIIIIIIIIIIIIIIIIIIIIIIIIIII
 			LoadRom(args[0]);
+		}
+
+		private void MainForm_MouseClick(object sender, MouseEventArgs e)
+		{
+			if (e.Button == MouseButtons.Left)
+				CurrentLayout.OnLeftMouseDown(e);
+
+			if (Config.ShowContextMenu && e.Button == MouseButtons.Right)
+			{
+				MainFormContextMenu.Show(PointToScreen(new Point(e.X, e.Y + MainformMenu.Height)));
+			}
+
+		}
+		private void MainForm_MouseUp(object sender, MouseEventArgs e)
+		{
+			if (e.Button == MouseButtons.Left)
+				CurrentLayout.OnLeftMouseUp(e);
+		}
+		private void MainForm_MouseMove(object sender, MouseEventArgs e)
+		{
+			CurrentLayout.OnMouseMove(e);
+
+			var point = new Point(0, 0);//_presentationPanel.Control.Location;
+
+			point.X = e.X;
+
+			if (point.Y < MainformMenu.Bottom)
+			{
+				point.Y = MainformMenu.Bottom;
+			}
+
+			//_presentationPanel.Control.Location = point;
+		}
+
+		private void MainForm_MouseWheel(object sender, MouseEventArgs e) => MouseWheelTracker += e.Delta;
+
+		private void PresentationPanel_MouseMove(object sender, MouseEventArgs e)
+		{
+			Control c = sender as Control;
+
+			MainForm_MouseMove(sender, new MouseEventArgs(e.Button, e.Clicks, e.X + c.Location.X, e.Y + c.Location.Y, e.Delta));
 		}
 
 		public IQuickBmpFile QuickBmpFile { get; } = new QuickBmpFile();

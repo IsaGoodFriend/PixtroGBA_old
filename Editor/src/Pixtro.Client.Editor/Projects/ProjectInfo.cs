@@ -23,6 +23,17 @@ namespace Pixtro.Client.Editor.Projects
 
 		public bool BuiltRelease = false;
 
+		private bool dirty;
+		public bool Dirty
+		{
+			get { return dirty; }
+			set
+			{
+				if (value)
+					dirty =true;
+			}
+		}
+
 		public string Name => Path.GetFileNameWithoutExtension(ProjectPath);
 
 		public ProjectInfo(string path)
@@ -98,12 +109,19 @@ namespace Pixtro.Client.Editor.Projects
 
 		public void CleanProject()
 		{
+			if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.elf")))
+				File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.elf"));
+			if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba")))
+				File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.gba"));
+
 			if (Directory.Exists(ProjectDirectory + "\\build"))
 				Directory.Delete(ProjectDirectory + "\\build", true);
 		}
 		public void Save()
 		{
 			nodes.Save(ProjectPath, "pixtro");
+
+			dirty = false;
 		}
 
 		public void Dispose()

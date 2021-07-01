@@ -18,6 +18,8 @@ namespace Pixtro.Client.Editor.Projects
 			public int address { get; private set; }
 			public int size { get; private set; }
 
+			private byte[] state;
+
 			public byte this[int index]
 			{
 				get
@@ -93,11 +95,42 @@ namespace Pixtro.Client.Editor.Projects
 				SetUint(offset, val);
 			}
 
+			public void SaveState()
+			{
+				for (int i = 0; i < size; ++i)
+				{
+					state[i] = GetByte(i);
+				}
+			}
+			public byte[] LoadState()
+			{
+				return state.ToArray(); // Just so you can't dig in and mess with the values
+			}
+			public byte[] GetState()
+			{
+				byte[] retval = new byte[size];
+				for (int i = 0; i < size; ++i)
+				{
+					retval[i] = GetByte(i);
+				}
+
+				return retval;
+			}
+			public void SetState(byte[] bytes)
+			{
+				for (int i = 0; i < size; ++i)
+				{
+					SetByte(i, bytes[i]);
+				}
+			}
+
 			public MemoryMap(MemoryDomain _domain, int _addr, int _size)
 			{
 				domain = _domain;
 				address = _addr;
-				size = _size;
+				size = Math.Max(_size, 1);
+
+				state = new byte[size];
 			}
 		}
 		public static GameCommunicator Instance { get; private set; }
@@ -110,6 +143,9 @@ namespace Pixtro.Client.Editor.Projects
 		private MemoryDomain IWRam, EWRam, PalRam;
 
 		public MemoryMap debug_engine_flags { get; private set; }
+		private readonly MemoryMap[] maps;
+		
+		
 
 		public GameCommunicator(IEmulator emulator, StreamReader memoryMap)
 		{
@@ -119,6 +155,8 @@ namespace Pixtro.Client.Editor.Projects
 			while (!memoryMap.ReadLine().StartsWith("Allocating common symbols")) ;
 
 			string nextLine;
+
+			List<MemoryMap> mapList = new List<MemoryMap>();
 
 			do
 			{
@@ -149,13 +187,34 @@ namespace Pixtro.Client.Editor.Projects
 				switch (split[1])
 				{
 					case "debug_engine_flags":
-						debug_engine_flags = new MemoryMap(domain, parsed, 1);
+						mapList.Add(debug_engine_flags = new MemoryMap(domain, parsed, 1));
 
 						break;
 				}
 
 			} while (!nextLine.Trim().StartsWith(".comment"));
 
+			maps = mapList.ToArray();
+		}
+		public GameCommunicator(IEmulator emulator, StreamReader memoryMap, GameCommunicator previousState)
+			:this(emulator, memoryMap)
+		{
+			GetStateFrom(previousState);
+		}
+
+		public void SaveState()
+		{
+			foreach (var map in maps)
+			{
+				map.SaveState();
+			}
+		}
+		public void GetStateFrom(GameCommunicator other)
+		{
+			for (int i = 0; i < maps.Length; ++i)
+			{
+				maps[i].SetState(other.maps[i].GetState());
+			}
 		}
 
 		public void RomLoaded()

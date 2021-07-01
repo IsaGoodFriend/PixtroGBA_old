@@ -4,8 +4,8 @@ namespace Pixtro.Common
 {
 	public static partial class VersionInfo
 	{
-		public const string SVN_REV = "91";
+		public const string SVN_REV = "100";
 		public const string GIT_BRANCH = "nightly-bugfixes";
-		public const string GIT_SHORTHASH = "312b170";
+		public const string GIT_SHORTHASH = "6688ed6";
 	}
 }

@@ -58,7 +58,7 @@ namespace Pixtro.Client.Editor
 
 		private void ProjectSubMenu_DropDownOpened(object sender, EventArgs e)
 		{
-
+			RunProjectMenuItem.Text = Emulator.IsNull() ? "Run Project" : "Stop Project";
 		}
 
 		private void SaveRamSubMenu_DropDownOpened(object sender, EventArgs e)
@@ -87,7 +87,10 @@ namespace Pixtro.Client.Editor
 
 		private void RunProjectMenuItem_Click(object sender, EventArgs e)
 		{
-			RunProject();
+			if (Emulator.IsNull())
+				RunProject();
+			else
+				CloseRom();
 		}
 
 		private void BuildAndRunMenuItem_Click(object sender, EventArgs e)
@@ -643,15 +646,6 @@ namespace Pixtro.Client.Editor
 			RewireSound();
 		}
 
-		private void AutofireMenuItem_Click(object sender, EventArgs e)
-		{
-			using var form = new AutofireConfig(Config, InputManager.AutoFireController, InputManager.AutofireStickyXorAdapter);
-			var result = form.ShowDialog();
-			AddOnScreenMessage(result.IsOk()
-				? "Autofire settings saved"
-				: "Autofire config aborted");
-		}
-
 		private void RewindOptionsMenuItem_Click(object sender, EventArgs e)
 		{
 			if (Emulator.HasSavestates())
@@ -718,10 +712,6 @@ namespace Pixtro.Client.Editor
 
 				old = Config.VSyncThrottle;
 				Config.VSyncThrottle = false;
-				if (old)
-				{
-					_presentationPanel.Resized = true;
-				}
 			}
 
 			ThrottleMessage();
@@ -736,10 +726,6 @@ namespace Pixtro.Client.Editor
 				Config.ClockThrottle = false;
 				var old = Config.VSyncThrottle;
 				Config.VSyncThrottle = false;
-				if (old)
-				{
-					_presentationPanel.Resized = true;
-				}
 			}
 
 			ThrottleMessage();
@@ -748,7 +734,6 @@ namespace Pixtro.Client.Editor
 		private void VsyncThrottleMenuItem_Click(object sender, EventArgs e)
 		{
 			Config.VSyncThrottle ^= true;
-			_presentationPanel.Resized = true;
 			if (Config.VSyncThrottle)
 			{
 				Config.ClockThrottle = false;
@@ -774,7 +759,6 @@ namespace Pixtro.Client.Editor
 			Config.VSync ^= true;
 			if (!Config.VSyncThrottle) // when vsync throttle is on, vsync is forced to on, so no change to make here
 			{
-				_presentationPanel.Resized = true;
 			}
 
 			VsyncMessage();
@@ -1138,7 +1122,8 @@ namespace Pixtro.Client.Editor
 			using var window = new DisplayConfig(Config, GL);
 			if (window.ShowDialog().IsOk())
 			{
-				DisplayManager.RefreshUserShader();
+				foreach (var manage in _displayManagers)
+					manage.RefreshUserShader();
 				FrameBufferResized();
 				SynchChrome();
 				if (window.NeedReset)
@@ -1296,23 +1281,34 @@ namespace Pixtro.Client.Editor
 				PauseEmulator();
 			}
 		}
-
-		private void TimerMouseIdle_Tick(object sender, EventArgs e)
+		private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
 		{
-			if (_inFullscreen && Config.DispChromeFullscreenAutohideMouse)
+			if (proj != null && proj.Dirty)
 			{
-				AutohideCursor(true);
+				var result = MessageBox.Show("The current project hasn't been saved!\nDo you want to save it now?", "Pixtro", MessageBoxButtons.YesNoCancel);
+
+				switch (result)
+				{
+					case DialogResult.Yes:
+						SaveProject();
+						break;
+					case DialogResult.Cancel:
+						e.Cancel = true;
+						return;
+				}
 			}
+#if !DEBUG
+			value.CleanProject();
+#endif
 		}
 
 		private void MainForm_Enter(object sender, EventArgs e)
 		{
-			AutohideCursor(false);
 		}
 
 		private void MainForm_Resize(object sender, EventArgs e)
 		{
-			_presentationPanel.Resized = true;
+
 		}
 
 		private void MainForm_Shown(object sender, EventArgs e)

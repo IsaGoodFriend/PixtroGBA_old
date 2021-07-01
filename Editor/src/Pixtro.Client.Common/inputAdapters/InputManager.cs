@@ -16,9 +16,6 @@ namespace Pixtro.Client.Common
 		// the original source controller, bound to the user, sort of the "input" port for the chain, i think
 		public Controller ActiveController { get; set; } // TODO: private setter, add a method that takes both controllers in
 
-		// rapid fire version on the user controller, has its own key bindings and is OR'ed against ActiveController
-		public AutofireController AutoFireController { get; set; } // TODO: private setter, add a method that takes both controllers in
-
 		// the "output" port for the controller chain.
 		public CopyControllerAdapter ControllerOutput { get; } = new CopyControllerAdapter();
 
@@ -54,7 +51,6 @@ namespace Pixtro.Client.Common
 			var def = emulator.ControllerDefinition;
 
 			ActiveController = BindToDefinition(def, config.AllTrollers, config.AllTrollersAnalog, config.AllTrollersFeedbacks);
-			AutoFireController = BindToDefinitionAF(emulator, config.AllTrollersAutoFire, config.AutofireOn, config.AutofireOff);
 
 			// allow propagating controls that are in the current controller definition but not in the prebaked one
 			// these two lines shouldn't be required anymore under the new system?
@@ -64,7 +60,7 @@ namespace Pixtro.Client.Common
 			// Wire up input chain
 			ControllerInputCoalescer.Definition = ActiveController.Definition;
 
-			UdLRControllerAdapter.Source = ActiveController.Or(AutoFireController);
+			UdLRControllerAdapter.Source = ActiveController;
 			UdLRControllerAdapter.AllowUdlr = config.AllowUdlr;
 
 			StickyXorAdapter.Source = UdLRControllerAdapter;
@@ -73,17 +69,6 @@ namespace Pixtro.Client.Common
 			session.MovieIn = AutofireStickyXorAdapter;
 			session.StickySource = AutofireStickyXorAdapter;
 			ControllerOutput.Source = session.MovieOut;
-		}
-
-		public void ToggleStickies()
-		{
-			StickyXorAdapter.MassToggleStickyState(ActiveController.PressedButtons);
-			AutofireStickyXorAdapter.MassToggleStickyState(AutoFireController.PressedButtons);
-		}
-
-		public void ToggleAutoStickies()
-		{
-			AutofireStickyXorAdapter.MassToggleStickyState(ActiveController.PressedButtons);
 		}
 
 		private static Controller BindToDefinition(

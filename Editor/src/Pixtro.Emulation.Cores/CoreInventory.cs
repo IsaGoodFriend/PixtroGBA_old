@@ -21,13 +21,6 @@ namespace Pixtro.Emulation.Cores
 
 		public class Core
 		{
-			private class RomGameFake : IRomAsset
-			{
-				public byte[] RomData { get; set; }
-				public byte[] FileData { get; set; }
-				public string Extension { get; set; }
-				public GameInfo Game { get; set; }
-			}
 
 			// map parameter names to locations in the constructor
 			private readonly Dictionary<string, int> _paramMap = new Dictionary<string, int>();

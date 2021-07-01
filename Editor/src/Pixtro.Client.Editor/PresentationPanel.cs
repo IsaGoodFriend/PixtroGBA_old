@@ -14,30 +14,26 @@ namespace Pixtro.Client.Editor
 	{
 		private readonly Config _config;
 
-		private readonly Action<bool> _fullscreenToggleCallback;
 
 		public PresentationPanel(
 			Config config,
 			IGL gl,
-			Action<bool> fullscreenToggleCallback,
 			MouseEventHandler onClick,
 			MouseEventHandler onMove,
 			MouseEventHandler onWheel)
 		{
 			_config = config;
 
-			_fullscreenToggleCallback = fullscreenToggleCallback;
 
 			GraphicsControl = new GraphicsControl(gl)
 			{
-				Dock = DockStyle.Fill,
+				Dock = DockStyle.None,
 				BackColor = Color.Black
 			};
 
 			// pass through these events to the form. we might need a more scalable solution for mousedown etc. for zapper and whatnot.
 			// http://stackoverflow.com/questions/547172/pass-through-mouse-events-to-parent-control (HTTRANSPARENT)
 			GraphicsControl.MouseClick += onClick;
-			GraphicsControl.MouseDoubleClick += HandleFullscreenToggle;
 			GraphicsControl.MouseMove += onMove;
 			GraphicsControl.MouseWheel += onWheel;
 		}
@@ -55,19 +51,6 @@ namespace Pixtro.Client.Editor
 
 		public Control Control => GraphicsControl;
 		public static implicit operator Control(PresentationPanel self) { return self.GraphicsControl; }
-
-		private void HandleFullscreenToggle(object sender, MouseEventArgs e)
-		{
-			if (e.Button == MouseButtons.Left)
-			{
-				// allow suppression of the toggle.. but if shift is pressed, always do the toggle
-				bool allowSuppress = Control.ModifierKeys != Keys.Shift;
-				if (_config.DispChromeAllowDoubleClickFullscreen || !allowSuppress)
-				{
-					_fullscreenToggleCallback(allowSuppress);
-				}
-			}
-		}
 
 		public bool Resized { get; set; }
 

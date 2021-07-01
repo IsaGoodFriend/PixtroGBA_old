@@ -67,7 +67,6 @@ namespace Pixtro.Client.Editor
 			this.PathsMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.FirmwaresMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.MessagesMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.AutofireMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.RewindOptionsMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.extensionsToolStripMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.ClientOptionsMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
@@ -181,7 +180,6 @@ namespace Pixtro.Client.Editor
 			this.ClearSRAMContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.ShowMenuContextMenuSeparator = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
 			this.ShowMenuContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.timerMouseIdle = new System.Windows.Forms.Timer(this.components);
 			this.MainformMenu.SuspendLayout();
 			this.MainStatusBar.SuspendLayout();
 			this.MainFormContextMenu.SuspendLayout();
@@ -427,7 +425,6 @@ namespace Pixtro.Client.Editor
             this.PathsMenuItem,
             this.FirmwaresMenuItem,
             this.MessagesMenuItem,
-            this.AutofireMenuItem,
             this.RewindOptionsMenuItem,
             this.extensionsToolStripMenuItem,
             this.ClientOptionsMenuItem,
@@ -478,11 +475,6 @@ namespace Pixtro.Client.Editor
 			// 
 			this.MessagesMenuItem.Text = "&Messages...";
 			this.MessagesMenuItem.Click += new System.EventHandler(this.MessagesMenuItem_Click);
-			// 
-			// AutofireMenuItem
-			// 
-			this.AutofireMenuItem.Text = "&Autofire...";
-			this.AutofireMenuItem.Click += new System.EventHandler(this.AutofireMenuItem_Click);
 			// 
 			// RewindOptionsMenuItem
 			// 
@@ -808,7 +800,7 @@ namespace Pixtro.Client.Editor
             this.ProfileFirstBootLabel,
             this.LinkConnectStatusBarButton,
             this.UpdateNotification});
-			this.MainStatusBar.Location = new System.Drawing.Point(0, 386);
+			this.MainStatusBar.Location = new System.Drawing.Point(0, 425);
 			this.MainStatusBar.Name = "MainStatusBar";
 			this.MainStatusBar.ShowItemToolTips = true;
 			this.MainStatusBar.SizingGrip = false;
@@ -1071,11 +1063,6 @@ namespace Pixtro.Client.Editor
 			this.toolStripMenuItem12.Text = "&Messages...";
 			this.toolStripMenuItem12.Click += new System.EventHandler(this.MessagesMenuItem_Click);
 			// 
-			// toolStripMenuItem13
-			// 
-			this.toolStripMenuItem13.Text = "&Autofire...";
-			this.toolStripMenuItem13.Click += new System.EventHandler(this.AutofireMenuItem_Click);
-			// 
 			// toolStripMenuItem14
 			// 
 			this.toolStripMenuItem14.Text = "&Rewind...";
@@ -1121,24 +1108,20 @@ namespace Pixtro.Client.Editor
 			this.ShowMenuContextMenuItem.Text = "Show Menu";
 			this.ShowMenuContextMenuItem.Click += new System.EventHandler(this.ShowMenuContextMenuItem_Click);
 			// 
-			// timerMouseIdle
-			// 
-			this.timerMouseIdle.Enabled = true;
-			this.timerMouseIdle.Interval = 2000;
-			this.timerMouseIdle.Tick += new System.EventHandler(this.TimerMouseIdle_Tick);
-			// 
 			// MainForm
 			// 
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-			this.ClientSize = new System.Drawing.Size(470, 408);
+			this.ClientSize = new System.Drawing.Size(585, 447);
 			this.Controls.Add(this.MainStatusBar);
 			this.Controls.Add(this.MainformMenu);
 			this.Font = new System.Drawing.Font("Arial", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.MainMenuStrip = this.MainformMenu;
+			this.MinimumSize = new System.Drawing.Size(475, 125);
 			this.Name = "MainForm";
 			this.Activated += new System.EventHandler(this.MainForm_Activated);
 			this.Deactivate += new System.EventHandler(this.MainForm_Deactivate);
+			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
 			this.Load += new System.EventHandler(this.MainForm_Load);
 			this.Shown += new System.EventHandler(this.MainForm_Shown);
 			this.Enter += new System.EventHandler(this.MainForm_Enter);
@@ -1232,7 +1215,6 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.StatusLabelEx AVIStatusLabel;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RestartMovieContextMenuItem;
 		private Pixtro.WinForms.Controls.StatusLabelEx CheatStatusButton;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx AutofireMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ShowMenuContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ForumsMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ScreenshotContextMenuItem;
@@ -1285,7 +1267,6 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveRAMSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx FlushSaveRAMMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx MultiDiskBundlerFileMenuItem;
-		private System.Windows.Forms.Timer timerMouseIdle;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx miUnthrottled;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx toolStripMenuItem17;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx Frameskip1MenuItem;
