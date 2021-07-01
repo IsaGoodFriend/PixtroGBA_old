@@ -69,10 +69,6 @@ namespace Pixtro.Client.Common
 		[LuaMethod("closerom", "Closes the loaded Rom")]
 		public void CloseRom() => APIs.EmuClient.CloseRom();
 
-		[LuaMethodExample("client.enablerewind( true );")]
-		[LuaMethod("enablerewind", "Sets whether or not the rewind feature is enabled")]
-		public void EnableRewind(bool enabled) => APIs.EmuClient.EnableRewind(enabled);
-
 		[LuaMethodExample("client.frameskip( 8 );")]
 		[LuaMethod("frameskip", "Sets the frame skip value of the client UI (use 0 to disable)")]
 		public void FrameSkip(int numFrames) => APIs.EmuClient.FrameSkip(numFrames);

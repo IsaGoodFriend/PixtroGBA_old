@@ -38,9 +38,6 @@ namespace Pixtro.Client.Editor
 
 		int? PauseOnFrame { get; set; }
 
-		/// <remarks>only referenced from <see cref="PlaybackBox"/></remarks>
-		bool PressRewind { set; }
-
 		/// <remarks>only referenced from <see cref="TAStudio"/></remarks>
 		IQuickBmpFile QuickBmpFile { get; }
 
@@ -50,12 +47,6 @@ namespace Pixtro.Client.Editor
 		void AddOnScreenMessage(string message);
 
 		BitmapBuffer CaptureOSD();
-
-		/// <remarks>only referenced from <see cref="TAStudio"/></remarks>
-		void DisableRewind();
-
-		/// <remarks>only referenced from <see cref="TAStudio"/></remarks>
-		void EnableRewind(bool enabled);
 
 		/// <remarks>only referenced from <see cref="TAStudio"/></remarks>
 		bool EnsureCoreIsAccurate();

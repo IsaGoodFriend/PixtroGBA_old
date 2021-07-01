@@ -178,7 +178,6 @@ namespace Pixtro.Client.Editor
 			PathsMenuItem.Image = Properties.Resources.CopyFolder;
 			FirmwaresMenuItem.Image = Properties.Resources.Pcb;
 			MessagesMenuItem.Image = Properties.Resources.MessageConfig;
-			RewindOptionsMenuItem.Image = Properties.Resources.Previous;
 			ProfilesMenuItem.Image = Properties.Resources.Profile;
 			SaveConfigMenuItem.Image = Properties.Resources.Save;
 			LoadConfigMenuItem.Image = Properties.Resources.LoadConfig;
@@ -716,6 +715,9 @@ namespace Pixtro.Client.Editor
 
 			private set
 			{
+				if (RamCommunication == null)
+					return;
+
 				if (_emulatorPaused && !value) // Unpausing
 				{
 					InitializeFpsData();
@@ -723,6 +725,28 @@ namespace Pixtro.Client.Editor
 
 				_emulatorPaused = value;
 				OnPauseChanged?.Invoke(_emulatorPaused);
+			}
+		}
+		public bool GamePaused
+		{
+			get => RamCommunication == null ? true : RamCommunication.debug_engine_flags.GetFlag(BaseDebugFlags.PauseUpdates);
+
+			private set
+			{
+				if (RamCommunication == null)
+					return;
+
+				bool currentlyPaused = RamCommunication.debug_engine_flags.GetFlag(BaseDebugFlags.PauseUpdates);
+
+				if (currentlyPaused && !value) // Unpausing
+				{
+					InitializeFpsData();
+				}
+
+				RamCommunication.debug_engine_flags.SetFlag(BaseDebugFlags.PauseUpdates, value);
+
+				//_emulatorPaused = value;
+				//OnPauseChanged?.Invoke(_emulatorPaused);
 			}
 		}
 
@@ -772,7 +796,6 @@ namespace Pixtro.Client.Editor
 		public bool PressFrameAdvance { get; set; }
 		public bool FrameInch { get; set; }
 		public bool HoldFrameAdvance { get; set; } // necessary for tastudio > button
-		public bool PressRewind { get; set; } // necessary for tastudio < button
 		public bool FastForward { get; set; }
 
 		/// <summary>
@@ -950,19 +973,6 @@ namespace Pixtro.Client.Editor
 
 		public (HttpCommunication HTTP, MemoryMappedFiles MMF, SocketServer Sockets) NetworkingHelpers { get; }
 
-		public IRewinder Rewinder { get; private set; }
-
-		public void CreateRewinder()
-		{
-			Rewinder?.Dispose();
-			Rewinder = Emulator.HasSavestates() && Config.Rewind.Enabled
-				? Config.Rewind.UseDelta
-					? new ZeldaWinder(Emulator.AsStatable(), Config.Rewind)
-					: new Zwinder(Emulator.AsStatable(), Config.Rewind)
-				: null;
-			AddOnScreenMessage(Rewinder?.Active == true ? "Rewind started" : "Rewind disabled");
-		}
-
 		public FirmwareManager FirmwareManager { get; }
 
 		protected override void OnActivated(EventArgs e)
@@ -1094,18 +1104,6 @@ namespace Pixtro.Client.Editor
 					mouseY = f;
 				else finalHostController.AcceptNewAxis(f.Key, f.Value);
 			}
-
-			//if we found mouse coordinates (and why wouldn't we?) then translate them now
-			//NOTE: these must go together, because in the case of screen rotation, X and Y are transformed together
-			if (mouseX != null && mouseY != null)
-			{
-				var p = new Point(0, 0);// DisplayManager.UntransformPoint(new Point((int) mouseX.Value.Value, (int) mouseY.Value.Value));
-				float x = p.X / (float)_emuVideoProvider.BufferWidth;
-				float y = p.Y / (float)_emuVideoProvider.BufferHeight;
-				finalHostController.AcceptNewAxis("WMouse X", (int)((x * 20000) - 10000));
-				finalHostController.AcceptNewAxis("WMouse Y", (int)((y * 20000) - 10000));
-			}
-
 		}
 
 		public bool RebootCore()
@@ -1138,7 +1136,21 @@ namespace Pixtro.Client.Editor
 		{
 			EmulatorPaused ^= true;
 			SetPauseStatusBarIcon();
+		}
 
+		public void PauseGame()
+		{
+			GamePaused = true;
+		}
+
+		public void UnpauseGame()
+		{
+			GamePaused = false;
+		}
+
+		public void ToggleGamePause()
+		{
+			GamePaused ^= true;
 		}
 
 		public void TakeScreenshotToClipboard()
@@ -1430,10 +1442,8 @@ namespace Pixtro.Client.Editor
 		private bool _exitRequestPending;
 		private bool _runloopFrameProgress;
 		private long _frameAdvanceTimestamp;
-		private long _frameRewindTimestamp;
-		private bool _frameRewindWasPaused;
 		private bool _runloopFrameAdvance;
-		private bool _lastFastForwardingOrRewinding;
+		private bool _lastFastForwarding;
 		private bool _inResizeLoop;
 
 		private readonly double _fpsUpdatesPerSecond = 4.0;
@@ -1895,18 +1905,12 @@ namespace Pixtro.Client.Editor
 			// skips outputting the audio. There's also a third way which is when no throttle
 			// method is selected, but the clock throttle determines that by itself and
 			// everything appears normal here.
-			var rewind = Rewinder?.Active == true && (InputManager.ClientControls["Rewind"] || PressRewind);
 			var fastForward = InputManager.ClientControls["Fast Forward"] || FastForward;
 			var turbo = IsTurboing;
 
 			int speedPercent = fastForward ? Config.SpeedPercentAlternate : Config.SpeedPercent;
 
-			if (rewind)
-			{
-				speedPercent = Math.Max(speedPercent / Rewinder.RewindFrequency, 5);
-			}
-
-			DisableSecondaryThrottling = _unthrottled || turbo || fastForward || rewind;
+			DisableSecondaryThrottling = _unthrottled || turbo || fastForward;
 
 			// realtime throttle is never going to be so exact that using a double here is wrong
 			_throttle.SetCoreFps(Emulator.VsyncRate());
@@ -1914,7 +1918,7 @@ namespace Pixtro.Client.Editor
 			_throttle.signal_unthrottle = _unthrottled || turbo;
 
 			// zero 26-mar-2016 - vsync and vsync throttle here both is odd, but see comments elsewhere about triple buffering
-			_throttle.signal_overrideSecondaryThrottle = (fastForward || rewind) && (Config.SoundThrottle || Config.VSyncThrottle || Config.VSync);
+			_throttle.signal_overrideSecondaryThrottle = (fastForward) && (Config.SoundThrottle || Config.VSyncThrottle || Config.VSync);
 			_throttle.SetSpeedPercent(speedPercent);
 		}
 
@@ -2770,22 +2774,19 @@ namespace Pixtro.Client.Editor
 				runFrame = true;
 			}
 
-			bool isRewinding = Rewind(ref runFrame, currentTimestamp, out var returnToRecording);
-
 			float atten = 0;
 
 			// BlockFrameAdvance (true when input it being editted in TAStudio) supercedes all other frame advance conditions
 			if ((runFrame || force) && !BlockFrameAdvance)
 			{
 				var isFastForwarding = InputManager.ClientControls["Fast Forward"] || IsTurboing || InvisibleEmulation;
-				var isFastForwardingOrRewinding = isFastForwarding || isRewinding || _unthrottled;
 
-				if (isFastForwardingOrRewinding != _lastFastForwardingOrRewinding)
+				if (isFastForwarding != _lastFastForwarding)
 				{
 					InitializeFpsData();
 				}
 
-				_lastFastForwardingOrRewinding = isFastForwardingOrRewinding;
+				_lastFastForwarding = isFastForwarding;
 
 				// client input-related duties
 				if (OSD != null)
@@ -2806,17 +2807,12 @@ namespace Pixtro.Client.Editor
 					Tools.UpdateToolsBefore();
 				}
 
-				if (!InvisibleEmulation)
-				{
-					CaptureRewind(isRewinding);
-				}
-
 				// Set volume, if enabled
 				if (Config.SoundEnabledNormal && !InvisibleEmulation)
 				{
 					atten = Config.SoundVolume / 100.0f;
 
-					if (isFastForwardingOrRewinding)
+					if (isFastForwarding)
 					{
 						if (Config.SoundEnabledRWFF)
 						{
@@ -2857,16 +2853,6 @@ namespace Pixtro.Client.Editor
 
 				MovieSession.HandleFrameAfter();
 
-				if (returnToRecording)
-				{
-					MovieSession.Movie.SwitchToRecord();
-				}
-
-				if (isRewinding && !IsRewindSlave && MovieSession.Movie.IsRecording())
-				{
-					MovieSession.Movie.Truncate(Emulator.Frame);
-				}
-
 				CheatList.Pulse();
 
 				InputManager.AutofireStickyXorAdapter.IncrementLoops(Emulator.CanPollInput() && Emulator.AsInputPollable().IsLagFrame);
@@ -2891,7 +2877,7 @@ namespace Pixtro.Client.Editor
 				{
 					_framesSinceLastFpsUpdate++;
 
-					UpdateFpsDisplay(currentTimestamp, isRewinding, isFastForwarding);
+					UpdateFpsDisplay(currentTimestamp, isFastForwarding);
 				}
 
 
@@ -2902,15 +2888,10 @@ namespace Pixtro.Client.Editor
 				}
 			}
 
-			if (InputManager.ClientControls["Rewind"] || PressRewind)
-			{
-				UpdateToolsAfter();
-			}
-
 			Sound.UpdateSound(atten, DisableSecondaryThrottling);
 		}
 
-		private void UpdateFpsDisplay(long currentTimestamp, bool isRewinding, bool isFastForwarding)
+		private void UpdateFpsDisplay(long currentTimestamp, bool isFastForwarding)
 		{
 			double elapsedSeconds = (currentTimestamp - _timestampLastFpsUpdate) / (double)Stopwatch.Frequency;
 
@@ -2932,13 +2913,7 @@ namespace Pixtro.Client.Editor
 			_timestampLastFpsUpdate = currentTimestamp;
 
 			var fpsString = $"{_lastFps:0} fps";
-			if (isRewinding)
-			{
-				fpsString += IsTurboing || isFastForwarding ?
-					" <<<<" :
-					" <<";
-			}
-			else if (isFastForwarding)
+			if (isFastForwarding)
 			{
 				fpsString += IsTurboing ?
 					" >>>>" :
@@ -3523,7 +3498,7 @@ namespace Pixtro.Client.Editor
 					Emulator = loader.LoadedEmulator;
 
 					using (var fs = File.Open(Path.Combine(Project.ProjectDirectory, "build", "output.map"), FileMode.Open))
-						RamCommunication = new GameCommunicator(Emulator, new StreamReader(fs));
+						RamCommunication = new GameCommunicator(new StreamReader(fs));
 					ServiceInjector.UpdateServices(_emulator.ServiceProvider, RamCommunication);
 
 					InputManager.SyncControls(Emulator, MovieSession, Config);
@@ -3616,7 +3591,6 @@ namespace Pixtro.Client.Editor
 						manage.UpdateGlobals(Config, Emulator);
 						manage.Blank();
 					}
-					CreateRewinder();
 
 					InputManager.StickyXorAdapter.ClearStickies();
 					InputManager.StickyXorAdapter.ClearStickyAxes();
@@ -3758,8 +3732,6 @@ namespace Pixtro.Client.Editor
 			StopAv();
 
 			CommitCoreSettingsToConfig();
-			Rewinder?.Dispose();
-			Rewinder = null;
 
 			if (MovieSession.Movie.IsActive()) // Note: this must be called after CommitCoreSettingsToConfig()
 			{
@@ -3787,7 +3759,6 @@ namespace Pixtro.Client.Editor
 				Emulator.Dispose();
 				Emulator = new NullEmulator();
 				Game = GameInfo.NullInstance;
-				CreateRewinder();
 				Tools.Restart(Config, Emulator, Game);
 				RewireSound();
 				ClearHolds();
@@ -3826,48 +3797,12 @@ namespace Pixtro.Client.Editor
 			//}
 		}
 
-		public void EnableRewind(bool enabled)
-		{
-			if (!Emulator.HasSavestates())
-			{
-				return;
-			}
-
-			if (Rewinder == null)
-			{
-				CreateRewinder();
-			}
-
-			// CreateRewinder doesn't necessarily create an instance of rewinder, still need to check null
-			if (Rewinder != null)
-			{
-				if (enabled)
-				{
-					Rewinder.Resume();
-				}
-				else
-				{
-					Rewinder.Suspend();
-				}
-
-				AddOnScreenMessage($"Rewind {(enabled ? "enabled" : "suspended")}");
-			}
-		}
-
-		public void DisableRewind()
-		{
-			Rewinder?.Dispose();
-			Rewinder = null;
-		}
-
 		// TODO: move me
 		public IControlMainform Master { get; private set; }
 
 		private bool IsSlave => Master != null;
 
 		private bool IsSavestateSlave => IsSlave && Master.WantsToControlSavestates;
-
-		private bool IsRewindSlave => IsSlave && Master.WantsToControlRewind;
 
 		public void RelinquishControl(IControlMainform master)
 		{
@@ -3911,13 +3846,6 @@ namespace Pixtro.Client.Editor
 				Tools.UpdateToolsBefore();
 				UpdateToolsAfter();
 				UpdateToolsLoadstate();
-
-				//we don't want to analyze how to intermix movies, rewinding, and states
-				//so purge rewind history when loading a state while doing a movie
-				if (!IsRewindSlave && MovieSession.Movie.IsActive())
-				{
-					Rewinder?.Clear();
-				}
 
 				if (!suppressOSD)
 				{
@@ -4066,122 +3994,6 @@ namespace Pixtro.Client.Editor
 			}
 
 			return true;
-		}
-
-		private void CaptureRewind(bool suppressCaptureRewind)
-		{
-			if (IsRewindSlave)
-			{
-				Master.CaptureRewind();
-			}
-			else if (!suppressCaptureRewind && Rewinder?.Active == true)
-			{
-				Rewinder.Capture(Emulator.Frame);
-			}
-		}
-
-		private bool Rewind(ref bool runFrame, long currentTimestamp, out bool returnToRecording)
-		{
-			var isRewinding = false;
-
-			returnToRecording = false;
-
-			if (IsRewindSlave)
-			{
-				if (InputManager.ClientControls["Rewind"] || PressRewind)
-				{
-					if (_frameRewindTimestamp == 0)
-					{
-						isRewinding = true;
-						_frameRewindTimestamp = currentTimestamp;
-						_frameRewindWasPaused = EmulatorPaused;
-					}
-					else
-					{
-						double timestampDeltaMs = (double)(currentTimestamp - _frameRewindTimestamp) / Stopwatch.Frequency * 1000.0;
-						isRewinding = timestampDeltaMs >= Config.FrameProgressDelayMs;
-
-						// clear this flag once we get out of the progress stage
-						if (isRewinding)
-						{
-							_frameRewindWasPaused = false;
-						}
-
-						// if we're freely running, there's no need for reverse frame progress semantics (that may be debatable though)
-						if (!EmulatorPaused)
-						{
-							isRewinding = true;
-						}
-
-						if (_frameRewindWasPaused)
-						{
-							if (IsSeeking)
-							{
-								isRewinding = false;
-							}
-						}
-					}
-
-					if (isRewinding)
-					{
-						runFrame = Emulator.Frame > 1; // TODO: the master should be deciding this!
-						Master.Rewind();
-					}
-				}
-				else
-				{
-					_frameRewindTimestamp = 0;
-				}
-
-				return isRewinding;
-			}
-
-			if (Rewinder?.Active == true && (InputManager.ClientControls["Rewind"] || PressRewind))
-			{
-				if (EmulatorPaused)
-				{
-					if (_frameRewindTimestamp == 0)
-					{
-						isRewinding = true;
-						_frameRewindTimestamp = currentTimestamp;
-					}
-					else
-					{
-						double timestampDeltaMs = (double)(currentTimestamp - _frameRewindTimestamp) / Stopwatch.Frequency * 1000.0;
-						isRewinding = timestampDeltaMs >= Config.FrameProgressDelayMs;
-					}
-				}
-				else
-				{
-					isRewinding = true;
-				}
-
-				if (isRewinding)
-				{
-					// Try to avoid the previous frame:  We want to frame advance right after rewinding so we can give a useful
-					// framebuffer.
-					var frameToAvoid = Emulator.Frame - 1;
-					runFrame = Rewinder.Rewind(frameToAvoid);
-					if (Emulator.Frame == frameToAvoid)
-					{
-						// The rewinder was unable to satisfy our request.  Prefer showing a stale framebuffer to
-						// advancing in a way that essentially no-ops the entire rewind.
-						runFrame = false;
-					}
-
-					if (runFrame && MovieSession.Movie.IsRecording())
-					{
-						MovieSession.Movie.SwitchToPlay();
-						returnToRecording = true;
-					}
-				}
-			}
-			else
-			{
-				_frameRewindTimestamp = 0;
-			}
-
-			return isRewinding;
 		}
 
 		public IDialogController DialogController => this;

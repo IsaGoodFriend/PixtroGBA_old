@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using System.Drawing;
 
 namespace Pixtro.Compiler {
 	public class LevelParse {
@@ -114,6 +115,19 @@ namespace Pixtro.Compiler {
 		}
 	}
 	public class CompressedLevel {
+
+		private const int multValue = 57047;
+
+		public static int RNGSeed;
+		private static int RandomFromPoint(Point point)
+		{
+			ulong tempVal = (ulong)(RNGSeed + point.X);
+			tempVal = (tempVal * multValue) % int.MaxValue;
+			tempVal += (ulong)point.Y;
+			tempVal = (tempVal * multValue) % int.MaxValue;
+
+			return (int)tempVal;
+		}
 
 		public static Random Randomizer;
 
@@ -312,7 +326,7 @@ namespace Pixtro.Compiler {
 						if ((testValue & (value)) != 0)
 							continue;
 
-						var point = wrapping.TileMapping[key].GetRandom(Randomizer);
+						var point = wrapping.TileMapping[key].GetValueWrapped(RandomFromPoint(new Point(x, y)));
 
 						if (wrapping.Offsets != null)
 							foreach (var o in wrapping.Offsets.Keys) {

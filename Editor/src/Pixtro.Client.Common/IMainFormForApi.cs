@@ -47,9 +47,6 @@ namespace Pixtro.Client.Common
 		void CloseRom(bool clearSram = false);
 
 		/// <remarks>only referenced from <c>EmuClientApi</c></remarks>
-		void EnableRewind(bool enabled);
-
-		/// <remarks>only referenced from <c>EmuClientApi</c></remarks>
 		bool FlushSaveRAM(bool autosave = false);
 
 		/// <remarks>only referenced from <c>EmuClientApi</c></remarks>

@@ -648,13 +648,6 @@ namespace Pixtro.Client.Editor
 
 		private void RewindOptionsMenuItem_Click(object sender, EventArgs e)
 		{
-			if (Emulator.HasSavestates())
-			{
-				using var form = new RewindConfig(Config, CreateRewinder, () => this.Rewinder, Emulator.AsStatable());
-				AddOnScreenMessage(form.ShowDialog().IsOk()
-					? "Rewind and State settings saved"
-					: "Rewind config aborted");
-			}
 		}
 
 		private void FileExtensionsMenuItem_Click(object sender, EventArgs e)

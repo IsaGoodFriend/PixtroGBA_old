@@ -11,6 +11,15 @@ namespace Pixtro.Client.Editor.Projects
 {
 	public sealed class GameCommunicator
 	{
+		private const int 
+			EWRam_Address = 2,
+			IWRam_Address = 3,
+			IORam_Address = 4,
+			PalRam_Address = 5,
+			VRam_Address = 6,
+			OAM_Address = 7,
+			ROM_Address = 8,
+			SRam_Address = 0xE;
 		private const bool BigEndian = false;
 
 		public sealed class RomMapping
@@ -23,6 +32,10 @@ namespace Pixtro.Client.Editor.Projects
 				Address = addr;
 				Size = size;
 			}
+		}
+		private class DontHotloadAttribute : Attribute
+		{
+
 		}
 		public sealed class MemoryMap
 		{
@@ -128,6 +141,26 @@ namespace Pixtro.Client.Editor.Projects
 
 				SetUint(offset, val);
 			}
+			public void SetFlag(Enum flag, bool value, int offset = 0)
+			{
+				int parsed = Convert.ToInt32(flag);
+
+				for (int i = 0; i < 32; ++i)
+				{
+					if ((parsed & 0x1) > 0)
+					{
+						if (parsed == 1)
+						{
+							SetFlag(i, value, offset);
+							return;
+						}
+
+						throw new ArgumentException();
+					}
+					parsed >>= 1;
+				}
+				throw new Exception();
+			}
 			public void EnableFlags(Enum values, int offset = 0)
 			{
 				uint parsedValues = Convert.ToUInt32(values);
@@ -158,10 +191,7 @@ namespace Pixtro.Client.Editor.Projects
 
 			public void SaveState()
 			{
-				for (int i = 0; i < size; ++i)
-				{
-					state[i] = GetByte(i);
-				}
+				state = GetState();
 			}
 			public byte[] LoadState()
 			{
@@ -170,6 +200,7 @@ namespace Pixtro.Client.Editor.Projects
 			public byte[] GetState()
 			{
 				byte[] retval = new byte[size];
+
 				for (int i = 0; i < size; ++i)
 				{
 					retval[i] = GetByte(i);
@@ -191,32 +222,45 @@ namespace Pixtro.Client.Editor.Projects
 				address = _addr;
 				size = Math.Max(_size, 1);
 
-				state = new byte[size];
 			}
+
+			public static implicit operator uint(MemoryMap map) => map.GetUint(0);
 		}
 		public static GameCommunicator Instance { get; private set; }
-
-		private IEmulator _emulator;
 
 		[RequiredService]
 		private IMemoryDomains MemoryDomains { get; set; }
 
-		private MemoryDomain IWRam, EWRam, PalRam;
+		private MemoryDomain IWRam, EWRam, IORam, PalRam, VRam, OAM, ROM, SRam;
 
 		public IReadOnlyDictionary<string, RomMapping> RomMap => romMap;
+
+		#region Memory Mapping
 
 		public MemoryMap debug_engine_flags { get; private set; }
 		public MemoryMap debug_game_flags { get; private set; }
 		public MemoryMap entities { get; private set; }
+		public MemoryMap loaded_levels_a { get; private set; }
+		public MemoryMap loaded_levels_b { get; private set; }
+		public MemoryMap current_level_index { get; private set; }
+
+		[DontHotload]
+		public MemoryMap LevelRegion { get; private set; }
+		[DontHotload]
+		public MemoryMap Palettes { get; private set; }
+		[DontHotload]
+		public MemoryMap TileData { get; private set; }
+		[DontHotload]
+		public MemoryMap SpriteData { get; private set; }
 
 		private MemoryMap[] maps;
 
-		private Dictionary<string, RomMapping> romMap = new Dictionary<string, RomMapping>();
-		
+		#endregion
 
-		public GameCommunicator(IEmulator emulator, StreamReader memoryMap)
+		private Dictionary<string, RomMapping> romMap = new Dictionary<string, RomMapping>();
+
+		public GameCommunicator(StreamReader memoryMap)
 		{
-			_emulator = emulator;
 			Instance = this;
 
 			while (!memoryMap.ReadLine().StartsWith("Allocating common symbols")) ;
@@ -257,6 +301,10 @@ namespace Pixtro.Client.Editor.Projects
 				
 
 				var propertyInfo = GetType().GetProperty(split[1], BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+				if (propertyInfo != null && propertyInfo.CustomAttributes.Where((item) => item.AttributeType == typeof(DontHotloadAttribute)).Count() != 0)
+				{
+					propertyInfo = null;
+				}
 
 				if (propertyInfo != null)
 				{
@@ -274,10 +322,15 @@ namespace Pixtro.Client.Editor.Projects
 
 			} while (!currentLine.Trim().StartsWith(".comment"));
 
+			mapList.Add(LevelRegion = new MemoryMap(EWRam_Address, 0x20000, 0x10000));
+			mapList.Add(Palettes = new MemoryMap(PalRam_Address, 0, 0x400));
+			mapList.Add(TileData = new MemoryMap(VRam_Address, 0, 0x20000));
+			mapList.Add(SpriteData = new MemoryMap(OAM_Address, 0, 0x400));
+
 			maps = mapList.ToArray();
 		}
-		public GameCommunicator(IEmulator emulator, StreamReader memoryMap, GameCommunicator previousState)
-			:this(emulator, memoryMap)
+		public GameCommunicator(StreamReader memoryMap, GameCommunicator previousState)
+			:this(memoryMap)
 		{
 			GetStateFrom(previousState);
 		}
@@ -293,27 +346,89 @@ namespace Pixtro.Client.Editor.Projects
 		{
 			for (int i = 0; i < maps.Length; ++i)
 			{
+				if (maps[i].domainIndex == ROM_Address || maps[i].domainIndex == SRam_Address)
+					continue;
+
 				maps[i].SetState(other.maps[i].GetState());
 			}
+		}
+
+		public MemoryMap CreateMemoryMap(int region, uint address, int size)
+		{
+			var retval = new MemoryMap(region, (int)address, size);
+
+			SetDomain(retval);
+
+			return retval;
+		}
+		public MemoryMap GetLevelMapping(bool regionA, int levelIndex)
+		{
+			var mapping = regionA ? loaded_levels_a : loaded_levels_b;
+			uint address = mapping.GetUint(levelIndex);
+
+			var tempMap = CreateMemoryMap(3, address, 0x500);
+
+			int width = tempMap.GetUshort(0), height = tempMap.GetUshort(1);
+
+
+			tempMap = CreateMemoryMap(3, address + (3 * 2) + (2), width * height * 2);
+
+			return tempMap;
+		}
+		public MemoryMap GetTilePalette(int palette)
+		{
+			return CreateMemoryMap(5, (uint)(palette * 32), 32);
+		}
+		public MemoryMap GetSpritePalette(int palette)
+		{
+			return CreateMemoryMap(5, (uint)(palette * 32) + 256, 32);
 		}
 
 		public void RomLoaded()
 		{
 			IWRam = MemoryDomains["IWRAM"];
 			EWRam = MemoryDomains["EWRAM"];
+			IORam = MemoryDomains["IORAM"];
 			PalRam = MemoryDomains["PALRAM"];
+			VRam = MemoryDomains["VRAM"];
+			OAM = MemoryDomains["OAM"];
+			ROM = MemoryDomains["ROM"];
+			SRam = MemoryDomains["SRAM"];
 			
 			foreach (var map in maps)
 			{
-				switch (map.domainIndex)
-				{
-					case 2:
-						map.domain = EWRam;
-						break;
-					case 3:
-						map.domain = IWRam;
-						break;
-				}
+				SetDomain(map);
+			}
+		}
+
+		private void SetDomain(MemoryMap map)
+		{
+			switch (map.domainIndex)
+			{
+				case EWRam_Address:
+					map.domain = EWRam;
+					break;
+				case IWRam_Address:
+					map.domain = IWRam;
+					break;
+				case IORam_Address:
+					map.domain = IORam;
+					break;
+				case PalRam_Address:
+					map.domain = PalRam;
+					break;
+				case VRam_Address:
+					map.domain = VRam;
+					break;
+				case OAM_Address:
+					map.domain = OAM;
+					break;
+				case ROM_Address:
+					map.domain = ROM;
+					break;
+				case SRam_Address:
+					map.domain = SRam;
+					break;
 			}
 		}
 	}

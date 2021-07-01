@@ -59,8 +59,6 @@ namespace Pixtro.Client.Common
 		/// </summary>
 		void DoFrameAdvanceAndUnpause();
 
-		void EnableRewind(bool enabled);
-
 		void FrameSkip(int numFrames);
 
 		bool GetSoundOn();

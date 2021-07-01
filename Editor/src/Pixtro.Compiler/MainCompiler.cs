@@ -19,12 +19,6 @@ namespace Pixtro.Compiler {
 		public override void WriteJson(JsonWriter writer, Point value, JsonSerializer serializer) {
 		}
 	}
-	[JsonConverter(typeof(PointConverter))]
-	public struct Point {
-		public int X, Y;
-
-		public Point(int x, int y) { X = x; Y = y; }
-	}
 	public static class Compiler {
 
 		internal static class Settings

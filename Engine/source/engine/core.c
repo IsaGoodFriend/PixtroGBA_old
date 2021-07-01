@@ -58,6 +58,7 @@ unsigned int game_freeze;
 unsigned int engine_flags;
 #ifdef __DEBUG__
 unsigned int debug_engine_flags, debug_game_flags;
+int current_level_index;
 #endif
 int fade_timer;
 
@@ -90,7 +91,6 @@ extern void load_entities();
 // Initialize the game
 void pixtro_init()
 {
-
 	loading_routine.at = -1;
 	loaded_levels_a[0] = (unsigned short *)0x02020000;
 	loaded_levels_b[0] = (unsigned short *)0x02030000;
@@ -359,6 +359,10 @@ void finalize_layers()
 // Level functions
 void move_to_level(int level, int section)
 {
+#ifdef __DEBUG__
+	current_level_index = level | (section << 8);
+#endif
+
 	tileset_data = section ? loaded_levels_b[level] : loaded_levels_a[level];
 	lvl_width = tileset_data[0];
 	lvl_height = tileset_data[1];

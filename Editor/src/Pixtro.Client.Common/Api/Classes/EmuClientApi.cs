@@ -75,8 +75,6 @@ namespace Pixtro.Client.Common
 			Unpause();
 		}
 
-		public void EnableRewind(bool enabled) => _mainForm.EnableRewind(enabled);
-
 		public void FrameSkip(int numFrames)
 		{
 			if (numFrames < 0)

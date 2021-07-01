@@ -23,12 +23,6 @@ int main()
 
 #ifdef __DEBUG__
 	SET_DEBUGFLAG(WAITING);
-
-	while (!ENGINE_DEBUGFLAG(READY))
-	{
-		mmFrame();
-		VBlankIntrWait();
-	}
 #endif
 
 	// Enable all channels for audio (the music and sfx aren't loud enough otherwise. might look into that later)
@@ -37,6 +31,14 @@ int main()
 	// Game loop
 	while (1)
 	{
+#ifdef __DEBUG__
+		while (!ENGINE_DEBUGFLAG(READY))
+		{
+			mmFrame();
+			VBlankIntrWait();
+		}
+#endif
+
 		// Get input
 		key_poll();
 

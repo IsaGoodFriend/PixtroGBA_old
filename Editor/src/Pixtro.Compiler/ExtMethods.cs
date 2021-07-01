@@ -68,6 +68,10 @@ namespace Pixtro.Compiler {
 
 			return retval;
 		}
+		public static T GetValueWrapped<T>(this T[] array, int value)
+		{
+			return array[value % array.Length];
+		}
 		public static T GetRandom<T>(this T[] array, Random random) {
 			return array[random.Next(0, array.Length)];
 		}

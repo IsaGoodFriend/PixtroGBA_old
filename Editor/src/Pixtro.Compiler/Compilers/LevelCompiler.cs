@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Drawing;
 
 namespace Pixtro.Compiler {
 	public static class LevelCompiler
@@ -13,11 +14,13 @@ namespace Pixtro.Compiler {
 			compiledLevels.Clear();
 		}
 
+
 		static Dictionary<string, CompressedLevel> compiledLevels = new Dictionary<string, CompressedLevel>();
 
 		public static void Compile(string _path, string _tilesetPath)
 		{
 			StartCompiling();
+
 			string toSavePath = Path.Combine(Compiler.Settings.ProjectPath, "build\\source");
 
 #if !DEBUG
@@ -64,6 +67,7 @@ namespace Pixtro.Compiler {
 					p.Wrapping[c].FinalizeMasks();
 			}
 
+			// Todo: allow custom seeds to get consistent result
 			CompressedLevel.Randomizer = new Random();
 
 			foreach (var level in Directory.GetFiles(_path, "*", SearchOption.AllDirectories)) {
@@ -93,11 +97,14 @@ namespace Pixtro.Compiler {
 				entLocalCount = 0;
 				typeLocalCount.Clear();
 
+				CompressedLevel.RNGSeed = new Random(localPath.GetHashCode()).Next(0x800, 0xFFFFFF);
+				
+
 				switch (ext) {
 					case ".txt":
 						compressed = CompileLevelTxt(level);
 						break;
-					case ".json": // Ogmo editor
+					case ".json":
 						throw new NotImplementedException();
 					default: // Compressed Binary File
 						CompileLevelBin(level, compiler);
