@@ -610,6 +610,8 @@ namespace Pixtro.Client.Editor
 					{
 						RamCommunication.debug_game_flags.DisableFlags(GameDebugFlags.Waiting);
 
+						GamePaused = GamePaused;
+
 						// Load in previous state if reloading game with saved data.  We're doing it this way instead of directly copying saveram to prevent potential misalignments from changed from mappings
 						if (previousSession != null)
 						{
@@ -708,6 +710,28 @@ namespace Pixtro.Client.Editor
 			base.Dispose(disposing);
 		}
 
+		private bool _gamePaused;
+		public bool GamePaused
+		{
+			get => _gamePaused;
+
+			private set
+			{
+				if (_gamePaused && !value) // Unpausing
+				{
+					InitializeFpsData();
+				}
+
+				_gamePaused = value;
+				OnPauseChanged?.Invoke(_emulatorPaused);
+
+				if (RamCommunication == null)
+					return;
+
+				RamCommunication.debug_engine_flags.SetFlag(BaseDebugFlags.PauseUpdates, value);
+
+			}
+		}
 		private bool _emulatorPaused;
 		public bool EmulatorPaused
 		{
@@ -715,37 +739,12 @@ namespace Pixtro.Client.Editor
 
 			private set
 			{
-				if (RamCommunication == null)
-					return;
-
 				if (_emulatorPaused && !value) // Unpausing
 				{
 					InitializeFpsData();
 				}
 
 				_emulatorPaused = value;
-				OnPauseChanged?.Invoke(_emulatorPaused);
-			}
-		}
-		public bool GamePaused
-		{
-			get => RamCommunication == null ? true : RamCommunication.debug_engine_flags.GetFlag(BaseDebugFlags.PauseUpdates);
-
-			private set
-			{
-				if (RamCommunication == null)
-					return;
-
-				bool currentlyPaused = RamCommunication.debug_engine_flags.GetFlag(BaseDebugFlags.PauseUpdates);
-
-				if (currentlyPaused && !value) // Unpausing
-				{
-					InitializeFpsData();
-				}
-
-				RamCommunication.debug_engine_flags.SetFlag(BaseDebugFlags.PauseUpdates, value);
-
-				//_emulatorPaused = value;
 				//OnPauseChanged?.Invoke(_emulatorPaused);
 			}
 		}
@@ -1120,37 +1119,35 @@ namespace Pixtro.Client.Editor
 			}
 		}
 
-		public void PauseEmulator()
-		{
-			EmulatorPaused = true;
-			SetPauseStatusBarIcon();
-		}
-
-		public void UnpauseEmulator()
-		{
-			EmulatorPaused = false;
-			SetPauseStatusBarIcon();
-		}
-
-		public void TogglePause()
-		{
-			EmulatorPaused ^= true;
-			SetPauseStatusBarIcon();
-		}
-
 		public void PauseGame()
 		{
 			GamePaused = true;
+			SetPauseStatusBarIcon();
 		}
 
 		public void UnpauseGame()
 		{
 			GamePaused = false;
+			SetPauseStatusBarIcon();
 		}
 
 		public void ToggleGamePause()
 		{
 			GamePaused ^= true;
+			SetPauseStatusBarIcon();
+		}
+		public void PauseEmulator()
+		{
+			EmulatorPaused = true;
+		}
+
+		public void UnpauseEmulator()
+		{
+			EmulatorPaused = false;
+		}
+		public void ToggleEmulatorPause()
+		{
+			EmulatorPaused ^= false;
 		}
 
 		public void TakeScreenshotToClipboard()
@@ -1869,7 +1866,7 @@ namespace Pixtro.Client.Editor
 
 		private void SetPauseStatusBarIcon()
 		{
-			if (EmulatorPaused)
+			if (GamePaused)
 			{
 				PauseStatusButton.Image = Properties.Resources.Pause;
 				PauseStatusButton.Visible = true;

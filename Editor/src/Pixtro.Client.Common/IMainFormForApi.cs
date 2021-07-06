@@ -15,7 +15,7 @@ namespace Pixtro.Client.Common
 		/// <remarks>only referenced from <c>ClientLuaLibrary</c></remarks>
 		IEmulator Emulator { get; }
 
-		bool EmulatorPaused { get; }
+		bool GamePaused { get; }
 
 		/// <remarks>only referenced from <c>EmuClientApi</c></remarks>
 		bool InvisibleEmulation { set; }
@@ -93,7 +93,7 @@ namespace Pixtro.Client.Common
 		void TakeScreenshotToClipboard();
 
 		/// <remarks>only referenced from <c>EmuClientApi</c></remarks>
-		void TogglePause();
+		void ToggleEmulatorPause();
 
 		/// <remarks>only referenced from <c>EmuClientApi</c></remarks>
 		void ToggleSound();

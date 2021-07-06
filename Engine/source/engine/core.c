@@ -286,7 +286,6 @@ void load_background_tiles(int index, unsigned int *tiles, unsigned int tile_len
 
 		for (int i = index + 1; i < 4; ++i)
 		{
-
 			TILESET_SET(i, TILESET_SIZE(i - 1) + TILESET_OFFSET(i - 1), TILESET_SIZE(i));
 			layers[i].tile_meta |= MAPPING_CHANGED;
 		}
@@ -378,7 +377,7 @@ void move_to_level(int level, int section)
 	level_loading = 0;              \
 	loading_levelpack = level_pack;
 
-void load_levels(unsigned int *level_pack, int section)
+void load_level_pack(unsigned int *level_pack, int section)
 {
 	load_initialize();
 
@@ -387,7 +386,7 @@ void load_levels(unsigned int *level_pack, int section)
 		async_loading();
 	}
 }
-void load_levels_async(unsigned int *level_pack, int section)
+void load_level_pack_async(unsigned int *level_pack, int section)
 {
 	load_initialize();
 
@@ -395,7 +394,6 @@ void load_levels_async(unsigned int *level_pack, int section)
 }
 void async_loading()
 {
-
 	int data = loading_levelpack[0];
 
 	rt_begin(loading_routine);
@@ -419,6 +417,9 @@ void async_loading()
 		break;
 	case 3:
 		set_entities_location();
+		break;
+	case 4:
+
 		break;
 	}
 

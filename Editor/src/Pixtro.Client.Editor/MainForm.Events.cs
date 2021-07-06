@@ -380,7 +380,7 @@ namespace Pixtro.Client.Editor
 			{
 				PauseOnFrame = null;
 			}
-			else if (EmulatorPaused)
+			else if (GamePaused)
 			{
 				UnpauseEmulator();
 			}

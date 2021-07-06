@@ -95,7 +95,7 @@ namespace Pixtro.Client.Common
 
 		public void InvisibleEmulation(bool invisible) => _mainForm.InvisibleEmulation = invisible;
 
-		public bool IsPaused() => _mainForm.EmulatorPaused;
+		public bool IsPaused() => _mainForm.GamePaused;
 
 		public bool IsSeeking() => _mainForm.IsSeeking;
 
@@ -162,7 +162,7 @@ namespace Pixtro.Client.Common
 
 		public void SeekFrame(int frame)
 		{
-			var wasPaused = _mainForm.EmulatorPaused;
+			var wasPaused = _mainForm.GamePaused;
 			while (Emulator.Frame != frame) _mainForm.SeekFrameAdvance();
 			if (!wasPaused) _mainForm.UnpauseEmulator();
 		}
@@ -208,7 +208,7 @@ namespace Pixtro.Client.Common
 			else _logCallback("Invalid speed value");
 		}
 
-		public void TogglePause() => _mainForm.TogglePause();
+		public void TogglePause() => _mainForm.ToggleEmulatorPause();
 
 		public Point TransformPoint(Point point) => _displayManager.TransformPoint(point);
 

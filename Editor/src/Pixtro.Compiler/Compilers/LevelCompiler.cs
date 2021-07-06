@@ -56,12 +56,12 @@ namespace Pixtro.Compiler {
 			var compiler = new CompileToC();
 
 			entGlobalCount = 0;
-			entSectionCount = new Dictionary<LevelParse, int>();
+			entSectionCount = new Dictionary<LevelPackMetadata, int>();
 			typeLocalCount = new Dictionary<string, int>();
 			typeGlobalCount = new Dictionary<string, int>();
-			typeSectionCount = new Dictionary<LevelParse, Dictionary<string, int>>();
+			typeSectionCount = new Dictionary<LevelPackMetadata, Dictionary<string, int>>();
 
-			List<LevelParse> parseData = JsonConvert.DeserializeObject<List<LevelParse>>(File.ReadAllText(_path + "\\meta_level.json"));
+			List<LevelPackMetadata> parseData = JsonConvert.DeserializeObject<List<LevelPackMetadata>>(File.ReadAllText(_path + "\\meta_level.json"));
 			foreach (var p in parseData) {
 				foreach (char c in p.Wrapping.Keys)
 					p.Wrapping[c].FinalizeMasks();
@@ -210,10 +210,10 @@ namespace Pixtro.Compiler {
 		private static string currentType;
 
 		private static int entGlobalCount, entLocalCount;
-		private static Dictionary<LevelParse, int> entSectionCount;
+		private static Dictionary<LevelPackMetadata, int> entSectionCount;
 
 		private static Dictionary<string, int> typeGlobalCount, typeLocalCount;
-		private static Dictionary<LevelParse, Dictionary<string, int>> typeSectionCount;
+		private static Dictionary<LevelPackMetadata, Dictionary<string, int>> typeSectionCount;
 
 		private static string NextLine(StreamReader _reader) {
 

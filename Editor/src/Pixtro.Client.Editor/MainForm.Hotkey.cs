@@ -17,10 +17,10 @@ namespace Pixtro.Client.Editor
 
 				// General
 				case "Pause":
-					TogglePause();
+					ToggleGamePause();
 					break;
-				case "Pause Game":
-					TogglePause();
+				case "Pause Emulator":
+					ToggleEmulatorPause();
 					break;
 				case "Frame Inch":
 					//special! allow this key to get handled as Frame Advance, too

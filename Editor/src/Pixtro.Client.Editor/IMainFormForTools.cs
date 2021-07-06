@@ -94,7 +94,7 @@ namespace Pixtro.Client.Editor
 		void Throttle();
 
 		/// <remarks>only referenced from <see cref="TAStudio"/></remarks>
-		void TogglePause();
+		void ToggleEmulatorPause();
 
 		void UnpauseEmulator();
 

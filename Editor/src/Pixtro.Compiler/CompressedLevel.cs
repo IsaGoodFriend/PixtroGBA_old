@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using System.Drawing;
 
 namespace Pixtro.Compiler {
-	public class LevelParse {
+	public class LevelPackMetadata {
 		public class TileWrapping {
 
 			public int[] Palettes;
@@ -131,7 +131,7 @@ namespace Pixtro.Compiler {
 
 		public static Random Randomizer;
 
-		public static LevelParse DataParse;
+		public static LevelPackMetadata DataParse;
 
 		public class Entity {
 			public int x, y, type;

@@ -46,7 +46,7 @@ TODO for Editor:
 	-- Tilemap Editor
 	-- Sprite Editor
 	-- Palette Editor
--- Update assets when edited outside of the editor
+-- Update rom/editor when assets edited outside of the editor
 	
 
 Possible ideas:

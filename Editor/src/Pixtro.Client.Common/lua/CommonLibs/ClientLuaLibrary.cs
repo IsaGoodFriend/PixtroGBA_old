@@ -91,7 +91,7 @@ namespace Pixtro.Client.Common
 			}
 			if (frame == Emulator.Frame) return;
 
-			bool wasPaused = MainForm.EmulatorPaused;
+			bool wasPaused = MainForm.GamePaused;
 
 			// can't re-enter lua while doing this
 			_luaLibsImpl.IsUpdateSupressed = true;

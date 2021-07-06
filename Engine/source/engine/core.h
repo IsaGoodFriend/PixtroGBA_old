@@ -133,8 +133,8 @@ void pixtro_render();
 
 // ---- Levels ----
 
-void load_levels(unsigned int *level_pack, int section);
-void load_levels_async(unsigned int *level_pack, int section);
+void load_level_pack(unsigned int *level_pack, int section);
+void load_level_pack_async(unsigned int *level_pack, int section);
 void move_to_level(int level, int section);
 
 // Others
