@@ -9,6 +9,7 @@ using System.Drawing;
 namespace Pixtro.Compiler {
 	public static class LevelCompiler
 	{
+		// TODO: Test out LZ10 decompression instead of writing a custom compression
 		public static void StartCompiling()
 		{
 			compiledLevels.Clear();
@@ -61,15 +62,18 @@ namespace Pixtro.Compiler {
 			typeGlobalCount = new Dictionary<string, int>();
 			typeSectionCount = new Dictionary<LevelPackMetadata, Dictionary<string, int>>();
 
-			List<LevelPackMetadata> parseData = JsonConvert.DeserializeObject<List<LevelPackMetadata>>(File.ReadAllText(_path + "\\meta_level.json"));
+			Dictionary<string, LevelPackMetadata> parseData = JsonConvert.DeserializeObject<Dictionary<string, LevelPackMetadata>>(File.ReadAllText(_path + "\\meta_level.json"));
 			foreach (var p in parseData) {
-				foreach (char c in p.Wrapping.Keys)
-					p.Wrapping[c].FinalizeMasks();
+				p.Value.Name = p.Key;
+
+				foreach (char c in p.Value.Wrapping.Keys)
+					p.Value.Wrapping[c].FinalizeMasks();
 			}
 
 			// Todo: allow custom seeds to get consistent result
 			CompressedLevel.Randomizer = new Random();
 
+			// Foreach Level in levels folder (ignore all meta/settings files)
 			foreach (var level in Directory.GetFiles(_path, "*", SearchOption.AllDirectories)) {
 				var ext = Path.GetExtension(level);
 
@@ -80,10 +84,9 @@ namespace Pixtro.Compiler {
 				if (localPath.StartsWith("meta") || localPath.StartsWith("packs\\"))
 					continue;
 				
-
 				CompressedLevel compressed = null;
 
-				foreach (var p in parseData) {
+				foreach (var p in parseData.Values) {
 					if (p.Matches(localPath)) {
 						CompressedLevel.DataParse = p;
 						if (!typeSectionCount.ContainsKey(p)) {
@@ -97,7 +100,7 @@ namespace Pixtro.Compiler {
 				entLocalCount = 0;
 				typeLocalCount.Clear();
 
-				CompressedLevel.RNGSeed = new Random(localPath.GetHashCode()).Next(0x800, 0xFFFFFF);
+				CompressedLevel.RNGSeed = (uint)new Random(localPath.GetHashCode()).Next(0x800, 0xFFFFFF);
 				
 
 				switch (ext) {
@@ -114,7 +117,6 @@ namespace Pixtro.Compiler {
 				if (compressed == null)
 					continue;
 				
-				
 				localPath = $"LVL_{Path.GetFileNameWithoutExtension(localPath.Replace('/', '_').Replace('\\', '_'))}";
 				
 				compiledLevels.Add(localPath, compressed);
@@ -124,50 +126,66 @@ namespace Pixtro.Compiler {
 				compiler.EndArray();
 			}
 
-			foreach (var parse in parseData) {
+			// Foreach Level Bricksets
+			foreach (var parse in parseData.Values) {
 				if (parse.fullTileset == null)
 					return;
-				
-				int length = 0;
+
+				int length = parse.fullTileset.RawTiles.Count;
+
 				compiler.BeginArray(CompileToC.ArrayType.UInt, "TILESET_" + parse.Name);
 
-				if (Compiler.Settings.LargeTiles) {
-					LevelTileset tileset = new LevelTileset();
-					foreach (var tile in parse.fullTileset) {
-						for (int i = 0; i < 4; ++i){
-							var newTile = new Tile(tile.RawData, i * 8, false);
-							if (!newTile.IsAir)
-								tileset.AddTile(newTile);
-						}
-					}
-					length = tileset.tiles.Count;
+				List<Tile> rawTiles = new List<Tile>(parse.fullTileset.RawTiles);
 
-					foreach (var tile in tileset.tiles){
-						compiler.AddRange(tile.RawData);
-					}
-					
-					compiler.EndArray();
-					compiler.BeginArray(CompileToC.ArrayType.UShort, "TILE_MAPPING_" + parse.Name);
-					
-					foreach (var tile in parse.fullTileset) {
-						for (int i = 0; i < 4; ++i){
-							var ogTile = new Tile(tile.RawData, i * 8, false);
-							var tilesetTile = tileset.GetTile(ogTile);
-							
-							ushort value = (ushort)(tileset.GetIndex(ogTile) + 1);
-							value |= (ushort)(ogTile.GetFlipOffset(tilesetTile) << 10);
-							compiler.AddValue(value);
-						}
-					}
+				foreach (var tile in rawTiles)
+				{
+					compiler.AddRange(tile.RawData);
 				}
-				else {
-					foreach (var tile in parse.fullTileset){
-						compiler.AddRange(tile.RawData);
+
+				compiler.EndArray();
+
+				compiler.BeginArray(CompileToC.ArrayType.UInt, "TILECOLL_" + parse.Name);
+
+				foreach (var tile in parse.fullTileset)
+				{
+					compiler.AddValue((tile.collisionType << 8) | tile.collisionShape);
+				}
+				compiler.AddValue(0xFFFF);
+
+				compiler.EndArray();
+
+				List<Tile> tileset = new List<Tile>(parse.fullTileset.RawTiles);
+
+				compiler.BeginArray(CompileToC.ArrayType.UShort, "TILE_MAPPING_" + parse.Name);
+
+				int size = parse.fullTileset.First().sizeOfTile / 8;
+
+				foreach (var tile in parse.fullTileset)
+				{
+					for (int i = 0; i < size * size; ++i)
+					{
+						var mappedTile = new Tile(8);
+						mappedTile.LoadInData(tile.RawData, i * 8);
+
+						Tile rawTile = null;
+
+						foreach (var rt in rawTiles)
+						{
+							if (mappedTile.EqualTo(rt, Tile.FlipStyle.Both))
+							{
+								rawTile = rt;
+								break;
+							}
+						}
+
+						ushort value = (ushort)(rawTiles.IndexOf(rawTile, new Tileset.CompareTiles()) + 1);
+						if (rawTile != null)
+							value |= (ushort)(mappedTile.GetFlipOffset(rawTile) << 10);
+						compiler.AddValue(value);
 					}
-					length = parse.fullTileset.Count;
 				}
 				compiler.EndArray();
-				
+
 				compiler.AddValueDefine($"TILESET_{parse.Name}_len", length);
 			}
 			
@@ -188,7 +206,7 @@ namespace Pixtro.Compiler {
 					if (i != 0){
 						compiler.AddValue(1);
 					}
-					compiler.AddValue("" + levelList[i]);
+					compiler.AddValue("&" + levelList[i]);
 					
 					CompressedLevel level = compiledLevels[levelList[i]];
 					

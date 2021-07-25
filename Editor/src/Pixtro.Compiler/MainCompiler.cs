@@ -107,23 +107,26 @@ namespace Pixtro.Compiler {
 
 			// Make sure directory for build sources exists
 			Directory.CreateDirectory(Path.Combine(Settings.ProjectPath, "build/source"));
-			
+
 			// Check the engine.h header file for information on how to compile level (and other data maybe in the future idk)
-			//foreach (string s in File.ReadAllLines(Path.Combine(RootPath, @"source\engine.h"))) {
-			//	if (s.StartsWith("#define")) {
-			//		string removeComments = s;
-			//		if (removeComments.Contains("/"))
-			//			removeComments = removeComments.Substring(0, removeComments.IndexOf('/'));
+			foreach (string s in File.ReadAllLines(Path.Combine(Settings.ProjectPath, @"source\engine.h")))
+			{
+				if (s.StartsWith("#define"))
+				{
+					string removeComments = s;
+					if (removeComments.Contains("/"))
+						removeComments = removeComments.Substring(0, removeComments.IndexOf('/'));
 
-			//		string[] split = removeComments.Replace('\t', ' ').Split(new char[] {' ' }, StringSplitOptions.RemoveEmptyEntries);
+					string[] split = removeComments.Replace('\t', ' ').Split(new char[] {' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-			//		switch (split[1]) {
-			//			case "LARGE_TILES":
-			//				LargeTiles = true;
-			//				break;
-			//		}
-			//	}
-			//}
+					switch (split[1])
+					{
+						case "LARGE_TILES":
+							Settings.LargeTiles = true;
+							break;
+					}
+				}
+			}
 
 			ArtCompiler.Compile(Settings.ProjectPath + "\\art");
 			LevelCompiler.Compile(Settings.ProjectPath + "\\levels", Settings.ProjectPath + "\\art\\tilesets");

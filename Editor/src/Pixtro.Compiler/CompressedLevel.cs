@@ -5,13 +5,19 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using System.Drawing;
+using System.Collections;
+using DSDecmp;
 
 namespace Pixtro.Compiler {
 	public class LevelPackMetadata {
 		public class TileWrapping {
+			// TODO: Create feature that lets users copy mapping data from one version to another
 
 			public int[] Palettes;
 			public string Tileset;
+			public char MappingCopy;
+			public byte CollisionType;
+
 			public char[] Connections;
 			public Point[] Mapping;
 			public string[] MappingSpecial;
@@ -40,9 +46,11 @@ namespace Pixtro.Compiler {
 			}
 		}
 		public Dictionary<char, TileWrapping> Wrapping;
-		public List<Tile> fullTileset = null;
 
-		public Dictionary<string, byte> EntityIndex;
+		[JsonIgnore]
+		public LevelBrickset fullTileset = null;
+
+		public Dictionary<string, int> EntityIndex;
 
 		public string Include, Exclude;
 		public string IncludeRegex, ExcludeRegex;
@@ -114,14 +122,109 @@ namespace Pixtro.Compiler {
 			return test;
 		}
 	}
+	public class Brick : Tile
+	{
+		public char collisionChar;
+		public int collisionType, collisionShape, palette;
+
+		public class CompareBricks : IEqualityComparer<Brick>
+		{
+			public bool Equals(Brick x, Brick y)
+			{
+				if (!x.EqualTo(y, Tile.FlipStyle.Both))
+					return false;
+
+				if (x.collisionChar != y.collisionChar && x.collisionShape != y.collisionShape && x.collisionType != y.collisionType && x.palette != y.palette)
+					return false;
+
+				return true;
+			}
+
+			public int GetHashCode(Brick obj)
+			{
+				return obj.GetHashCode();
+			}
+		}
+
+		public Brick(int pixelSize) : base(pixelSize) { }
+		public Brick(Tile tileCopy) : base(tileCopy.sizeOfTile)
+		{
+			LoadInData(tileCopy.RawData, 0);
+		}
+	}
+	public class LevelBrickset : IEnumerable<Brick>
+	{
+		List<Brick> bricks = new List<Brick>();
+		List<Tile> rawTiles = new List<Tile>();
+
+		public IReadOnlyList<Tile> RawTiles => rawTiles;
+
+		public LevelBrickset()
+		{
+
+		}
+
+		public bool Contains(Brick brick)
+		{
+			return bricks.Contains(brick, new Brick.CompareBricks());
+		}
+		public void AddNewBrick(Brick brick)
+		{
+			if (!Contains(brick))
+			{
+				bricks.Add(brick);
+				int size = brick.sizeOfTile / 8;
+				size *= size;
+
+				for (int i = 0; i < size; ++i)
+				{
+					var tile = new Tile(8);
+					tile.LoadInData(brick.RawData, i * 8);
+
+					if (!rawTiles.Contains(tile, new Tileset.CompareTiles()))
+					{
+						rawTiles.Add(tile);
+					}
+				}
+			}
+		}
+
+		public ushort GetIndex(Tile tile, char type) => GetIndex(GetBrick(tile, type));
+
+		public ushort GetIndex(Brick brick)
+		{
+			return (ushort)bricks.IndexOf(brick);
+		}
+		public Brick GetBrick(Tile tile, char type)
+		{
+			foreach (var b in bricks)
+			{
+				if (b.collisionChar != type)
+					continue;
+
+				if (b.EqualTo(tile, Tile.FlipStyle.Both))
+					return b;
+			}
+			return null;
+		}
+
+		public IEnumerator<Brick> GetEnumerator()
+		{
+			return bricks.GetEnumerator();
+		}
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return (IEnumerator<Brick>)bricks;
+		}
+	}
 	public class CompressedLevel {
 
 		private const int multValue = 57047;
 
-		public static int RNGSeed;
+		public static uint RNGSeed;
 		private static int RandomFromPoint(Point point)
 		{
-			ulong tempVal = (ulong)(RNGSeed + point.X);
+			ulong tempVal = (ulong)(RNGSeed + (uint)point.X);
 			tempVal = (tempVal * multValue) % int.MaxValue;
 			tempVal += (ulong)point.Y;
 			tempVal = (tempVal * multValue) % int.MaxValue;
@@ -190,11 +293,27 @@ namespace Pixtro.Compiler {
 		}
 
 		public byte[] BinaryData() {
-			return Enumerable.ToArray(GetBinary());
+			List<byte> bytes = new List<byte>(Enumerable.ToArray(GetBinary()));
+
+			while ((bytes.Count & 0x3) != 0)
+				bytes.Add(0xFF);
+
+			return bytes.ToArray();
 		}
 		private IEnumerable<byte> GetBinary() {
 			foreach (var b in Header())
 				yield return b;
+
+			if ((metadata.Count & 0x1) == 1)
+			{
+				yield return 3;
+				yield return 0xFF;
+				yield return 0xFF;
+			}
+			else
+			{
+				yield return 1;
+			}
 
 			for (int i = 0; i < layers; ++i)
 				foreach (var b in VisualLayer(i))
@@ -226,23 +345,35 @@ namespace Pixtro.Compiler {
 			
 			List<char> characters = new List<char>(DataParse.Wrapping.Keys);
 			Dictionary<char, uint[]> connect = new Dictionary<char, uint[]>();
-			List<Tile> fullTileset;
+			LevelBrickset fullTileset;
 
-			// Get the full tileset data
 			if (DataParse.fullTileset != null)
 				fullTileset = DataParse.fullTileset;
+
+			// If there isn't a brickset created, make a new one
 			else {
-				fullTileset = new List<Tile>();
+				fullTileset = new LevelBrickset();
 
 				List<string> found = new List<string>();
+
+				// Foreach tile type ('M', 'N' or whatever)
 				foreach (var t in DataParse.Wrapping.Keys) {
-					if (!found.Contains(DataParse.Wrapping[t].Tileset)) {
-						foreach (var tile in ArtCompiler.LevelTilesets[DataParse.Wrapping[t].Tileset].tiles)
-						if (!tile.IsAir && !fullTileset.Contains(tile, new Tileset.CompareTiles()))
-							fullTileset.Add(tile);
-						
-						found.Add(DataParse.Wrapping[t].Tileset);
+
+					int collType = DataParse.Wrapping[t].CollisionType;
+
+					foreach (var tile in ArtCompiler.ArtTilesets[DataParse.Wrapping[t].Tileset].tiles)
+					{
+						if (tile.tile.IsAir)
+							continue;
+
+						var brick = new Brick(tile);
+						brick.collisionType = collType;
+						brick.collisionChar = t;
+
+						fullTileset.AddNewBrick(brick);
 					}
+						
+					found.Add(DataParse.Wrapping[t].Tileset);
 				}
 
 				DataParse.fullTileset = fullTileset;
@@ -267,7 +398,7 @@ namespace Pixtro.Compiler {
 			}
 
 			ushort last = 0x1234;
-			byte count = 0;
+			int count = 0;
 
 			float getvalue(string _s) {
 
@@ -292,84 +423,96 @@ namespace Pixtro.Compiler {
 				return 0;
 			}
 
-			for (y = 0; y < height; ++y) { for (x = 0; x < width; ++x) {
-				ushort retval;
-	
-				if (levelData[layer, x, y] == ' ') {
-					retval = 0;
-				}
-				else {
-					var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
+			byte[] retvalArray = new byte[width * height * 2];
 
-					Tile tile = null;
-					LevelTileset tileset = ArtCompiler.LevelTilesets[wrapping.Tileset];
-					uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping),
+			for (y = 0; y < height; ++y)
+			{
+				for (x = 0; x < width; ++x)
+				{
+					ushort retval;
+
+					if (levelData[layer, x, y] == ' ')
+					{
+						retval = 0;
+					}
+					else
+					{
+						var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
+
+						Tile tile = null;
+						Tileset tileset = ArtCompiler.ArtTilesets[wrapping.Tileset];
+						uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping),
 						testValue;
 
-					if (wrapping.MappingSpecial != null) 
-						foreach (string str in wrapping.MappingSpecial) {
+						if (wrapping.MappingSpecial != null)
+							foreach (string str in wrapping.MappingSpecial)
+							{
 
-							var dp = new DataParser(str);
+								var dp = new DataParser(str);
 
-							value <<= 1;
-							value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
+								value <<= 1;
+								value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
+							}
+
+						foreach (var key in wrapping.TileMapping.Keys)
+						{
+							testValue = wrapping.EnableMask[key];
+
+							if ((testValue & value) != testValue)
+								continue;
+
+							testValue = wrapping.DisableMask[key];
+
+							if ((testValue & (value)) != 0)
+								continue;
+
+							var point = wrapping.TileMapping[key].GetValueWrapped(RandomFromPoint(new Point(x, y)));
+
+							if (wrapping.Offsets != null)
+								foreach (var o in wrapping.Offsets.Keys)
+								{
+
+									testValue = wrapping.EnableMask[o];
+
+									if ((testValue & value) != testValue)
+										continue;
+
+									testValue = wrapping.DisableMask[o];
+
+									if ((testValue & (value)) != 0)
+										continue;
+
+									foreach (var exPoint in wrapping.Offsets[o])
+										point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
+								}
+
+							tile = tileset.GetOriginalTile(point.X, point.Y);
+							break;
 						}
 
-					foreach (var key in wrapping.TileMapping.Keys) {
-						testValue = wrapping.EnableMask[key];
+						Tile mappedTile = tileset.GetUniqueTile(tile??tileset.GetOriginalTile(0, 0));
 
-						if ((testValue & value) != testValue)
-							continue;
-
-						testValue = wrapping.DisableMask[key];
-
-						if ((testValue & (value)) != 0)
-							continue;
-
-						var point = wrapping.TileMapping[key].GetValueWrapped(RandomFromPoint(new Point(x, y)));
-
-						if (wrapping.Offsets != null)
-							foreach (var o in wrapping.Offsets.Keys) {
-
-								testValue = wrapping.EnableMask[o];
-
-								if ((testValue & value) != testValue)
-									continue;
-
-								testValue = wrapping.DisableMask[o];
-
-								if ((testValue & (value)) != 0)
-									continue;
-
-								foreach (var exPoint in wrapping.Offsets[o])
-									point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
-							}
-						
-						tile = tileset.GetOGTile(point.X, point.Y);
-						break;
+						retval = (ushort)((fullTileset.GetIndex(mappedTile, levelData[layer, x, y]) + 1) | (tile.GetFlipOffset(mappedTile) << 10));
 					}
-					
-					Tile mappedTile = tileset.GetTile(tile??tileset.GetOGTile(0, 0));
 
-					retval = (ushort)((fullTileset.IndexOf(mappedTile) + 1) | (tile.GetFlipOffset(mappedTile) << 10));
+					retvalArray[count + 1] = (byte)(retval >> 8);
+					retvalArray[count] = (byte)(retval & 0xFF);
+
+					count += 2;
+
 				}
+			}
 
-				if ((retval != last || count == 255)) {
-					if ((x != 0 || y != 0)) {
-						yield return count;
-						yield return (byte)(last & 0xFF);
-						yield return (byte)(last >> 8);
+			count = 0;
+			retvalArray = LZUtil.Compress(retvalArray);
+			yield return (byte)(retvalArray.Length & 0xFF);
+			yield return (byte)(retvalArray.Length >> 8);
 
-						count = 0;
-					}
-					last = retval;
-				}
-				++count;
-			} }
-
-			yield return count;
-			yield return (byte)(last & 0xFF);
-			yield return (byte)(last >> 8);
+			foreach (var b in retvalArray)
+			{
+				yield return b;
+				count++;
+			}
 
 			yield break;
 		}

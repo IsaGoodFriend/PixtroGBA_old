@@ -3,6 +3,7 @@
 
 #include "graphics.h"
 #include "core.h"
+#include "load_data.h"
 
 #define copyTile 32
 #define copyPalette 32
@@ -87,6 +88,8 @@ OBJ_ATTR *sprite_pointer;
 OBJ_AFFINE *obj_aff_buffer = (OBJ_AFFINE *)obj_buffer;
 
 char is_rendering;
+
+extern void load_tiletypes(unsigned int *coll_data);
 
 void load_sprite(unsigned int *sprite, int index, int shape)
 {
@@ -178,18 +181,12 @@ void load_anim_sprite(unsigned int *sprites, int index, int shape, int frames, i
 
 	anim_meta[index] |= shape << 16;
 }
-#ifdef LARGE_TILES
-void load_tileset(unsigned int *tiles, unsigned short *mapping, int count)
+void load_tileset(unsigned int *tiles, unsigned short *mapping, unsigned int *collision, int count)
 {
 	memcpy(&tile_mem[FG_TILESET][1], tiles, count << 5);
-	memcpy(TILE_INFO + 4, mapping, count << 3);
+	memcpy(TILE_INFO, mapping, count << 3);
+	load_tiletypes(collision);
 }
-#else
-void load_tileset(unsigned int *tiles, int count)
-{
-	memcpy(&tile_mem[FG_TILESET][1], tiles, count << 5);
-}
-#endif
 void load_obj_pal(unsigned short *pal, int palIndex)
 {
 	memcpy(&pal_obj_mem[palIndex << 4], pal, copyPalette);

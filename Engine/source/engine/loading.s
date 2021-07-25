@@ -1,12 +1,13 @@
 
-.align	4
-.data
-adr_width:	.word
-adr_height:	.word
-	
 .text
-loading_width:	.word adr_width
-loading_height:	.word adr_height
+
+	.code	16
+	.align	2
+	.thumb_func
+@void lz10_decmp_WRAM(byte *source, byte *dest)
+lz10_decmp_WRAM:
+	swi		0x11
+	bx		lr
 
 	.globl	load_header
 	.code	32
@@ -16,13 +17,14 @@ load_header:
 	
 	ldr		r1, =level_toload
 	ldr		r1, [r1]
-	ldr		r3, loading_width
+	ldr		r3, =loading_width
 	ldrh	r2, [r0]
 	strh	r2, [r1]
 	str		r2, [r3]
 	ldrh	r2, [r0, #2]
 	strh	r2, [r1, #2]
-	str		r2, [r3, #4]	@ load width and height into level storage
+	ldr		r3, =loading_height
+	str		r2, [r3]	@ load width and height into level storage
 	
 	add		r0,	#4
 	add		r1,	#4
@@ -57,62 +59,6 @@ load_header:
 	str		r0, [r1]
 	bx		lr
 @ end load_header
-
-
-	.align	4
-	.globl	load_midground
-	.code	32
-@ void load_midground()
-load_midground:
-	
-	push	{lr}
-
-	ldr		r1,	=level_toload
-	ldr		r1,	[r1]			@ r1 = level_toload
-
-	ldr		r2, loading_width
-	ldr		r0, [r2]
-	ldr		r2, [r2, #4]
-	mul		lr, r0, r2			@ lr = width * height;
-	
-	ldr		r0, =lvl_info
-	ldr		r0, [r0]			@ r0 = lvl_info (get the pointer in lvl_info, not the pointer to lvl_info itself)
-	
-.ld_mid:
-	ldrb	r3, [r0, #1]		@ r3 = value
-	ldrb	r2, [r0, #2]
-	lsl		r2, #8
-	orr		r3, r2, r3
-
-	ldrb	r2, [r0]			@ r2 = count
-	add		r0, r0, #3
-
-	@ while (r2 != 0) strh; r2--
-.ld_mid_store:
-	strh	r3, [r1]
-	add		r1, #2
-
-	sub		lr, #1
-	cmp		lr, #0
-	beq		.ld_mid_end			@ if --lr == 0, finish loading
-
-	sub		r2, #1
-	cmp		r2, #0
-	bne		.ld_mid_store
-
-	b		.ld_mid
-	
-.ld_mid_end:
-	add		r1,	#2
-	@ End of the function
-	ldr		r2, =level_toload
-	str		r1, [r2]
-	
-	ldr		r1, =lvl_info		@ store lvl_info value back to pointer
-	str		r0, [r1]
-	pop		{lr}
-	bx		lr
-
 
 @void fade_black(int factor) factor = 0-5
 @ r0 = factor
