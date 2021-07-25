@@ -365,7 +365,7 @@ void move_to_level(int level, int section)
 	tileset_data = section ? loaded_levels_b[level] : loaded_levels_a[level];
 	lvl_width = tileset_data[0];
 	lvl_height = tileset_data[1];
-	tileset_data += 3;
+
 	load_entities();
 }
 
@@ -405,7 +405,7 @@ void async_loading()
 
 	switch (data & 0xF)
 	{
-	case 1:
+	case 1: // Set up for next level
 		level_loading++;
 		loaded_levels_a[level_loading] = level_toload;
 
@@ -418,9 +418,24 @@ void async_loading()
 	case 3:
 		set_entities_location();
 		break;
-	case 4:
+	case 4: // Load in tileset collision data
+	{
+		int i;
+		// Is this needed?  Will there ever be a case where the game will read outside of the used tilesets?
+		//for (i = 0; i < 256; ++i)
+		//{
+		//	tile_types[i] = 0;
+		//}
+
+		loading_levelpack++;
+		for (i = 0; i < loading_levelpack[i] < 0x0FFFFFFF; ++i)
+		{
+			tile_types[i] = loading_levelpack[i];
+			loading_levelpack++;
+		}
 
 		break;
+	}
 	}
 
 	loading_levelpack++;

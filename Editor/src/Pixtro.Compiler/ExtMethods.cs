@@ -8,7 +8,13 @@ using System.Drawing;
 using Newtonsoft.Json;
 
 namespace Pixtro.Compiler {
-    public static class ExtMethods {
+    public static class ExtMethods
+	{
+		// Get all variables and methods
+		// (?<=0x0{8})0(3|8)[0-9a-f]{6} +(?!(_start|__boot_method|__slave_number|_init))[A-Za-z_][0-9A-Za-z_]+(?=\n)
+		// Regular expressions for finding a variable
+		//
+		// (?<=0x0{9}MEMORY_BUS[0-9a-f]{6} +0x[0-9a-f]+ [A-Za-z][0-9A-Za-z_]*.o\n[\n 0-9A-Za-z_]+0x0{9}MEMORY_BUS)[0-9a-f]{6} +VARIABLE_NAME\n
 
 		public static T GetXY<T>(this T[] _array, int x, int y, int width) {
 			return _array[x + (y * width)];
@@ -78,17 +84,29 @@ namespace Pixtro.Compiler {
 		public static int Clamp(int value, int min, int max) {
 			return Math.Min(Math.Max(value, min), max);
 		}
-		public static ushort ToGBA(this Color _color, ushort _transparent = 0x8000) {
-			if (_color.R == 0 && _color.G == 0 && _color.B == 0)
+		public static ushort ToGBA(this Color color, ushort _transparent = 0x8000) {
+			if (color.R == 0 && color.G == 0 && color.B == 0)
 				return _transparent;
 
-			int r = (_color.R & 0xF8) >> 3;
-			int g = (_color.G & 0xF8) >> 3;
-			int b = (_color.B & 0xF8) >> 3;
+			int r = (color.R & 0xF8) >> 3;
+			int g = (color.G & 0xF8) >> 3;
+			int b = (color.B & 0xF8) >> 3;
 
 
 			return (ushort)(r | (g << 5) | (b << 10));
 		}
-        
+
+		public static int IndexOf<T>(this List<T> list, T compareTo, IEqualityComparer<T> compareWith)
+		{
+			int value = 0;
+			foreach (var val in list)
+			{
+				if (compareWith.Equals(val, compareTo))
+					return value;
+
+				value++;
+			}
+			return -1;
+		}
     }
 }

@@ -2142,13 +2142,17 @@ namespace Pixtro.Client.Editor
 				Console.WriteLine(e);
 			}
 #endif
+			if (!File.Exists(Path.Combine(exeFolder, "dll", releaseBuild ? "output.release.gba" : "output.gba")))
+				return false;
+
 			if (releaseBuild)
 			{
+				if (File.Exists(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba")))
+					File.Delete(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba"));
+
 				File.Move(
-					Path.Combine(Directory.GetCurrentDirectory(), "dll", "output.release.gba"),
-					Path.Combine(Project.ProjectDirectory, Project.Name + ".gba"));
-
-
+					Path.Combine(Path.Combine(exeFolder, "dll", "output.release.gba")),
+					Path.Combine(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba")));
 			}
 			return true;
 		}
@@ -3645,7 +3649,8 @@ namespace Pixtro.Client.Editor
 			_stateSlots.ClearRedoList();
 			UpdateStatusSlots();
 			SetMainformMovieInfo();
-			RamCommunication.RomLoaded();
+			if (RamCommunication != null)
+				RamCommunication.RomLoaded();
 		}
 
 		private void OpenProjectInternal(string path)
@@ -3756,6 +3761,7 @@ namespace Pixtro.Client.Editor
 				Emulator.Dispose();
 				Emulator = new NullEmulator();
 				Game = GameInfo.NullInstance;
+				RamCommunication = null;
 				Tools.Restart(Config, Emulator, Game);
 				RewireSound();
 				ClearHolds();

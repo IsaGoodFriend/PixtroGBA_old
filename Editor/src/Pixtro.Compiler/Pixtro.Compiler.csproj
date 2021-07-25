@@ -26,6 +26,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <OutputPath>..\..\output\dll\</OutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">
@@ -50,8 +51,18 @@
     <Compile Include="CompressedLevel.cs" />
     <Compile Include="DataParser.cs" />
     <Compile Include="ExtMethods.cs" />
+    <Compile Include="GBAImage.cs" />
     <Compile Include="LevelBinReader.cs" />
+    <Compile Include="Library\Exceptions\InputTooLargeException.cs" />
+    <Compile Include="Library\Exceptions\NotEnoughDataException.cs" />
+    <Compile Include="Library\Exceptions\StreamTooShortException.cs" />
+    <Compile Include="Library\Formats\CompressionFormat.cs" />
+    <Compile Include="Library\Formats\Nitro\LZ10.cs" />
+    <Compile Include="Library\Formats\Nitro\NitroCFormat.cs" />
+    <Compile Include="Library\Utils\IOUtils.cs" />
+    <Compile Include="Library\Utils\LZUtil.cs" />
     <Compile Include="MainCompiler.cs" />
+    <Compile Include="TilesetData.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

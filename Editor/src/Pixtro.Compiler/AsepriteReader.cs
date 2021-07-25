@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 
 namespace Pixtro.Compiler {
+	// TODO: Add support for tilesets, since that's a feature now (yay)
 
 	public enum BlendType : ushort {
 		Normal = 0,
