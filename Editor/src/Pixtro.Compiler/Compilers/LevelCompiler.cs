@@ -163,7 +163,7 @@ namespace Pixtro.Compiler {
 			// Foreach Level Bricksets
 			foreach (var parse in parseData.Values) {
 				if (parse.fullTileset == null)
-					return;
+					continue;
 
 				int length = parse.fullTileset.RawTiles.Count;
 
