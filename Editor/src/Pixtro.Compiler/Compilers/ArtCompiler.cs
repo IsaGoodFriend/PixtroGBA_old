@@ -106,6 +106,7 @@ namespace Pixtro.Compiler {
 
 
 						uint getValueSmall (int x, int y) {
+							string n = name;
 							return (uint)palette.IndexOf(map.GetPixel(x, y));
 						};
 
@@ -246,7 +247,6 @@ namespace Pixtro.Compiler {
 
 							for (int j = 0; j < 16; ++j)
 								_compiler.AddValue(map.GetPixel(j, i).ToGBA(0));
-
 
 							_compiler.EndArray();
 						}

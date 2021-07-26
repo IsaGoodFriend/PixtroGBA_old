@@ -15,7 +15,7 @@ namespace Pixtro.Compiler {
 
 			public int[] Palettes;
 			public string Tileset;
-			public char MappingCopy;
+			public string MappingCopy;
 			public byte CollisionType;
 
 			public char[] Connections;
@@ -361,7 +361,7 @@ namespace Pixtro.Compiler {
 
 					int collType = DataParse.Wrapping[t].CollisionType;
 
-					foreach (var tile in ArtCompiler.ArtTilesets[DataParse.Wrapping[t].Tileset].tiles)
+					foreach (var tile in ArtCompiler.ArtTilesets["TILE_" + DataParse.Wrapping[t].Tileset].tiles)
 					{
 						if (tile.tile.IsAir)
 							continue;
@@ -440,7 +440,7 @@ namespace Pixtro.Compiler {
 						var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
 
 						Tile tile = null;
-						Tileset tileset = ArtCompiler.ArtTilesets[wrapping.Tileset];
+						Tileset tileset = ArtCompiler.ArtTilesets["TILE_" + wrapping.Tileset];
 						uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping),
 						testValue;
 
@@ -448,10 +448,10 @@ namespace Pixtro.Compiler {
 							foreach (string str in wrapping.MappingSpecial)
 							{
 
-								var dp = new DataParser(str);
+								//var dp = new DataParser(str);
 
-								value <<= 1;
-								value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
+								//value <<= 1;
+								//value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
 							}
 
 						foreach (var key in wrapping.TileMapping.Keys)

@@ -108,5 +108,24 @@ namespace Pixtro.Compiler {
 			}
 			return -1;
 		}
-    }
+
+		public static bool IsInteger(this string str)
+		{
+			foreach (var c in str)
+			{
+				if (!char.IsNumber(c) || c == '-')
+					return false;
+			}
+			return true;
+		}
+		public static bool IsDecimal(this string str)
+		{
+			foreach (var c in str)
+			{
+				if (!char.IsDigit(c))
+					return false;
+			}
+			return true;
+		}
+	}
 }

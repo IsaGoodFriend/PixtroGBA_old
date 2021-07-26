@@ -9,14 +9,15 @@ using System.Drawing;
 namespace Pixtro.Compiler {
 	public static class LevelCompiler
 	{
-		// TODO: Test out LZ10 decompression instead of writing a custom compression
 		public static void StartCompiling()
 		{
 			compiledLevels.Clear();
+			levelPacks.Clear();
 		}
 
 
 		static Dictionary<string, CompressedLevel> compiledLevels = new Dictionary<string, CompressedLevel>();
+		static Dictionary<string, List<string>> levelPacks = new Dictionary<string, List<string>>();
 
 		public static void Compile(string _path, string _tilesetPath)
 		{
@@ -67,11 +68,42 @@ namespace Pixtro.Compiler {
 				p.Value.Name = p.Key;
 
 				foreach (char c in p.Value.Wrapping.Keys)
-					p.Value.Wrapping[c].FinalizeMasks();
+				{
+					var wrap = p.Value.Wrapping[c];
+
+					if (wrap.MappingCopy != null)
+					{
+						string[] split = wrap.MappingCopy.Split('/', '\\');
+
+						var otherWrap = parseData[split[0]].Wrapping[split[1][0]];
+
+						wrap.Mapping = otherWrap.Mapping;
+						wrap.TileMapping = otherWrap.TileMapping;
+					}
+
+					wrap.FinalizeMasks();
+				}
 			}
 
 			// Todo: allow custom seeds to get consistent result
 			CompressedLevel.Randomizer = new Random();
+
+			foreach (var pack in Directory.GetFiles(Path.Combine(_path, "_packs")))
+			{
+				string name = Path.GetFileNameWithoutExtension(pack);
+
+				List<string> levelList = new List<string>();
+
+				foreach (var level in File.ReadAllLines(pack))
+				{
+					if (string.IsNullOrWhiteSpace(level))
+						continue;
+
+					levelList.Add(level);
+				}
+
+				levelPacks.Add(name, levelList);
+			}
 
 			// Foreach Level in levels folder (ignore all meta/settings files)
 			foreach (var level in Directory.GetFiles(_path, "*", SearchOption.AllDirectories)) {
@@ -80,8 +112,10 @@ namespace Pixtro.Compiler {
 				var localPath = level.Replace(_path, "");
 				if (localPath.StartsWith("\\"))
 					localPath = localPath.Substring(1);
+
+				localPath = localPath.Replace('\\', '/');
 				
-				if (localPath.StartsWith("meta") || localPath.StartsWith("packs\\"))
+				if (localPath.StartsWith("meta") || localPath.StartsWith("_packs/"))
 					continue;
 				
 				CompressedLevel compressed = null;
@@ -189,7 +223,7 @@ namespace Pixtro.Compiler {
 				compiler.AddValueDefine($"TILESET_{parse.Name}_len", length);
 			}
 			
-			foreach (var pack in Directory.GetFiles(Path.Combine(_path, "packs"))){
+			foreach (var pack in Directory.GetFiles(Path.Combine(_path, "_packs"))){
 				string name = Path.GetFileNameWithoutExtension(pack);
 				
 				compiler.BeginArray(CompileToC.ArrayType.UInt, "PACK_" + name);
@@ -233,12 +267,22 @@ namespace Pixtro.Compiler {
 		private static Dictionary<string, int> typeGlobalCount, typeLocalCount;
 		private static Dictionary<LevelPackMetadata, Dictionary<string, int>> typeSectionCount;
 
-		private static string NextLine(StreamReader _reader) {
+		private static string NextLine(StreamReader _reader, bool ignoreWhitespace = true) {
 
 			string retval;
-			do
-				retval = _reader.ReadLine();
-			while (string.IsNullOrWhiteSpace(retval));
+
+			if (ignoreWhitespace)
+			{
+				do
+					retval = _reader.ReadLine();
+				while (string.IsNullOrWhiteSpace(retval));
+			}
+			else
+			{
+				do
+					retval = _reader.ReadLine();
+				while (string.IsNullOrEmpty(retval));
+			}
 
 			return retval;
 		}
@@ -253,99 +297,55 @@ namespace Pixtro.Compiler {
 		}
 
 
-		private static byte ParseEntityMeta(string _value) {
+		private static byte ParseMetadata(string algorithm) {
 			byte retval;
 
-			if (byte.TryParse(_value, out retval))
+			if (byte.TryParse(algorithm, out retval))
 				return retval;
 
-			float parsedValue = 0;
+			double getvals(string[] args)
+			{
+				switch (args[0].ToLower())
+				{
+					case "entglobalcount":
+						return entGlobalCount;
+					case "entlocalcount":
+						return entLocalCount;
+					case "entsectioncount":
+						return entSectionCount[CompressedLevel.DataParse];
+					
+					case "typeglobalcount":
+						return typeGlobalCount[currentType];
+					case "typelocalcount":
+						return typeLocalCount[currentType];
+					case "typesectioncount":
+						return typeSectionCount[CompressedLevel.DataParse][currentType];
 
-			var checkEach = DataParser.MetaSplit(_value);
+					case "packsize":
+						return levelPacks[args[1]].Count;
 
-			MetaOperations currentOp = MetaOperations.Add;
+					case "levelindex":
+					{
+						string pack;
 
-			while (checkEach.MoveNext()) {
-				var parsed = checkEach.Current;
-
-				string[] split = parsed.Split('.');
-				float tempValue = 0;
-
-				switch (split[0]) {
-					case "ent": {
-
-						switch (split[1]) {
-							case "globalcount":
-								tempValue = entGlobalCount;
-								break;
-							case "localcount":
-								tempValue = entLocalCount;
-								break;
-							case "sectioncount":
-								tempValue = entSectionCount[CompressedLevel.DataParse];
-								break;
+						if (args.Length < 3)
+						{
+							pack = "NULL";
+						}
+						else
+						{
+							pack = args[2];
 						}
 
-						break;
-					}
-					case "type": {
-
-						switch (split[1]) {
-							case "globalcount":
-								tempValue = typeGlobalCount[currentType];
-								break;
-							case "localcount":
-								tempValue = typeLocalCount[currentType];
-								break;
-							case "sectioncount":
-								tempValue = typeSectionCount[CompressedLevel.DataParse][currentType];
-								break;
-						}
-
-						break;
-					}
-
-					case "+":
-						currentOp = MetaOperations.Add;
-						break;
-					case "-":
-						currentOp = MetaOperations.Subtract;
-						break;
-					case "*":
-						currentOp = MetaOperations.Multiply;
-						break;
-					case "/":
-						currentOp = MetaOperations.Divide;
-						break;
-					default: {
-
-						if (float.TryParse(parsed, out tempValue)) {
-							break;
-						}
-
-						throw new Exception();
+						// TODO: auto detect level pack if not given a third argument
+						return levelPacks[pack].IndexOf(args[1]);
 					}
 				}
 
-				switch (currentOp) {
-					case MetaOperations.Add:
-						parsedValue += tempValue;
-						break;
-					case MetaOperations.Subtract:
-						parsedValue -= tempValue;
-						break;
-					case MetaOperations.Multiply:
-						parsedValue *= tempValue;
-						break;
-					case MetaOperations.Divide:
-						parsedValue /= tempValue;
-						break;
-				}
+				return 0;
 			}
 
-			retval = (byte)parsedValue;
-
-			return retval;
+			return DataParser.EvaluateByte(algorithm, getvals);
 		}
 		private static CompressedLevel CompileLevelBin(string _path, CompileToC _compiler) {
 
@@ -404,7 +404,7 @@ namespace Pixtro.Compiler {
 												break;
 											default:
 												if (child.Attributes[attr] is string) {
-													ent.data.Add(ParseEntityMeta(child.Attributes[attr] as string));
+													ent.data.Add(ParseMetadata(child.Attributes[attr] as string));
 												}
 												else {
 													ent.data.Add((byte)child.GetInteger(attr));
@@ -466,10 +466,10 @@ namespace Pixtro.Compiler {
 
 					switch (split[0]) {
 						case "layer": {
-							int line = dataType.Contains('-') ? int.Parse(split[1]) : 0;
+							int layer = dataType.Contains('-') ? int.Parse(split[1]) : 0;
 
 							for (int i = 0; i < retval.Height; ++i) {
-								retval.AddLine(line, i, NextLine(reader));
+								retval.AddLine(layer, i, NextLine(reader, false));
 							}
 							break;
 						}
@@ -490,10 +490,14 @@ namespace Pixtro.Compiler {
 								entity.y = int.Parse(split[2]);
 
 								for (int i = 3; i < split.Length; ++i) {
-									entity.data.Add(ParseEntityMeta(split[i]));
+									entity.data.Add(ParseMetadata(split[i]));
 								}
 
-								entity.type = CompressedLevel.DataParse.EntityIndex[split[0]];
+								byte type;
+								if (!byte.TryParse(split[0], out type))
+								{
+									entity.type = CompressedLevel.DataParse.EntityIndex[split[0]];
+								}
 
 								retval.entities.Add(entity);
 
@@ -503,11 +507,13 @@ namespace Pixtro.Compiler {
 
 								currentType = split[0];
 
-								if (!typeLocalCount.ContainsKey(currentType)) {
+								if (!typeLocalCount.ContainsKey(currentType))
 									typeLocalCount.Add(currentType, 0);
+								if (!typeGlobalCount.ContainsKey(currentType))
 									typeGlobalCount.Add(currentType, 0);
+								if (!typeSectionCount[CompressedLevel.DataParse].ContainsKey(currentType))
 									typeSectionCount[CompressedLevel.DataParse].Add(currentType, 0);
-								}
+								
 								typeLocalCount[currentType]++;
 								typeGlobalCount[currentType]++;
 								typeSectionCount[CompressedLevel.DataParse][currentType]++;
@@ -515,6 +521,28 @@ namespace Pixtro.Compiler {
 								
 							}
 							break;
+						case "meta":
+						case "metadata":
+						{
+							retval.metadata =new Dictionary<byte, byte>();
+
+							string readLine = "";
+
+							while (readLine != "end")
+							{
+								readLine = NextLine(reader);
+
+								if (readLine == "end")
+									break;
+
+								split = readLine.Split(';');
+
+								byte value = ParseMetadata(split[1]);
+								retval.metadata.Add(byte.Parse(split[0]), value);
+								
+							}
+						}
+						break;
 					}
 
 				}

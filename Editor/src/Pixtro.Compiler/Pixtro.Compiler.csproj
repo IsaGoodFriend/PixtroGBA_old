@@ -29,6 +29,13 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Antlr4.Runtime, Version=4.6.0.0, Culture=neutral, PublicKeyToken=09abb75b9ed49849, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Antlr4.Runtime.4.6.6\lib\net45\Antlr4.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Dangl.Calculator, Version=1.4.0.0, Culture=neutral, PublicKeyToken=35bf74eac1c84f5d, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Dangl.Calculator.1.4.0\lib\net45\Dangl.Calculator.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\..\..\Libraries\Newtonsoft.Json.dll</HintPath>
     </Reference>
