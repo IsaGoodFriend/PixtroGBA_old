@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,7 +10,6 @@ namespace Pixtro.Compiler
 {
 	public class BackgroundTiles : Tileset
 	{
-
 		public BackgroundTiles(int width, int height) : base(width, height)
 		{
 
@@ -92,7 +92,7 @@ namespace Pixtro.Compiler
 					rawData[x, y] = _read.ReadColor(x, y, _layer: _layer).ToGBA();
 
 			palettesBase = new List<ushort[]>();
-			List<FloatColor> palette = new List<FloatColor>(_read.Colors);
+			List<FloatColor> palette = new List<FloatColor>(_read.ColorPalette);
 
 			for (int i = 0; i < palette.Count; i += 16)
 			{
@@ -161,7 +161,7 @@ namespace Pixtro.Compiler
 				return (uint)Array.IndexOf(palettesBase[paletteIdx[x >> 3, y >> 3]], rawData[x, y]);
 			};
 
-			AddTiles(ArtCompiler.GetArrayFromSprite(width << 3, height << 3, getOffset, _background: true).GetEnumerator());
+			AddTiles(FullCompiler.GetArrayFromSprite(width << 3, height << 3, _background: true).GetEnumerator());
 		}
 
 		public void AddTiles(IEnumerator<uint> _tileData)
@@ -209,6 +209,258 @@ namespace Pixtro.Compiler
 			}
 
 			yield break;
+		}
+	}
+
+	public class GBAImage
+	{
+
+		private unsafe static GBAImage FromBitmap(Bitmap map, Rectangle section)
+		{
+			FloatColor[,] values = new FloatColor[section.Width, section.Height];
+
+			var data = map.LockBits(section, System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+			byte* ptr = (byte*)data.Scan0.ToPointer();
+
+			for (int y = section.Left; y < section.Right; ++y)
+			{
+				for (int x = section.Top; x < section.Bottom; ++x)
+				{
+					int i = (x * 4) + (y * data.Stride);
+
+					values[x - section.X, y - section.Y] = new FloatColor(ptr[i + 2], ptr[i + 1], ptr[i], ptr[i + 3]);
+				}
+			}
+
+			map.UnlockBits(data);
+
+			return new GBAImage(values);
+		}
+
+		public static GBAImage FromFile(string path)
+		{
+			Bitmap map = new Bitmap(path);
+
+			if (map.Width % 8 != 0 || map.Height % 8 != 0)
+				throw new Exception();
+
+			return FromBitmap(map, new Rectangle(0, 0, map.Width, map.Height));
+		}
+		public static GBAImage[] AnimateFromFile(string path, int width, int height)
+		{
+			if (width % 8 != 0 || height % 8 != 0)
+				throw new Exception();
+
+			Bitmap map = new Bitmap(path);
+
+			// Throw error if file can't be divided evenly
+			if (map.Width % width != 0 || map.Width % height != 0)
+				throw new Exception();
+
+			int frameX = map.Width / width,
+				frameY = map.Height / height;
+
+			List<GBAImage> images = new List<GBAImage>();
+
+			for (int y = 0; y < frameY; ++y)
+			{
+				for (int x = 0; x < frameX; ++x)
+				{
+					images.Add(FromBitmap(map, new Rectangle(x * width, y * height, width, height)));
+				}
+			}
+
+			return images.ToArray();
+		}
+		public static GBAImage[] FromAsepriteProject(string path)
+		{
+			using (AsepriteReader reader = new AsepriteReader(path))
+			{
+				List<Color[]> palettes = null;
+				if (reader.IndexedColors)
+				{
+					var colors = reader.ColorPalette;
+
+					palettes = new List<Color[]>();
+
+					string test = colors[0].ToString();
+
+					int paletteCount = (colors.Length + 14) >> 4;
+					
+					for (int i = 0; i < paletteCount << 4; i += 16)
+					{
+						Color[] pal = new Color[16];
+
+						pal[0] = Color.FromArgb(0, 0, 0, 0);
+						int index;
+						for (index = 1; index < 16 && (index + i) < colors.Length; ++index)
+						{
+							pal[index] = colors[index + i].ToGBAColor();
+						}
+						for (; index < 16; ++index)
+						{
+							pal[index] = Color.FromArgb(0, 0, 0, 0);
+						}
+
+						palettes.Add(pal);
+					}
+				}
+
+				// Angry.  You didn't feed me a properly formatted image
+				if (reader.Width % 8 != 0 || reader.Height % 8 != 0)
+					throw new Exception();
+
+				GBAImage[] retval = new GBAImage[reader.FrameCount];
+
+				for (int i = 0; i < reader.FrameCount; ++i)
+				{
+					retval[i] = new GBAImage(reader.GetFrameValue(i, true), palettes);
+				}
+
+				return retval;
+			}
+		}
+
+		public int Width { get; private set; }
+		public int Height { get; private set; }
+
+		private int[,] baseValues;
+		private List<Color[]> finalPalettes;
+
+		private bool palettesLocked;
+
+		private GBAImage(FloatColor[,] colors, List<Color[]> exportPalettes = null)
+		{
+			Width = colors.GetLength(0);
+			Height = colors.GetLength(1);
+			baseValues = new int[Width, Height];
+
+			List<Color?[]> palettes = new List<Color?[]>();
+
+			if (exportPalettes != null)
+			{
+				foreach (var pal in exportPalettes)
+				{
+					palettes.Add(pal.Select(val => (Color?)val).ToArray());
+				}
+				palettesLocked = true;
+			}
+
+			for (int ty = 0; ty < Height; ty += 8)
+			{
+				for (int tx = 0; tx < Width; tx += 8)
+				{
+					List<Color> palette = new List<Color>();
+
+					Color[,] rawData = new Color[8, 8];
+
+					for (int y = 0; y < 8; ++y)
+					{
+						for (int x = 0; x < 8; ++x)
+						{
+							rawData[x, y] = colors[x + tx, y + ty].ToGBAColor();
+							if (!palette.Contains(rawData[x, y]))
+								palette.Add(rawData[x, y]);
+						}
+					}
+
+					int paletteIndex = 0;
+
+					foreach (var pal in palettes)
+					{
+						var foundPalette = pal;
+
+						foreach (var col in palette)
+						{
+							if (!pal.ContainsValue(col))
+							{
+								foundPalette = null;
+								break;
+							}
+						}
+
+						if (foundPalette != null) {
+							palette = new List<Color>(foundPalette.Where(value => value != null).Select(value => (Color)value));
+							break;
+						}
+						paletteIndex += 16;
+					}
+					if (paletteIndex >> 4 == palettes.Count)
+					{
+						if (palettesLocked)
+							throw new Exception();
+
+						paletteIndex = 0;
+
+						bool selectedPalette = false;
+						foreach (var pal in palettes)
+						{
+							int nullCount = 0;
+							// Count how many null slots are in current palette
+							for (int i = 0; i < 16; ++i)
+							{
+								if (pal[i] == null)
+									nullCount++;
+							}
+							// Find and count every color current palette doesn't have
+							List<Color> toAdd = new List<Color>();
+							foreach (var color in palette)
+							{
+								if (!pal.Contains(color))
+								{
+									nullCount--;
+									toAdd.Add(color);
+								}
+							}
+
+							// If there's enough null slots to add, then add them and stop checking palettes
+							if (nullCount >= 0)
+							{
+								for (int i = 0; i < 16 && toAdd.Count > 0; ++i)
+								{
+									if (pal[i] == null)
+									{
+										pal[i] = toAdd[0];
+										toAdd.RemoveAt(0);
+									}
+								}
+								selectedPalette = true;
+
+								palette = new List<Color>(pal.Where(value => value != null).Select(value => (Color)value));
+								break;
+							}
+
+							paletteIndex += 16;
+						}
+
+						if (!selectedPalette)
+						{
+							List<Color?> addPal = new List<Color?>(palette.Select(value => (Color?)value));
+
+							while (addPal.Count < 16)
+								addPal.Add(null);
+							palettes.Add(addPal.ToArray());
+						}
+
+					}
+
+					for (int y = 0; y < 8; ++y)
+					{
+						for (int x = 0; x < 8; ++x)
+						{
+							baseValues[x + tx, y + ty] = palette.IndexOf(rawData[x, y]) | paletteIndex;
+						}
+					}
+				}
+			}
+
+			finalPalettes = new List<Color[]>();
+			foreach (var pal in palettes)
+			{
+				finalPalettes.Add(pal.Where(value => value != null).Select(val => (Color)val).ToArray());
+			}
+
 		}
 	}
 }

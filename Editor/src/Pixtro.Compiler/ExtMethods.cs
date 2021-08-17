@@ -127,5 +127,21 @@ namespace Pixtro.Compiler {
 			}
 			return true;
 		}
+
+		public static bool ContainsValue<T>(this IEnumerable<T?> list, T value) where T : struct
+		{
+			foreach (var item in list)
+			{
+				if (item == null)
+				{
+					continue;
+				}
+				if (item.Equals(value))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 }

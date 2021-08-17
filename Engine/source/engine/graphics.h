@@ -1,6 +1,5 @@
 #pragma once
 
-#include "sprites.h"
 #include "math.h"
 #include "engine.h"
 

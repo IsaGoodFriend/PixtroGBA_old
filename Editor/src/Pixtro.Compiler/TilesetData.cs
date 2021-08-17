@@ -31,6 +31,7 @@ namespace Pixtro.Compiler
 
 		public Tile(int pixelSize)
 		{
+			IsAir = true;
 			sizeOfTile = pixelSize;
 
 			pixelSize /= 8;
@@ -99,6 +100,9 @@ namespace Pixtro.Compiler
 
 		public bool EqualTo(Tile _other, FlipStyle flippable)
 		{
+			if (_other == null)
+				return false;
+
 			Unflip();
 			_other.Unflip();
 
@@ -274,22 +278,23 @@ namespace Pixtro.Compiler
 			originalLayout[x, y] = tile;
 		}
 
-		public void AddTiles(IEnumerator<uint> _tileData, bool _largeTiles)
+		public void AddTiles(IEnumerator<uint> tileData)
 		{
 			int x = 0, y = 0;
 			do
 			{
 				List<uint> tileRaw = new List<uint>();
 
-				for (int i = 0; i < (_largeTiles ? 32 : 8) && _tileData.MoveNext(); ++i)
+				for (int i = 0; i < 8 * Settings.BrickTileSize * Settings.BrickTileSize; ++i)
 				{
-					tileRaw.Add(_tileData.Current);
+					tileRaw.Add(tileData.Current);
+					tileData.MoveNext();
 				}
 
 				if (tileRaw.Count < 8)
 					break;
 
-				var tile = new Tile(_largeTiles ? 16 : 8);
+				var tile = new Tile(8 * Settings.BrickTileSize);
 				tile.LoadInData(tileRaw.ToArray(), 0);
 
 				SetTile(tile, x, y);

@@ -37,7 +37,10 @@ namespace Pixtro.Client.Editor
 			Icon = Properties.Resources.GbaIcon.Value;
 			// TODO: hook up something
 			// we do this twice to avoid having to & 0x7fff with every color
+			int[] tmp = GBColors.GetLut(GBColors.ColorType.vivid);
 			_colorConversion = new int[65536];
+			Buffer.BlockCopy(tmp, 0, _colorConversion, 0, sizeof(int) * tmp.Length);
+			Buffer.BlockCopy(tmp, 0, _colorConversion, sizeof(int) * tmp.Length, sizeof(int) * tmp.Length);
 			radioButtonManual.Checked = true;
 			GenerateWidgets();
 			hScrollBar1_ValueChanged(null, null);
@@ -499,7 +502,7 @@ namespace Pixtro.Client.Editor
 
 			byte* tiles = (byte*)_vram + 65536;
 			// TODO: palette changing (in 4 bit mode anyway)
-			ushort* palette = (ushort*)_palRam + 256;
+			ushort* palette = (ushort*)_palRam + 256 + ((int)updownSpritePal.Value * 16);
 
 			if (tophalfonly)
 			{
@@ -526,7 +529,7 @@ namespace Pixtro.Client.Editor
 
 			byte* tiles = (byte*)_vram;
 			// TODO: palette changing (in 4 bit mode anyway)
-			ushort* palette = (ushort*)_palRam;
+			ushort* palette = (ushort*)_palRam + ((int)updownBGPal.Value * 16);
 			DrawTileRange(pixels, pitch, tiles, palette, tw, th, eightbit);
 			bmp.UnlockBits(lockData);
 			mbv.BmpView.Refresh();

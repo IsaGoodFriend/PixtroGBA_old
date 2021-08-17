@@ -34,6 +34,10 @@
 			this.label1 = new Pixtro.WinForms.Controls.LocLabelEx();
 			this.buttonShowWidget = new System.Windows.Forms.Button();
 			this.groupBox1 = new System.Windows.Forms.GroupBox();
+			this.updownBGPal = new System.Windows.Forms.NumericUpDown();
+			this.locLabelEx2 = new Pixtro.WinForms.Controls.LocLabelEx();
+			this.updownSpritePal = new System.Windows.Forms.NumericUpDown();
+			this.locLabelEx1 = new Pixtro.WinForms.Controls.LocLabelEx();
 			this.buttonRefresh = new System.Windows.Forms.Button();
 			this.hScrollBar1 = new System.Windows.Forms.HScrollBar();
 			this.radioButtonManual = new System.Windows.Forms.RadioButton();
@@ -42,6 +46,8 @@
 			this.timerMessage = new System.Windows.Forms.Timer(this.components);
 			this.menuStrip1 = new System.Windows.Forms.MenuStrip();
 			this.groupBox1.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)(this.updownBGPal)).BeginInit();
+			((System.ComponentModel.ISupportInitialize)(this.updownSpritePal)).BeginInit();
 			this.SuspendLayout();
 			// 
 			// listBoxWidgets
@@ -82,20 +88,62 @@
 			// 
 			// groupBox1
 			// 
+			this.groupBox1.Controls.Add(this.updownBGPal);
+			this.groupBox1.Controls.Add(this.locLabelEx2);
+			this.groupBox1.Controls.Add(this.updownSpritePal);
+			this.groupBox1.Controls.Add(this.locLabelEx1);
 			this.groupBox1.Controls.Add(this.buttonRefresh);
 			this.groupBox1.Controls.Add(this.hScrollBar1);
 			this.groupBox1.Controls.Add(this.radioButtonManual);
 			this.groupBox1.Controls.Add(this.radioButtonScanline);
 			this.groupBox1.Location = new System.Drawing.Point(15, 235);
 			this.groupBox1.Name = "groupBox1";
-			this.groupBox1.Size = new System.Drawing.Size(134, 133);
+			this.groupBox1.Size = new System.Drawing.Size(134, 192);
 			this.groupBox1.TabIndex = 4;
 			this.groupBox1.TabStop = false;
 			this.groupBox1.Text = "Refresh";
 			// 
+			// updownBGPal
+			// 
+			this.updownBGPal.Location = new System.Drawing.Point(6, 162);
+			this.updownBGPal.Maximum = new decimal(new int[] {
+            15,
+            0,
+            0,
+            0});
+			this.updownBGPal.Name = "updownBGPal";
+			this.updownBGPal.Size = new System.Drawing.Size(122, 20);
+			this.updownBGPal.TabIndex = 11;
+			// 
+			// locLabelEx2
+			// 
+			this.locLabelEx2.Location = new System.Drawing.Point(6, 146);
+			this.locLabelEx2.MaximumSize = new System.Drawing.Size(145, 0);
+			this.locLabelEx2.Name = "locLabelEx2";
+			this.locLabelEx2.Text = "Background Palette";
+			// 
+			// updownSpritePal
+			// 
+			this.updownSpritePal.Location = new System.Drawing.Point(6, 123);
+			this.updownSpritePal.Maximum = new decimal(new int[] {
+            15,
+            0,
+            0,
+            0});
+			this.updownSpritePal.Name = "updownSpritePal";
+			this.updownSpritePal.Size = new System.Drawing.Size(122, 20);
+			this.updownSpritePal.TabIndex = 9;
+			// 
+			// locLabelEx1
+			// 
+			this.locLabelEx1.Location = new System.Drawing.Point(6, 107);
+			this.locLabelEx1.MaximumSize = new System.Drawing.Size(145, 0);
+			this.locLabelEx1.Name = "locLabelEx1";
+			this.locLabelEx1.Text = "Sprite Palette";
+			// 
 			// buttonRefresh
 			// 
-			this.buttonRefresh.Location = new System.Drawing.Point(6, 104);
+			this.buttonRefresh.Location = new System.Drawing.Point(6, 81);
 			this.buttonRefresh.Name = "buttonRefresh";
 			this.buttonRefresh.Size = new System.Drawing.Size(75, 23);
 			this.buttonRefresh.TabIndex = 4;
@@ -106,7 +154,7 @@
 			// hScrollBar1
 			// 
 			this.hScrollBar1.LargeChange = 20;
-			this.hScrollBar1.Location = new System.Drawing.Point(3, 62);
+			this.hScrollBar1.Location = new System.Drawing.Point(3, 39);
 			this.hScrollBar1.Maximum = 246;
 			this.hScrollBar1.Name = "hScrollBar1";
 			this.hScrollBar1.Size = new System.Drawing.Size(128, 16);
@@ -116,7 +164,7 @@
 			// radioButtonManual
 			// 
 			this.radioButtonManual.AutoSize = true;
-			this.radioButtonManual.Location = new System.Drawing.Point(6, 81);
+			this.radioButtonManual.Location = new System.Drawing.Point(6, 58);
 			this.radioButtonManual.Name = "radioButtonManual";
 			this.radioButtonManual.Size = new System.Drawing.Size(60, 17);
 			this.radioButtonManual.TabIndex = 2;
@@ -128,7 +176,7 @@
 			// radioButtonScanline
 			// 
 			this.radioButtonScanline.AutoSize = true;
-			this.radioButtonScanline.Location = new System.Drawing.Point(6, 42);
+			this.radioButtonScanline.Location = new System.Drawing.Point(6, 19);
 			this.radioButtonScanline.Name = "radioButtonScanline";
 			this.radioButtonScanline.Size = new System.Drawing.Size(66, 17);
 			this.radioButtonScanline.TabIndex = 1;
@@ -138,7 +186,7 @@
 			// 
 			// labelClipboard
 			// 
-			this.labelClipboard.Location = new System.Drawing.Point(9, 371);
+			this.labelClipboard.Location = new System.Drawing.Point(12, 439);
 			this.labelClipboard.MaximumSize = new System.Drawing.Size(145, 0);
 			this.labelClipboard.Name = "labelClipboard";
 			this.labelClipboard.Text = "CTRL + C: Copy under mouse to clipboard.";
@@ -156,7 +204,7 @@
 			this.menuStrip1.TabIndex = 6;
 			this.menuStrip1.Text = "menuStrip1";
 			// 
-			// GBAGPUView
+			// GbaGpuView
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -177,6 +225,8 @@
 			this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.GbaGpuView_KeyDown);
 			this.groupBox1.ResumeLayout(false);
 			this.groupBox1.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)(this.updownBGPal)).EndInit();
+			((System.ComponentModel.ISupportInitialize)(this.updownSpritePal)).EndInit();
 			this.ResumeLayout(false);
 			this.PerformLayout();
 
@@ -196,6 +246,9 @@
 		private Pixtro.WinForms.Controls.LocLabelEx labelClipboard;
 		private System.Windows.Forms.Timer timerMessage;
 		private System.Windows.Forms.MenuStrip menuStrip1;
-
+		private System.Windows.Forms.NumericUpDown updownBGPal;
+		private WinForms.Controls.LocLabelEx locLabelEx2;
+		private System.Windows.Forms.NumericUpDown updownSpritePal;
+		private WinForms.Controls.LocLabelEx locLabelEx1;
 	}
 }

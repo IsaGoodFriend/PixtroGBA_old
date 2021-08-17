@@ -1,4 +1,4 @@
-TODO:
+Game engine TODO:
 
 -- Physics (mostly done)
 	-- Need to finish porting rectangle checking (done)
@@ -32,7 +32,27 @@ TODO:
 -- Sound effects
 
 
-TODO for Editor:
+
+
+
+Compiler TODO:
+-- Improve the Art compiling
+	-- Have a way to import tilesets/sprites through "import palettes"
+
+
+Compiler pseudo:
+	Parse Visual Pack data
+	Finalize Tileset mapping
+	Read all the levels used in each pack.  Used to 
+	foreach Visual Pack:
+		Compile each level.  Take note of each sprite tile used.
+		
+	Compile Sprites
+
+
+
+
+Editor TODO:
 -- Implement the compiler. (done)
 -- Implement project templates (done)
 -- Create the project format (half done)
@@ -43,10 +63,12 @@ TODO for Editor:
 -- Add new panels:
 	-- Level Editor.
 		-- Include modes for editing the tilemap and the entities
-	-- Tilemap Editor
+	-- Tilemapping Editor
 	-- Sprite Editor
 	-- Palette Editor
+	-- Entity Editor
 -- Update rom/editor when assets edited outside of the editor
+-- Allow users to designate certain tiles in a levelpack as part of a single array
 	
 
 Possible ideas:

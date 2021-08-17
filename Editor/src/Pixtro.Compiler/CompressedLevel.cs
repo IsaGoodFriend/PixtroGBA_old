@@ -9,7 +9,7 @@ using System.Collections;
 using DSDecmp;
 
 namespace Pixtro.Compiler {
-	public class LevelPackMetadata {
+	public class VisualPackMetadata {
 		public class TileWrapping {
 			// TODO: Create feature that lets users copy mapping data from one version to another
 
@@ -30,6 +30,9 @@ namespace Pixtro.Compiler {
 			public void FinalizeMasks() {
 				EnableMask = new Dictionary<string, uint>();
 				DisableMask = new Dictionary<string, uint>();
+
+				if (TileMapping == null)
+					return;
 
 				foreach (string key in TileMapping.Keys) {
 					EnableMask.Add(key, Convert.ToUInt32(key.Replace("*", "0"), 2));
@@ -52,75 +55,77 @@ namespace Pixtro.Compiler {
 
 		public Dictionary<string, int> EntityIndex;
 
-		public string Include, Exclude;
-		public string IncludeRegex, ExcludeRegex;
+		public string[] LevelPacks;
+
+		[JsonIgnore]
+		public List<string> levelsIncluded = new List<string>();
 
 		public string Name;
 
-		private static bool TestString(string path, string test) {
+		//private static bool TestString(string path, string test) {
 
-			if (test == "*")
-				return true;
-			else if (!test.Contains("*")) {
-				return test == path;
-			}
-			else {
-				string[] split = test.Split(new char[]{ '*' }, StringSplitOptions.RemoveEmptyEntries);
+		//	if (test == "*")
+		//		return true;
+		//	else if (!test.Contains("*")) {
+		//		return test == path;
+		//	}
+		//	else {
+		//		string[] split = test.Split(new char[]{ '*' }, StringSplitOptions.RemoveEmptyEntries);
 
-				int index = 0;
+		//		int index = 0;
 
-				if (!test.StartsWith("*") && !path.StartsWith(split[0])) {
-					return false;
-				}
-				if (!test.EndsWith("*") && !path.EndsWith(split[split.Length - 1])) {
-					return false;
-				}
+		//		if (!test.StartsWith("*") && !path.StartsWith(split[0])) {
+		//			return false;
+		//		}
+		//		if (!test.EndsWith("*") && !path.EndsWith(split[split.Length - 1])) {
+		//			return false;
+		//		}
 
-				for (int i = test.StartsWith("*") ? 0 : 1; i < split.Length - (test.EndsWith("*") ? 0 : 1); ++i) {
-					int found = path.IndexOf(split[i]);
+		//		for (int i = test.StartsWith("*") ? 0 : 1; i < split.Length - (test.EndsWith("*") ? 0 : 1); ++i) {
+		//			int found = path.IndexOf(split[i]);
 
-					if (found < index)
-						return false;
+		//			if (found < index)
+		//				return false;
 
-					index = found;
-				}
+		//			index = found;
+		//		}
 
-				return true;
-			}
-		}
+		//		return true;
+		//	}
+		//}
 
-		public bool Matches(string _path) {
+		//public bool Matches(string _path) {
 
-			bool test = false;
+		//	bool test = false;
 
-			if (Include != null) {
-				string[] split = Include.Split(',');
+		//	if (Include != null) {
+		//		string[] split = Include.Split(',');
 
-				foreach (string s in split)
-					test |= TestString(_path, s);
-			}
-			if (IncludeRegex != null) {
-				test |= Regex.IsMatch(_path, IncludeRegex);
-			}
+		//		foreach (string s in split)
+		//			test |= TestString(_path, s);
+		//	}
+		//	if (IncludeRegex != null) {
+		//		test |= Regex.IsMatch(_path, IncludeRegex);
+		//	}
 
-			if (!test)
-				return false;
+		//	if (!test)
+		//		return false;
 
-			if (Exclude != null) {
-				string[] split = Exclude.Split(',');
+		//	if (Exclude != null) {
+		//		string[] split = Exclude.Split(',');
 
-				foreach (string s in split)
-					test &= !TestString(_path, s);
-			}
-			if (!test)
-				return false;
+		//		foreach (string s in split)
+		//			test &= !TestString(_path, s);
+		//	}
+		//	if (!test)
+		//		return false;
 
-			if (ExcludeRegex != null) {
-				test &= !Regex.IsMatch(_path, ExcludeRegex);
-			}
+		//	if (ExcludeRegex != null) {
+		//		test &= !Regex.IsMatch(_path, ExcludeRegex);
+		//	}
 
-			return test;
-		}
+		//	return test;
+		//}
 	}
 	public class Brick : Tile
 	{
@@ -150,6 +155,11 @@ namespace Pixtro.Compiler {
 		public Brick(Tile tileCopy) : base(tileCopy.sizeOfTile)
 		{
 			LoadInData(tileCopy.RawData, 0);
+		}
+
+		public override string ToString()
+		{
+			return (IsAir ? "Air" : "Solid") + " " + collisionChar;
 		}
 	}
 	public class LevelBrickset : IEnumerable<Brick>
@@ -181,7 +191,7 @@ namespace Pixtro.Compiler {
 					var tile = new Tile(8);
 					tile.LoadInData(brick.RawData, i * 8);
 
-					if (!rawTiles.Contains(tile, new Tileset.CompareTiles()))
+					if (!tile.IsAir && !rawTiles.Contains(tile, new Tileset.CompareTiles()))
 					{
 						rawTiles.Add(tile);
 					}
@@ -234,7 +244,7 @@ namespace Pixtro.Compiler {
 
 		public static Random Randomizer;
 
-		public static LevelPackMetadata DataParse;
+		public static VisualPackMetadata DataParse;
 
 		public class Entity {
 			public int x, y, type;
@@ -357,29 +367,43 @@ namespace Pixtro.Compiler {
 				List<string> found = new List<string>();
 
 				// Foreach tile type ('M', 'N' or whatever)
-				foreach (var t in DataParse.Wrapping.Keys) {
+				foreach (var key in DataParse.Wrapping.Keys) {
 
-					int collType = DataParse.Wrapping[t].CollisionType;
+					int collType = DataParse.Wrapping[key].CollisionType;
 
-					foreach (var tile in ArtCompiler.ArtTilesets["TILE_" + DataParse.Wrapping[t].Tileset].tiles)
+					if (FullCompiler.ArtTilesets.ContainsKey("TILE_" + DataParse.Wrapping[key].Tileset))
 					{
-						if (tile.tile.IsAir)
-							continue;
+						foreach (var tile in FullCompiler.ArtTilesets["TILE_" + DataParse.Wrapping[key].Tileset].tiles)
+						{
+							if (tile.tile.IsAir && collType == 0)
+								continue;
 
-						var brick = new Brick(tile);
+							var brick = new Brick(tile);
+							brick.collisionType = collType;
+							brick.collisionChar = key;
+
+							fullTileset.AddNewBrick(brick);
+						}
+					}
+					else
+					{
+						var brick = new Brick(Settings.BrickTileSize * 8);
 						brick.collisionType = collType;
-						brick.collisionChar = t;
+						brick.collisionChar = key;
 
 						fullTileset.AddNewBrick(brick);
 					}
 						
-					found.Add(DataParse.Wrapping[t].Tileset);
+					found.Add(DataParse.Wrapping[key].Tileset);
 				}
 
 				DataParse.fullTileset = fullTileset;
 			}
 
 			foreach (var tile in DataParse.Wrapping.Keys) {
+
+				if (DataParse.Wrapping[tile].Connections == null)
+					continue;
 
 				List<uint> conns = new List<uint>();
 
@@ -431,68 +455,80 @@ namespace Pixtro.Compiler {
 				{
 					ushort retval;
 
-					if (levelData[layer, x, y] == ' ')
+					char currentTile = levelData[layer, x, y];
+
+					if (currentTile == ' ')
 					{
 						retval = 0;
 					}
 					else
 					{
-						var wrapping = DataParse.Wrapping[levelData[layer, x, y]];
-
+						var wrapping = DataParse.Wrapping[currentTile];
+						Tile mappedTile;
 						Tile tile = null;
-						Tileset tileset = ArtCompiler.ArtTilesets["TILE_" + wrapping.Tileset];
-						uint value = data.GetWrapping(x, y, connect[levelData[layer, x, y]], wrapping.Mapping),
-						testValue;
 
-						if (wrapping.MappingSpecial != null)
-							foreach (string str in wrapping.MappingSpecial)
-							{
-
-								//var dp = new DataParser(str);
-
-								//value <<= 1;
-								//value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
-							}
-
-						foreach (var key in wrapping.TileMapping.Keys)
+						if (FullCompiler.ArtTilesets.ContainsKey("TILE_" + wrapping.Tileset))
 						{
-							testValue = wrapping.EnableMask[key];
+							Tileset tileset = FullCompiler.ArtTilesets["TILE_" + wrapping.Tileset];
+							uint value = data.GetWrapping(x, y, connect[currentTile], wrapping.Mapping),
+								testValue;
 
-							if ((testValue & value) != testValue)
-								continue;
-
-							testValue = wrapping.DisableMask[key];
-
-							if ((testValue & (value)) != 0)
-								continue;
-
-							var point = wrapping.TileMapping[key].GetValueWrapped(RandomFromPoint(new Point(x, y)));
-
-							if (wrapping.Offsets != null)
-								foreach (var o in wrapping.Offsets.Keys)
+							if (wrapping.MappingSpecial != null)
+								foreach (string str in wrapping.MappingSpecial)
 								{
 
-									testValue = wrapping.EnableMask[o];
+									//var dp = new DataParser(str);
 
-									if ((testValue & value) != testValue)
-										continue;
-
-									testValue = wrapping.DisableMask[o];
-
-									if ((testValue & (value)) != 0)
-										continue;
-
-									foreach (var exPoint in wrapping.Offsets[o])
-										point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
+									//value <<= 1;
+									//value |= (uint)(dp.GetBoolean(getvalue) ? 1 : 0);
 								}
 
-							tile = tileset.GetOriginalTile(point.X, point.Y);
-							break;
+							foreach (var key in wrapping.TileMapping.Keys)
+							{
+								testValue = wrapping.EnableMask[key];
+
+								if ((testValue & value) != testValue)
+									continue;
+
+								testValue = wrapping.DisableMask[key];
+
+								if ((testValue & (value)) != 0)
+									continue;
+
+								var point = wrapping.TileMapping[key].GetValueWrapped(RandomFromPoint(new Point(x, y)));
+
+								if (wrapping.Offsets != null)
+									foreach (var o in wrapping.Offsets.Keys)
+									{
+
+										testValue = wrapping.EnableMask[o];
+
+										if ((testValue & value) != testValue)
+											continue;
+
+										testValue = wrapping.DisableMask[o];
+
+										if ((testValue & (value)) != 0)
+											continue;
+
+										foreach (var exPoint in wrapping.Offsets[o])
+											point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
+									}
+
+								tile = tileset.GetOriginalTile(point.X, point.Y);
+								break;
+							}
+
+							mappedTile = tileset.GetUniqueTile(tile??tileset.GetOriginalTile(0, 0));
 						}
+						else
+						{
+							mappedTile = new Tile(Settings.BrickTileSize * 8);
+							tile = new Tile(Settings.BrickTileSize * 8);
+						}
+						
 
-						Tile mappedTile = tileset.GetUniqueTile(tile??tileset.GetOriginalTile(0, 0));
-
-						retval = (ushort)((fullTileset.GetIndex(mappedTile, levelData[layer, x, y]) + 1) | (tile.GetFlipOffset(mappedTile) << 10));
+						retval = (ushort)((fullTileset.GetIndex(mappedTile, currentTile) + 1) | (tile.GetFlipOffset(mappedTile) << 10));
 					}
 
 					retvalArray[count + 1] = (byte)(retval >> 8);

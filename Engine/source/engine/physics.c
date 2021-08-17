@@ -1,4 +1,3 @@
-//*
 #include "tonc_vscode.h"
 
 #include "physics.h"

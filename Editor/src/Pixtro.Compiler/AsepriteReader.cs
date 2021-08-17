@@ -29,65 +29,93 @@ namespace Pixtro.Compiler {
 		Subtract = 17,
 		Divide = 18,
 	}
-	public struct FloatColor {
-		public float R, G, B, A;
-
-		public FloatColor(byte r, byte g, byte b, byte a) {
-			R = r / 255f;
-			G = g / 255f;
-			B = b / 255f;
-			A = a / 255f;
-		}
-
-		public static FloatColor FlattenColor(FloatColor colorA, FloatColor colorB, BlendType blend) {
-			FloatColor color = colorA;
-
-			if (colorB.A <= 0)
-				return colorA;
-
-			switch (blend) {
-				case BlendType.Normal:
-					color.R = colorB.R;
-					color.G = colorB.G;
-					color.B = colorB.B;
-					color.A = Math.Max(colorA.A, colorB.A);
-					break;
-			}
-
-			return color;
-		}
-
-		public ushort ToGBA(ushort _transparent = 0x8000) {
-			if (A <= 0)
-				return _transparent;
-
-			int r = (int)(R * 255);
-			int g = (int)(G * 255);
-			int b = (int)(B * 255);
-
-			r = (r & 0xF8) >> 3;
-			g = (g & 0xF8) >> 3;
-			b = (b & 0xF8) >> 3;
-
-			return (ushort)(r | (g << 5) | (b << 10));
-		}
-	}
 
 	/// <summary>
 	/// Created using this guide https://github.com/aseprite/aseprite/blob/master/docs/ase-file-specs.md
 	/// </summary>
 	public class AsepriteReader : BinaryReader {
-		private class Layer {
-			public bool visible = true;
+
+		private static byte[] DecompressBytes(BinaryReader reader, int compressedSize, int decompressedSize = int.MaxValue)
+		{
+			reader.BaseStream.Seek(2, SeekOrigin.Current);
+
+			var bits = reader.ReadBytes(compressedSize - 2);
+
+			using (BinaryReader read = new BinaryReader(new DeflateStream(new MemoryStream(bits, false), CompressionMode.Decompress)))
+			{
+				return read.ReadBytes(decompressedSize);
+			}
+		}
+		private static FloatColor[,] BytesToFloatArray(byte[] bytes, int width, int height, int bpp, FloatColor[] palette)
+		{
+			FloatColor[,] colors = new FloatColor[width, height];
+			int x = 0, y = 0;
+			
+			switch (bpp)
+			{
+				case 8:
+
+					for (int i = 0; i < bytes.Length; ++i)
+					{
+						colors[x, y] = palette[bytes[i]];
+						if (++x >= width)
+						{
+							x = 0;
+							++y;
+						}
+					}
+					break;
+				case 16:
+					for (int i = 0; i < bytes.Length; ++i)
+					{
+						byte val = bytes[i];
+						colors[x, y] = new FloatColor(val, val, val, bytes[i + 1]);
+						if (++x >= width)
+						{
+							x = 0;
+							++y;
+						}
+					}
+					break;
+				case 32:
+					for (int i = 0; i < bytes.Length; i += 4)
+					{
+						colors[x, y] = new FloatColor(bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]);
+						if (++x >= width)
+						{
+							x = 0;
+							++y;
+						}
+					}
+					break;
+			}
+
+
+			return colors;
+		}
+
+		public class Layer {
+			public bool visible = true, tileset = false;
 			public BlendType blending;
-			public string name;
+			public string Name;
+
+			public int Type { get; private set; }
+
+			public TilePalette Palette { get; private set; }
 
 			public Cel[] cels;
 
-			public Layer(ushort flags, ushort blend, string _name, int celCount) {
+			public Layer(ushort flags, ushort blend, int celCount, int type, string name, TilePalette tilePalette)
+			{
+				Name = name;
+
+				Palette = tilePalette;
+
+				Type = type;
+
 				visible = (flags & 0x1) != 0;
 				blending = (BlendType)blend;
-				name = _name;
+
 				cels = new Cel[celCount];
 			}
 
@@ -98,72 +126,164 @@ namespace Pixtro.Compiler {
 
 		}
 		public class Cel {
-			public int X, Y, width, height;
+			public int X, Y;
+
+			int width, height;
+
+			public int Width { get; private set; }
+			public int Height { get; private set; }
 
 			public byte opacity;
 
-			public FloatColor[] colors;
+			public readonly bool useTiles;
 
-			public Cel(AsepriteReader reader, FloatColor[] palette, int bpp, int bitSize) {
+			private Layer parentlayer;
+
+			private uint[,] tiles;
+			private FloatColor[,] colors;
+
+			public FloatColor[,] ColorValues
+			{
+				get
+				{
+					if (colors != null)
+						return colors;
+
+					var tileset = parentlayer.Palette;
+					int tileWidth = tileset.Width, tileHeight = tileset.Height;
+
+					int boundWidth = width * tileWidth,
+						boundHeight = height * tileHeight;
+
+					FloatColor[,] retval = new FloatColor[boundWidth, boundHeight];
+
+					for (int ty = 0; ty < boundHeight; ++ty)
+					{
+						for (int tx = 0; tx < boundWidth; ++tx)
+						{
+							var currTile = tileset.tiles[(int)tiles[tx, ty]];
+
+							for (int y = 0; y < tileHeight; ++y)
+							{
+								for (int x = 0; x < tileWidth; ++x)
+								{
+									retval[x + tx, y + ty] = currTile.colors[x, y];
+								}
+							}
+						}
+					}
+
+					return retval;
+				}
+			}
+
+			public Cel(AsepriteReader reader, Layer layer, FloatColor[] palette, int bpp, int bitSize) {
 				X = reader.ReadInt16();
 				Y = reader.ReadInt16();
 				opacity = reader.ReadByte();
 
-				bool compressed = reader.ReadUInt16() == 2;
+				parentlayer = layer;
+
+				int celType = reader.ReadUInt16();
 
 				reader.BaseStream.Seek(7, SeekOrigin.Current);
 
-				width = reader.ReadInt16();
-				height = reader.ReadInt16();
+				if (celType == 3)
+				{
+					useTiles = true;
+					bitSize -= 32;
 
-				colors = new FloatColor[width * height];
+					width = reader.ReadInt16();
+					height = reader.ReadInt16();
 
-				byte[] bits;
+					Width = width * layer.Palette.Width;
+					Height = height * layer.Palette.Height;
 
-				if (compressed) {
-					reader.BaseStream.Seek(2, SeekOrigin.Current);
+					tiles = new uint[width, height];
 
-					bits = reader.ReadBytes(bitSize - 2);
+					reader.BaseStream.Seek(28, SeekOrigin.Current);
 
-					using (BinaryReader read = new BinaryReader(new DeflateStream(new MemoryStream(bits, false), CompressionMode.Decompress))) {
-						bits = read.ReadBytes(width * height * bpp / 8);
-					}
+					byte[] bits = DecompressBytes(reader, bitSize, width * height * 4);
 
-				}
-				else {
-					bits = reader.ReadBytes(width * height * bpp / 8);
-				}
 
-				switch (bpp) {
-					case 8:
-						for (int i = 0; i < width * height; ++i)
-							colors[i] = palette[bits[i]];
-						break;
-					case 16:
-						for (int i = 0; i < width * height; ++i) {
-							byte val = bits[i << 1];
-							colors[i] = new FloatColor(val, val, val, bits[(i << 1) + 1]);
+					using (BinaryReader localReader = new BinaryReader(new MemoryStream(bits)))
+					{
+						int x = 0, y = 0;
+						for (int i = 0; i < tiles.Length; ++i)
+						{
+							tiles[x++, y] = localReader.ReadUInt32();
+							if (x >= width)
+							{
+								x = 0;
+								++y;
+							}
 						}
-						break;
-					case 32:
-						for (int i = 0; i < width * height; ++i)
-							colors[i] = new FloatColor();
-						break;
+					}
+				}
+				else
+				{
+					useTiles = false;
+					bitSize -= 4;
+
+					width = reader.ReadInt16();
+					height = reader.ReadInt16();
+
+					int colorSize = width * height;
+
+					byte[] bits = null;
+
+					if (celType == 2)
+					{
+						bits = DecompressBytes(reader, bitSize, width * height * bpp / 8);
+					}
+					else
+						bits = reader.ReadBytes(width * height * bpp / 8);
+
+					colors = BytesToFloatArray(bits, width, height, bpp, palette);
+
 				}
 			}
 		}
+		public class Tile
+		{
+			public int Width, Height;
+			public FloatColor[,] colors;
 
-		int frameCount;
+			public Tile(byte[] bytes, int bpp, int width, int height, FloatColor[] palette)
+			{
+				colors = BytesToFloatArray(bytes, width, height, bpp, palette);
+			}
+
+		}
+		public class TilePalette
+		{
+			public int Width, Height;
+			public List<Tile> tiles;
+
+			public TilePalette(IEnumerable<Tile> value)
+			{
+				tiles = new List<Tile>(value);
+				Width = tiles[0].Width;
+				Height = tiles[0].Height;
+			}
+		}
+
 		int BPP;
 
+		public int FrameCount { get; private set; }
 		public int Width { get; private set; }
 		public int Height { get; private set; }
+			
+		public bool IndexedColors => BPP == 8;
 
 		private int transparent;
 
-		private List<FloatColor> filePalette;
+
+		private List<FloatColor> colorPalette;
 		private List<Layer> layers = new List<Layer>();
+		private Dictionary<string, Layer> layerDictionary = new Dictionary<string, Layer>();
 		private List<Tag> tags = new List<Tag>();
+		private List<TilePalette> tilePalettes = new List<TilePalette>();
 
 		public string[] TagNames {
 			get {
@@ -174,16 +294,16 @@ namespace Pixtro.Compiler {
 				return t.ToArray();
 			}
 		}
-		public Tag[] Tags { get { return tags.ToArray(); } }
+		public Tag[] Tags => tags.ToArray();
 		public string[] LayerNames {
 			get {
 				string[] retval = new string[layers.Count];
 				for (int i = 0; i < layers.Count; ++i)
-					retval[i] = layers[i].name;
+					retval[i] = layers[i].Name;
 				return retval;
 			}
 		}
-		public FloatColor[] Colors { get { return filePalette.ToArray(); } }
+		public FloatColor[] ColorPalette => colorPalette.ToArray();
 
 		public override float ReadSingle() {
 			int value = ReadInt32();
@@ -199,7 +319,7 @@ namespace Pixtro.Compiler {
 			FloatColor retval = new FloatColor();
 
 			foreach (var layer in layers) {
-				if (_layer != null && layer.name != _layer)
+				if (_layer != null && layer.Name != _layer)
 					continue;
 
 				var cel = layer.cels[_frame];
@@ -207,10 +327,10 @@ namespace Pixtro.Compiler {
 				if (!layer.visible || cel == null)
 					continue;
 
-				if (_x < cel.X || _x >= cel.X + cel.width || _y < cel.Y || _y >= cel.Y + cel.height)
+				if (_x < cel.X || _x >= cel.X + cel.Width || _y < cel.Y || _y >= cel.Y + cel.Height)
 					continue;
 
-				retval = FloatColor.FlattenColor(retval, cel.colors[(_x - cel.X) + (_y - cel.Y) * cel.width], layer.blending);
+				retval = FloatColor.FlattenColor(retval, cel.ColorValues[_x - cel.X, _y - cel.Y], layer.blending);
 			}
 
 			return retval;
@@ -221,7 +341,7 @@ namespace Pixtro.Compiler {
 			if (ReadUInt16() != 0xA5E0)
 				throw new FileLoadException();
 
-			frameCount = ReadUInt16();
+			FrameCount = ReadUInt16();
 			Width = ReadUInt16();
 			Height = ReadUInt16();
 
@@ -233,12 +353,12 @@ namespace Pixtro.Compiler {
 
 			BaseStream.Seek(3, SeekOrigin.Current);
 
-			filePalette = new List<FloatColor>(new FloatColor[ReadUInt16()]);
+			colorPalette = new List<FloatColor>(new FloatColor[ReadUInt16()]);
 
 			// Seek to the end of the header
 			BaseStream.Seek(128, SeekOrigin.Begin);
 
-			for (int i = 0; i < frameCount; ++i) {
+			for (int i = 0; i < FrameCount; ++i) {
 				BaseStream.Seek(6, SeekOrigin.Current);
 
 				uint chunkCount = ReadUInt16();
@@ -271,6 +391,9 @@ namespace Pixtro.Compiler {
 
 		private void ReadChunk(uint type, int frameIndex, uint size) {
 
+
+			string value = BaseStream.Position.ToString("X");
+
 			switch (type) {
 				case 0x2018: // Tag data
 					{
@@ -289,12 +412,15 @@ namespace Pixtro.Compiler {
 				case 0x2004: // Layer Data
 					{
 					ushort flags = ReadUInt16();
-					BaseStream.Seek(8, SeekOrigin.Current);
+					ushort layerType = ReadUInt16();
+					BaseStream.Seek(6, SeekOrigin.Current);
 					ushort blend = ReadUInt16();
 					BaseStream.Seek(4, SeekOrigin.Current);
 					string name = ReadString();
 
-					layers.Add(new Layer(flags, blend, name, frameCount));
+					var layerNew = new Layer(flags, blend, FrameCount, layerType, name, layerType == 2 ? tilePalettes[ReadInt32()] : null);
+					layers.Add(layerNew);
+					layerDictionary[name] = layerNew;
 				}
 				break;
 				case 0x2005: // Cel Data
@@ -315,7 +441,7 @@ namespace Pixtro.Compiler {
 							break;
 						default:
 							BaseStream.Seek(idx, SeekOrigin.Begin);
-							cel = new Cel(this, filePalette.ToArray(), BPP, (int)size - 20);
+							cel = new Cel(this, layer, colorPalette.ToArray(), BPP, (int)size - 16);
 							break;
 					}
 
@@ -330,12 +456,12 @@ namespace Pixtro.Compiler {
 					{
 					int palSize = ReadInt32();
 
-					if (palSize != filePalette.Count) {
-						if (palSize > filePalette.Count)
-							filePalette.AddRange(new FloatColor[palSize - filePalette.Count]);
+					if (palSize != colorPalette.Count) {
+						if (palSize > colorPalette.Count)
+							colorPalette.AddRange(new FloatColor[palSize - colorPalette.Count]);
 						else
-							while (filePalette.Count > palSize)
-								filePalette.RemoveAt(filePalette.Count - 1);
+							while (colorPalette.Count > palSize)
+								colorPalette.RemoveAt(colorPalette.Count - 1);
 					}
 
 					int start = ReadInt32();
@@ -348,110 +474,97 @@ namespace Pixtro.Compiler {
 
 						FloatColor c = new FloatColor(ReadByte(), ReadByte(), ReadByte(), ReadByte());
 
-						filePalette[start] = c;
+						colorPalette[start] = c;
 
 						if (hasName)
 							BaseStream.Seek(ReadUInt16(), SeekOrigin.Current);
 
 					}
 
-					filePalette[transparent] = new FloatColor();
+					colorPalette[transparent] = new FloatColor();
 				}
 				break;
+				
+				case 0x2023: // Tile Palette Data
+
+					int tilePaletteIndex = ReadInt32();
+
+					BaseStream.Seek(4, SeekOrigin.Current);
+
+					int tileCount = ReadInt32(),
+						tileWidth = ReadUInt16(),
+						tileHeight = ReadUInt16();
+
+					BaseStream.Seek(18, SeekOrigin.Current);
+
+					int compressedSize = ReadInt32();
+
+					byte[] bits = DecompressBytes(this, compressedSize, tileWidth * tileHeight * tileCount * BPP / 8);
+
+					List<Tile> tiles = new List<Tile>();
+
+					using (BinaryReader read = new BinaryReader(new MemoryStream(bits)))
+					{
+						for (int i = 0; i < tileCount; ++i)
+						{
+							tiles.Add(new Tile(read.ReadBytes(tileWidth * tileHeight * BPP / 8), BPP, tileWidth, tileHeight, colorPalette.ToArray()));
+						}
+					}
+
+					while (tilePalettes.Count <= tilePaletteIndex)
+						tilePalettes.Add(null);
+
+					tilePalettes[tilePaletteIndex] = new TilePalette(tiles);
+
+					break;
+				default:
+
+					break;
 			}
 		}
 
-		public IEnumerable<uint[]> GetSprites(string _tag = null, string _layer = null, bool _readSpriteBackwards = false, bool _readFramesBackwards = false, bool _largeTiles = false) {
-			int startFrame = 0, endFrame = frameCount - 1;
+		public FloatColor[,] GetFrameValue(int frame, bool onlyVisible, params string[] layerNames)
+		{
+			FloatColor[,] retval = new FloatColor[Width, Height];
 
-			if (_tag != null) {
-				foreach (var tag in tags) {
-					if (tag.name == _tag) {
-						startFrame = tag.start;
-						endFrame = tag.end;
-						break;
+			void AddLayer(Layer layer)
+			{
+				Cel cel = layer.cels[frame];
+
+				if (cel == null || (!layer.visible && onlyVisible))
+					return;
+
+				FloatColor[,] celColor = cel.ColorValues;
+
+				for (int y = 0; y < cel.Height; ++y)
+				{
+					for (int x = 0; x < cel.Height; ++x)
+					{
+						retval[cel.X + x, cel.Y + y] = FloatColor.FlattenColor(retval[cel.X + x, cel.Y + y], celColor[x, y], layer.blending);
 					}
 				}
 			}
 
-			List<ushort[]> palettes = new List<ushort[]>();
-
-			for (int i = 0; i < filePalette.Count; i += 16) {
-				ushort[] add = new ushort[16];
-				for (int j = 0; j < 16; ++j) {
-					add[j] = filePalette[i + j].ToGBA();
+			if (layerNames == null || layerNames.Length == 0)
+			{
+				foreach (var layer in layers)
+				{
+					AddLayer(layer);
 				}
-				palettes.Add(add);
 			}
-
-			if (_readFramesBackwards) {
-				int temp = endFrame;
-				endFrame = startFrame;
-				startFrame = temp;
-			}
-
-			do {
-				FloatColor[,] rawArt = new FloatColor[Width, Height];
-
-				foreach (var layer in layers) {
-					if (_layer != null && layer.name != _layer)
+			else
+			{
+				foreach (var name in layerNames)
+				{
+					if (!layerDictionary.ContainsKey(name))
 						continue;
 
-					var cel = layer.cels[startFrame];
-
-					if (!layer.visible || cel == null)
-						continue;
-
-					for (int y = 0; y < cel.height; ++y) {
-						for (int x = 0; x < cel.width; ++x) {
-							FloatColor c = FloatColor.FlattenColor(rawArt[x + cel.X, y + cel.Y], cel.colors[x + (y * cel.width)], layer.blending);
-							rawArt[x + cel.X, y + cel.Y] = c;
-						}
-					}
+					AddLayer(layerDictionary[name]);
 				}
-
-				ushort[] pal = null;
-
-				foreach (var testPal in palettes) {
-					bool success = true;
-					foreach (FloatColor c in rawArt) {
-						if (!testPal.Contains(c.ToGBA())) {
-							success = false;
-							break;
-						}
-					}
-
-					if (success) {
-						pal = testPal;
-						break;
-					}
-				}
-
-				if (pal == null)
-					continue;
-
-				uint foreward(int x, int y) { return (uint)Array.IndexOf(pal, rawArt[x, y].ToGBA()); };
-				uint backward(int x, int y) {
-					x = (x & 7) | (Width  - (x & ~0x7) - 8);
-					y = (y & 7) | (Height - (y & ~0x7) - 8);
-
-					return (uint)Array.IndexOf(pal, rawArt[x, y].ToGBA());
-				};
-
-				List<uint> retval;
-				if (_readSpriteBackwards)
-					retval = new List<uint>(ArtCompiler.GetArrayFromSprite(Width, Height, backward, _largeTiles));
-				else
-					retval = new List<uint>(ArtCompiler.GetArrayFromSprite(Width, Height, foreward, _largeTiles));
-
-
-				yield return retval.ToArray();
-
-				startFrame += _readFramesBackwards ? -1 : 1;
 			}
-			while ((startFrame - endFrame) * (_readFramesBackwards ? 1 : -1) >= 0);
 
-			yield break;
+
+			return retval;
 		}
 	}
 }

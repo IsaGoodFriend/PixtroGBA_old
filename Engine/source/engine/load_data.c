@@ -1,7 +1,6 @@
 #include "load_data.h"
 #include <string.h>
 
-#include "sprites.h"
 #include "core.h"
 #include "physics.h"
 #include "math.h"
@@ -29,7 +28,7 @@
 
 #define BGOFS ((vu16 *)(REG_BASE + 0x0010))
 
-#define TILE_INFO ((unsigned short *)0x02002000)
+#define TILE_INFO ((unsigned short *)0x02010000)
 
 #define LEVEL_REGION_A (unsigned short *)0x02020000
 #define LEVEL_REGION_B (unsigned short *)0x02030000

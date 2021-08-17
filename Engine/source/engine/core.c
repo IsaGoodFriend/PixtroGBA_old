@@ -3,11 +3,9 @@
 
 #include "core.h"
 
-#include "sprites.h"
 #include "graphics.h"
 #include "load_data.h"
 #include "math.h"
-#include "levels.h"
 #include "physics.h"
 #include "loading.h"
 

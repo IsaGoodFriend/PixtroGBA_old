@@ -160,8 +160,10 @@ namespace Pixtro.Client.Editor
 			// Ugly hack, we don't want to pass in the system in for system base and global paths
 			if (name == "Base" || system == "Global" || system == "Global_NULL")
 			{
-				BrowseFolder(box, name, system: null);
-				return;
+				system = null;
+
+				//BrowseFolder(box, name, system: null);
+				//return;
 			}
 
 			DialogResult result;
