@@ -291,20 +291,8 @@ namespace Pixtro.Client.Editor
 			Config.Movies.MovieEndAction = MovieEndAction.Pause;
 		}
 
-		private void ConfigAndRecordAVMenuItem_Click(object sender, EventArgs e)
-		{
-			if (OSTailoredCode.IsUnixHost) new MsgBox("Most of these options will cause crashes on Linux.", "A/V instability warning", MessageBoxIcon.Warning).ShowDialog();
-			RecordAv();
-		}
-
-		private void RecordAVMenuItem_Click(object sender, EventArgs e)
-		{
-			RecordAv(null, null); // force unattended, but allow traditional setup
-		}
-
 		private void StopAVMenuItem_Click(object sender, EventArgs e)
 		{
-			StopAv();
 		}
 
 		private void ScreenshotMenuItem_Click(object sender, EventArgs e)
@@ -1025,34 +1013,6 @@ namespace Pixtro.Client.Editor
 
 			LoadLastRomContextMenuItem.Visible = Emulator.IsNull();
 
-			StopAVContextMenuItem.Visible = _currAviWriter != null;
-
-			ContextSeparator_AfterMovie.Visible =
-				ContextSeparator_AfterUndo.Visible =
-				ScreenshotContextMenuItem.Visible =
-				CloseRomContextMenuItem.Visible =
-				UndoSavestateContextMenuItem.Visible =
-				!Emulator.IsNull();
-
-			RecordMovieContextMenuItem.Visible =
-				PlayMovieContextMenuItem.Visible =
-				LoadLastMovieContextMenuItem.Visible =
-				!Emulator.IsNull() && !movieIsActive;
-
-			RestartMovieContextMenuItem.Visible =
-				StopMovieContextMenuItem.Visible =
-				ViewSubtitlesContextMenuItem.Visible =
-				ViewCommentsContextMenuItem.Visible =
-				SaveMovieContextMenuItem.Visible =
-				SaveMovieAsContextMenuItem.Visible =
-					movieIsActive;
-
-			BackupMovieContextMenuItem.Visible = movieIsActive;
-
-			StopNoSaveContextMenuItem.Visible = movieIsActive && MovieSession.Movie.Changes;
-
-			AddSubtitleContextMenuItem.Visible = !Emulator.IsNull() && movieIsActive && !MovieSession.ReadOnly;
-
 			ConfigContextMenuItem.Visible = _inFullscreen;
 
 			ClearSRAMContextMenuItem.Visible = File.Exists(Config.PathEntries.SaveRamAbsolutePath(Game, MovieSession.Movie));
@@ -1060,21 +1020,6 @@ namespace Pixtro.Client.Editor
 			ContextSeparator_AfterROM.Visible = OpenRomContextMenuItem.Visible || LoadLastRomContextMenuItem.Visible;
 
 			LoadLastRomContextMenuItem.Enabled = !Config.RecentProjects.Empty;
-			LoadLastMovieContextMenuItem.Enabled = !Config.RecentMovies.Empty;
-
-			if (movieIsActive)
-			{
-				if (MovieSession.ReadOnly)
-				{
-					ViewSubtitlesContextMenuItem.Text = "View Subtitles";
-					ViewCommentsContextMenuItem.Text = "View Comments";
-				}
-				else
-				{
-					ViewSubtitlesContextMenuItem.Text = "Edit Subtitles";
-					ViewCommentsContextMenuItem.Text = "Edit Comments";
-				}
-			}
 
 			var file = new FileInfo($"{SaveStatePrefix()}.QuickSave{Config.SaveSlot}.State.bak");
 
@@ -1131,29 +1076,6 @@ namespace Pixtro.Client.Editor
 			//LoadRomFromRecent(Config.RecentRoms.MostRecent);
 		}
 
-		private void LoadLastMovieContextMenuItem_Click(object sender, EventArgs e)
-		{
-			LoadMoviesFromRecent(Config.RecentMovies.MostRecent);
-		}
-
-		private void BackupMovieContextMenuItem_Click(object sender, EventArgs e)
-		{
-			MovieSession.Movie.SaveBackup();
-			AddOnScreenMessage("Backup movie saved.");
-		}
-
-		private void ViewSubtitlesContextMenuItem_Click(object sender, EventArgs e)
-		{
-		}
-
-		private void AddSubtitleContextMenuItem_Click(object sender, EventArgs e)
-		{
-		}
-
-		private void ViewCommentsContextMenuItem_Click(object sender, EventArgs e)
-		{
-		}
-
 		private void UndoSavestateContextMenuItem_Click(object sender, EventArgs e)
 		{
 		}
@@ -1167,21 +1089,6 @@ namespace Pixtro.Client.Editor
 		{
 			MainMenuStrip.Visible ^= true;
 			FrameBufferResized();
-		}
-
-		private void DumpStatusButton_Click(object sender, EventArgs e)
-		{
-			string details = Emulator.RomDetails();
-			if (string.IsNullOrWhiteSpace(details))
-			{
-				details = _defaultRomDetails;
-			}
-
-			if (!string.IsNullOrEmpty(details))
-			{
-				Tools.Load<LogWindow>();
-				((LogWindow) Tools.Get<LogWindow>()).ShowReport("Dump Status Report", details);
-			}
 		}
 
 		private void KeyPriorityStatusLabel_Click(object sender, EventArgs e)

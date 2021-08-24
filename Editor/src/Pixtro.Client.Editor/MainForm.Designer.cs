@@ -143,23 +143,7 @@ namespace Pixtro.Client.Editor
 			this.MainFormContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
 			this.OpenRomContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.LoadLastRomContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.StopAVContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.ContextSeparator_AfterROM = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
-			this.RecordMovieContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.PlayMovieContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.RestartMovieContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.StopMovieContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.LoadLastMovieContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.BackupMovieContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.StopNoSaveContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.ViewSubtitlesContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.AddSubtitleContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.ViewCommentsContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveMovieContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.SaveMovieAsContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.ContextSeparator_AfterMovie = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
-			this.UndoSavestateContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
-			this.ContextSeparator_AfterUndo = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
 			this.ConfigContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.toolStripMenuItem6 = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.toolStripMenuItem7 = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
@@ -180,6 +164,7 @@ namespace Pixtro.Client.Editor
 			this.ClearSRAMContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.ShowMenuContextMenuSeparator = new Pixtro.WinForms.Controls.ToolStripSeparatorEx();
 			this.ShowMenuContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
+			this.UndoSavestateContextMenuItem = new Pixtro.WinForms.Controls.ToolStripMenuItemEx();
 			this.MainformMenu.SuspendLayout();
 			this.MainStatusBar.SuspendLayout();
 			this.MainFormContextMenu.SuspendLayout();
@@ -800,7 +785,7 @@ namespace Pixtro.Client.Editor
             this.ProfileFirstBootLabel,
             this.LinkConnectStatusBarButton,
             this.UpdateNotification});
-			this.MainStatusBar.Location = new System.Drawing.Point(0, 425);
+			this.MainStatusBar.Location = new System.Drawing.Point(0, 435);
 			this.MainStatusBar.Name = "MainStatusBar";
 			this.MainStatusBar.ShowItemToolTips = true;
 			this.MainStatusBar.SizingGrip = false;
@@ -901,31 +886,16 @@ namespace Pixtro.Client.Editor
 			this.MainFormContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.OpenRomContextMenuItem,
             this.LoadLastRomContextMenuItem,
-            this.StopAVContextMenuItem,
             this.ContextSeparator_AfterROM,
-            this.RecordMovieContextMenuItem,
-            this.PlayMovieContextMenuItem,
-            this.RestartMovieContextMenuItem,
-            this.StopMovieContextMenuItem,
-            this.LoadLastMovieContextMenuItem,
-            this.BackupMovieContextMenuItem,
-            this.StopNoSaveContextMenuItem,
-            this.ViewSubtitlesContextMenuItem,
-            this.AddSubtitleContextMenuItem,
-            this.ViewCommentsContextMenuItem,
-            this.SaveMovieContextMenuItem,
-            this.SaveMovieAsContextMenuItem,
-            this.ContextSeparator_AfterMovie,
-            this.UndoSavestateContextMenuItem,
-            this.ContextSeparator_AfterUndo,
             this.ConfigContextMenuItem,
             this.ScreenshotContextMenuItem,
             this.CloseRomContextMenuItem,
             this.ClearSRAMContextMenuItem,
             this.ShowMenuContextMenuSeparator,
-            this.ShowMenuContextMenuItem});
+            this.ShowMenuContextMenuItem,
+            this.UndoSavestateContextMenuItem});
 			this.MainFormContextMenu.Name = "contextMenuStrip1";
-			this.MainFormContextMenu.Size = new System.Drawing.Size(217, 490);
+			this.MainFormContextMenu.Size = new System.Drawing.Size(192, 214);
 			this.MainFormContextMenu.Closing += new System.Windows.Forms.ToolStripDropDownClosingEventHandler(this.MainFormContextMenu_Closing);
 			this.MainFormContextMenu.Opening += new System.ComponentModel.CancelEventHandler(this.MainFormContextMenu_Opening);
 			// 
@@ -938,76 +908,6 @@ namespace Pixtro.Client.Editor
 			// 
 			this.LoadLastRomContextMenuItem.Text = "Load Last ROM";
 			this.LoadLastRomContextMenuItem.Click += new System.EventHandler(this.LoadLastRomContextMenuItem_Click);
-			// 
-			// StopAVContextMenuItem
-			// 
-			this.StopAVContextMenuItem.Text = "Stop AVI/WAV";
-			this.StopAVContextMenuItem.Click += new System.EventHandler(this.StopAVMenuItem_Click);
-			// 
-			// RecordMovieContextMenuItem
-			// 
-			this.RecordMovieContextMenuItem.Text = "Record Movie";
-			this.RecordMovieContextMenuItem.Click += new System.EventHandler(this.RecordMovieMenuItem_Click);
-			// 
-			// PlayMovieContextMenuItem
-			// 
-			this.PlayMovieContextMenuItem.Text = "Play Movie";
-			this.PlayMovieContextMenuItem.Click += new System.EventHandler(this.PlayMovieMenuItem_Click);
-			// 
-			// RestartMovieContextMenuItem
-			// 
-			this.RestartMovieContextMenuItem.Text = "Restart Movie";
-			this.RestartMovieContextMenuItem.Click += new System.EventHandler(this.PlayFromBeginningMenuItem_Click);
-			// 
-			// StopMovieContextMenuItem
-			// 
-			this.StopMovieContextMenuItem.Text = "Stop Movie";
-			this.StopMovieContextMenuItem.Click += new System.EventHandler(this.StopMovieMenuItem_Click);
-			// 
-			// LoadLastMovieContextMenuItem
-			// 
-			this.LoadLastMovieContextMenuItem.Text = "Load Last Movie";
-			this.LoadLastMovieContextMenuItem.Click += new System.EventHandler(this.LoadLastMovieContextMenuItem_Click);
-			// 
-			// BackupMovieContextMenuItem
-			// 
-			this.BackupMovieContextMenuItem.Text = "Backup Movie";
-			this.BackupMovieContextMenuItem.Click += new System.EventHandler(this.BackupMovieContextMenuItem_Click);
-			// 
-			// StopNoSaveContextMenuItem
-			// 
-			this.StopNoSaveContextMenuItem.Text = "Stop Movie without Saving";
-			this.StopNoSaveContextMenuItem.Click += new System.EventHandler(this.StopMovieWithoutSavingMenuItem_Click);
-			// 
-			// ViewSubtitlesContextMenuItem
-			// 
-			this.ViewSubtitlesContextMenuItem.Text = "View Subtitles";
-			this.ViewSubtitlesContextMenuItem.Click += new System.EventHandler(this.ViewSubtitlesContextMenuItem_Click);
-			// 
-			// AddSubtitleContextMenuItem
-			// 
-			this.AddSubtitleContextMenuItem.Text = "Add Subtitle";
-			this.AddSubtitleContextMenuItem.Click += new System.EventHandler(this.AddSubtitleContextMenuItem_Click);
-			// 
-			// ViewCommentsContextMenuItem
-			// 
-			this.ViewCommentsContextMenuItem.Text = "View Comments";
-			this.ViewCommentsContextMenuItem.Click += new System.EventHandler(this.ViewCommentsContextMenuItem_Click);
-			// 
-			// SaveMovieContextMenuItem
-			// 
-			this.SaveMovieContextMenuItem.Text = "Save Movie";
-			this.SaveMovieContextMenuItem.Click += new System.EventHandler(this.SaveMovieMenuItem_Click);
-			// 
-			// SaveMovieAsContextMenuItem
-			// 
-			this.SaveMovieAsContextMenuItem.Text = "Save Movie As...";
-			this.SaveMovieAsContextMenuItem.Click += new System.EventHandler(this.SaveMovieAsMenuItem_Click);
-			// 
-			// UndoSavestateContextMenuItem
-			// 
-			this.UndoSavestateContextMenuItem.Text = "Undo Savestate";
-			this.UndoSavestateContextMenuItem.Click += new System.EventHandler(this.UndoSavestateContextMenuItem_Click);
 			// 
 			// ConfigContextMenuItem
 			// 
@@ -1108,16 +1008,21 @@ namespace Pixtro.Client.Editor
 			this.ShowMenuContextMenuItem.Text = "Show Menu";
 			this.ShowMenuContextMenuItem.Click += new System.EventHandler(this.ShowMenuContextMenuItem_Click);
 			// 
+			// UndoSavestateContextMenuItem
+			// 
+			this.UndoSavestateContextMenuItem.Text = "Undo Savestate";
+			this.UndoSavestateContextMenuItem.Click += new System.EventHandler(this.UndoSavestateContextMenuItem_Click);
+			// 
 			// MainForm
 			// 
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-			this.ClientSize = new System.Drawing.Size(585, 447);
+			this.ClientSize = new System.Drawing.Size(650, 457);
 			this.Controls.Add(this.MainStatusBar);
 			this.Controls.Add(this.MainformMenu);
 			this.Font = new System.Drawing.Font("Arial", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.MainMenuStrip = this.MainformMenu;
-			this.MinimumSize = new System.Drawing.Size(475, 125);
+			this.MinimumSize = new System.Drawing.Size(475, 300);
 			this.Name = "MainForm";
 			this.Activated += new System.EventHandler(this.MainForm_Activated);
 			this.Deactivate += new System.EventHandler(this.MainForm_Deactivate);
@@ -1195,25 +1100,14 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx OpenRomContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadLastRomContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx ContextSeparator_AfterROM;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RecordMovieContextMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx PlayMovieContextMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadLastMovieContextMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripSeparatorEx ContextSeparator_AfterMovie;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx AddSubtitleContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx UndoSavestateContextMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripSeparatorEx ContextSeparator_AfterUndo;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx CloseRomContextMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx BackupMovieContextMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx StopMovieContextMenuItem;
 		private System.Windows.Forms.ToolStripDropDownButton PauseStatusButton;
 		private System.Windows.Forms.ToolStripDropDownButton PlayRecordStatusButton;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ViewSubtitlesContextMenuItem;
 		private MenuStripEx MainformMenu;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ViewCommentsContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplayLogWindowMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx DisplaySubtitlesMenuItem;
 		private Pixtro.WinForms.Controls.StatusLabelEx AVIStatusLabel;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RestartMovieContextMenuItem;
 		private Pixtro.WinForms.Controls.StatusLabelEx CheatStatusButton;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ShowMenuContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ForumsMenuItem;
@@ -1222,7 +1116,6 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx EmulatorMenuSeparator2;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadedCoreNameMenuItem;
 		private Pixtro.WinForms.Controls.StatusLabelEx RebootStatusBarIcon;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveMovieContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx AudioThrottleMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator27;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx VsyncEnabledMenuItem;
@@ -1232,14 +1125,12 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx InputOverHkMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx HkOverInputMenuItem;
 		private Pixtro.WinForms.Controls.StatusLabelEx KeyPriorityStatusLabel;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx StopNoSaveContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator29;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ConfigContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx RewindOptionsMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx FirmwaresMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx ClearSRAMContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx ShowMenuContextMenuSeparator;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx StopAVContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx GenericCoreSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx CoresSubMenu;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx BatchRunnerMenuItem;
@@ -1285,7 +1176,6 @@ namespace Pixtro.Client.Editor
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx dummyExternalTool;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveConfigAsMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx LoadConfigFromMenuItem;
-		private Pixtro.WinForms.Controls.ToolStripMenuItemEx SaveMovieAsContextMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripMenuItemEx A7800HawkCoreMenuItem;
 		private Pixtro.WinForms.Controls.ToolStripSeparatorEx toolStripSeparator8;
 		private System.Windows.Forms.ToolStripMenuItem NewProjectMenuItem;

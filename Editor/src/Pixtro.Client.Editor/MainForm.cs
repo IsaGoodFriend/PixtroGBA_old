@@ -199,15 +199,6 @@ namespace Pixtro.Client.Editor
 			LinkConnectStatusBarButton.Image = Properties.Resources.Connect16X16;
 			OpenRomContextMenuItem.Image = Properties.Resources.OpenFile;
 			LoadLastRomContextMenuItem.Image = Properties.Resources.Recent;
-			StopAVContextMenuItem.Image = Properties.Resources.Stop;
-			RecordMovieContextMenuItem.Image = Properties.Resources.Record;
-			PlayMovieContextMenuItem.Image = Properties.Resources.Play;
-			RestartMovieContextMenuItem.Image = Properties.Resources.Restart;
-			StopMovieContextMenuItem.Image = Properties.Resources.Stop;
-			LoadLastMovieContextMenuItem.Image = Properties.Resources.Recent;
-			StopNoSaveContextMenuItem.Image = Properties.Resources.Stop;
-			SaveMovieContextMenuItem.Image = Properties.Resources.SaveAs;
-			SaveMovieAsContextMenuItem.Image = Properties.Resources.SaveAs;
 			UndoSavestateContextMenuItem.Image = Properties.Resources.Undo;
 			toolStripMenuItem6.Image = Properties.Resources.GameController;
 			toolStripMenuItem7.Image = Properties.Resources.HotKeys;
@@ -328,7 +319,6 @@ namespace Pixtro.Client.Editor
 
 			ResizeBegin += (o, e) =>
 			{
-				_inResizeLoop = true;
 				Sound?.StopSound();
 			};
 
@@ -339,7 +329,6 @@ namespace Pixtro.Client.Editor
 
 			ResizeEnd += (o, e) =>
 			{
-				_inResizeLoop = false;
 				SetWindowText();
 
 				//if (_presentationPanel != null)
@@ -538,12 +527,6 @@ namespace Pixtro.Client.Editor
 			if (Config.StartPaused)
 			{
 				PauseEmulator();
-			}
-
-			// start dumping, if appropriate
-			if (_argParser.cmdDumpType != null && _argParser.cmdDumpName != null)
-			{
-				RecordAv(_argParser.cmdDumpType, _argParser.cmdDumpName);
 			}
 
 			SetMainformMovieInfo();
@@ -1420,19 +1403,7 @@ namespace Pixtro.Client.Editor
 		private Size _lastVideoSize = new Size(-1, -1), _lastVirtualSize = new Size(-1, -1);
 		private readonly SaveSlotManager _stateSlots = new SaveSlotManager();
 
-		// AVI/WAV state
-		private IVideoWriter _currAviWriter;
-
 		private AutofireController _autofireNullControls;
-
-		// Sound refactor TODO: we can enforce async mode here with a property that gets/sets this but does an async check
-		private ISoundProvider _aviSoundInputAsync; // Note: This sound provider must be in async mode!
-
-		private SimpleSyncSoundProvider _dumpProxy; // an audio proxy used for dumping
-		private bool _dumpaudiosync; // set true to for experimental AV dumping
-		private int _avwriterResizew;
-		private int _avwriterResizeh;
-		private bool _avwriterpad;
 
 		private bool _windowClosedAndSafeToExitProcess;
 		private int _exitCode;
@@ -1441,7 +1412,6 @@ namespace Pixtro.Client.Editor
 		private long _frameAdvanceTimestamp;
 		private bool _runloopFrameAdvance;
 		private bool _lastFastForwarding;
-		private bool _inResizeLoop;
 
 		private readonly double _fpsUpdatesPerSecond = 4.0;
 		private readonly double _fpsSmoothing = 8.0;
@@ -1677,18 +1647,9 @@ namespace Pixtro.Client.Editor
 
 		private void RewireSound()
 		{
-			if (_dumpProxy != null)
-			{
-				// we're video dumping, so async mode only and use the DumpProxy.
-				// note that the avi dumper has already rewired the emulator itself in this case.
-				Sound.SetInputPin(_dumpProxy);
-			}
-			else
-			{
-				bool useAsyncMode = _currentSoundProvider.CanProvideAsync && !Config.SoundThrottle;
-				_currentSoundProvider.SetSyncMode(useAsyncMode ? SyncSoundMode.Async : SyncSoundMode.Sync);
-				Sound.SetInputPin(_currentSoundProvider);
-			}
+			bool useAsyncMode = _currentSoundProvider.CanProvideAsync && !Config.SoundThrottle;
+			_currentSoundProvider.SetSyncMode(useAsyncMode ? SyncSoundMode.Async : SyncSoundMode.Sync);
+			Sound.SetInputPin(_currentSoundProvider);
 		}
 
 		private void HandlePlatformMenus()
@@ -1935,11 +1896,6 @@ namespace Pixtro.Client.Editor
 
 		private void Shutdown()
 		{
-			if (_currAviWriter != null)
-			{
-				_currAviWriter.CloseFile();
-				_currAviWriter = null;
-			}
 		}
 
 		private void CheckMessages()
@@ -2068,6 +2024,7 @@ namespace Pixtro.Client.Editor
 		}
 		public bool BuildProject(bool releaseBuild)
 		{
+			bool success = true;
 #if DEBUG
 			string sourceDir = Directory.GetCurrentDirectory();
 			sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(sourceDir));
@@ -2080,49 +2037,8 @@ namespace Pixtro.Client.Editor
 #endif
 			string exeFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-			if (File.Exists(Path.Combine(exeFolder, "dll", "output.elf")))
-				File.Delete(Path.Combine(exeFolder, "dll", "output.elf"));
-			if (File.Exists(Path.Combine(exeFolder, "dll", "output.gba")))
-				File.Delete(Path.Combine(exeFolder, "dll", "output.gba"));
-
-
-			string[] replacements = new string[]
-			{
-				exeFolder,
-				releaseBuild ? Path.Combine(Project.ProjectDirectory, Project.Name) : Path.Combine(exeFolder, "dll", "output"),
-				releaseBuild ? "" : "-D __DEBUG__ ",
-				releaseBuild ? ".release" : "",
-			};
-
-			for (int i = 0; i < replacements.Length; ++i)
-			{
-				replacements[i] = replacements[i].Replace('\\', '/');
-				if (replacements[i].EndsWith("/"))
-					replacements[i] = replacements[i].Substring(0, replacements[i].Length - 1);
-			}
-
-			using (var makeRead = new StreamReader(File.Open(Path.Combine(exeFolder, "Makefile.txt"), FileMode.Open)))
-			{
-				using (var makeWrite = new StreamWriter(File.Create(Path.Combine(exeFolder, "Makefile"))))
-				{
-					while (!makeRead.EndOfStream)
-					{
-						string input = makeRead.ReadLine();
-						if (input.Contains('{'))
-						{
-							for (int i = 0; i < replacements.Length; ++i)
-							{
-								input = input.Replace($"{{{i}}}", replacements[i]);
-							}
-						}
-						makeWrite.WriteLine(input);
-					}
-				}
-			}
-
-
 			string[] args = new string[]{
-					"--enginePath", Path.Combine(exeFolder),
+					//"--enginePath", Path.Combine(exeFolder),
 				};
 
 #if DEBUG
@@ -2131,7 +2047,7 @@ namespace Pixtro.Client.Editor
 				Project.CleanProject();
 				Project.BuiltRelease = releaseBuild;
 			}
-			Compiler.Compiler.Compile(Project.ProjectDirectory, args);
+			success = Compiler.Compiler.Compile(Project.ProjectDirectory, args);
 #else
 			try
 			{
@@ -2142,19 +2058,17 @@ namespace Pixtro.Client.Editor
 				Console.WriteLine(e);
 			}
 #endif
-			if (!File.Exists(Path.Combine(exeFolder, "dll", releaseBuild ? "output.release.gba" : "output.gba")))
-				return false;
+			return success;
 
-			if (releaseBuild)
-			{
-				if (File.Exists(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba")))
-					File.Delete(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba"));
+			//if (releaseBuild)
+			//{
+			//	if (File.Exists(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba")))
+			//		File.Delete(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba"));
 
-				File.Move(
-					Path.Combine(Path.Combine(exeFolder, "dll", "output.release.gba")),
-					Path.Combine(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba")));
-			}
-			return true;
+			//	File.Move(
+			//		Path.Combine(Path.Combine(exeFolder, "dll", "output.release.gba")),
+			//		Path.Combine(Path.Combine(Project.ProjectDirectory, Project.Name + ".gba")));
+			//}
 		}
 		public void RunProject()
 		{
@@ -2842,14 +2756,13 @@ namespace Pixtro.Client.Editor
 					}
 				}
 				// why not skip audio if the user doesn't want sound
-				bool renderSound = (Config.SoundEnabled && !IsTurboing)
-					|| (_currAviWriter?.UsesAudio ?? false);
+				bool renderSound = (Config.SoundEnabled && !IsTurboing);
 				if (!renderSound)
 				{
 					atten = 0;
 				}
 
-				bool render = !InvisibleEmulation && (!_throttle.skipNextFrame || (_currAviWriter?.UsesVideo ?? false));
+				bool render = !InvisibleEmulation && (!_throttle.skipNextFrame);
 				bool newFrame = Emulator.FrameAdvance(InputManager.ControllerOutput, render, renderSound);
 
 				MovieSession.HandleFrameAfter();
@@ -2867,11 +2780,6 @@ namespace Pixtro.Client.Editor
 				else
 				{
 					UpdateToolsAfter();
-				}
-
-				if (!PauseAvi && newFrame && !InvisibleEmulation)
-				{
-					AvFrameAdvance();
 				}
 
 				if (newFrame)
@@ -2936,353 +2844,6 @@ namespace Pixtro.Client.Editor
 			_lastFps = 0;
 			_timestampLastFpsUpdate = Stopwatch.GetTimestamp();
 			_framesSinceLastFpsUpdate = 0;
-		}
-
-		/// <summary>
-		/// start AVI recording, unattended
-		/// </summary>
-		/// <param name="videoWriterName">match the short name of an <seealso cref="IVideoWriter"/></param>
-		/// <param name="filename">filename to save to</param>
-		private void RecordAv(string videoWriterName, string filename)
-		{
-			RecordAvBase(videoWriterName, filename, true);
-		}
-
-		/// <summary>
-		/// start AV recording, asking user for filename and options
-		/// </summary>
-		private void RecordAv()
-		{
-			RecordAvBase(null, null, false);
-		}
-
-		/// <summary>
-		/// start AV recording
-		/// </summary>
-		private void RecordAvBase(string videoWriterName, string filename, bool unattended)
-		{
-			if (_currAviWriter != null) return;
-
-			// select IVideoWriter to use
-			IVideoWriter aw;
-
-			if (string.IsNullOrEmpty(videoWriterName) && !string.IsNullOrEmpty(Config.VideoWriter))
-			{
-				videoWriterName = Config.VideoWriter;
-			}
-
-			_dumpaudiosync = Config.VideoWriterAudioSync;
-			if (unattended && !string.IsNullOrEmpty(videoWriterName))
-			{
-				aw = VideoWriterInventory.GetVideoWriter(videoWriterName, this);
-			}
-			else
-			{
-				aw = VideoWriterChooserForm.DoVideoWriterChooserDlg(
-					VideoWriterInventory.GetAllWriters(),
-					this,
-					Emulator,
-					Config,
-					out _avwriterResizew,
-					out _avwriterResizeh,
-					out _avwriterpad,
-					ref _dumpaudiosync);
-			}
-
-			if (aw == null)
-			{
-				AddOnScreenMessage(
-					unattended ? $"Couldn't start video writer \"{videoWriterName}\"" : "A/V capture canceled.");
-
-				return;
-			}
-
-			try
-			{
-#if AVI_SUPPORT
-				bool usingAvi = aw is AviWriter; // SO GROSS!
-#else
-				const bool usingAvi = false;
-#endif
-
-				if (_dumpaudiosync)
-				{
-					aw = new VideoStretcher(aw);
-				}
-				else
-				{
-					aw = new AudioStretcher(aw);
-				}
-
-				aw.SetMovieParameters(Emulator.VsyncNumerator(), Emulator.VsyncDenominator());
-				if (_avwriterResizew > 0 && _avwriterResizeh > 0)
-				{
-					aw.SetVideoParameters(_avwriterResizew, _avwriterResizeh);
-				}
-				else
-				{
-					aw.SetVideoParameters(_emuVideoProvider.BufferWidth, _emuVideoProvider.BufferHeight);
-				}
-
-				aw.SetAudioParameters(44100, 2, 16);
-
-				// select codec token
-				// do this before save dialog because ffmpeg won't know what extension it wants until it's been configured
-				if (unattended && !string.IsNullOrEmpty(filename))
-				{
-					aw.SetDefaultVideoCodecToken(Config);
-				}
-				else
-				{
-					// THIS IS REALLY SLOPPY!
-					// PLEASE REDO ME TO NOT CARE WHICH AVWRITER IS USED!
-					if (usingAvi && !string.IsNullOrEmpty(Config.AviCodecToken))
-					{
-						aw.SetDefaultVideoCodecToken(Config);
-					}
-
-					var token = aw.AcquireVideoCodecToken(Config);
-					if (token == null)
-					{
-						AddOnScreenMessage("A/V capture canceled.");
-						aw.Dispose();
-						return;
-					}
-
-					aw.SetVideoCodecToken(token);
-				}
-
-				// select file to save to
-				if (unattended && !string.IsNullOrEmpty(filename))
-				{
-					aw.OpenFile(filename);
-				}
-				else
-				{
-					string ext = aw.DesiredExtension();
-					string pathForOpenFile;
-
-					// handle directories first
-					if (ext == "<directory>")
-					{
-						using var fbd = new FolderBrowserEx();
-						if (fbd.ShowDialog() == DialogResult.Cancel)
-						{
-							aw.Dispose();
-							return;
-						}
-
-						pathForOpenFile = fbd.SelectedPath;
-					}
-					else
-					{
-						using var sfd = new SaveFileDialog();
-						if (Game != null)
-						{
-							sfd.FileName = $"{Game.FilesystemSafeName()}.{ext}"; // don't use Path.ChangeExtension, it might wreck game names with dots in them
-							sfd.InitialDirectory = Config.PathEntries.AvAbsolutePath();
-						}
-						else
-						{
-							sfd.FileName = "NULL";
-							sfd.InitialDirectory = Config.PathEntries.AvAbsolutePath();
-						}
-
-						sfd.Filter = new FilesystemFilterSet(new FilesystemFilter(ext, new[] { ext })).ToString();
-
-						if (this.ShowDialogWithTempMute(sfd) == DialogResult.Cancel)
-						{
-							aw.Dispose();
-							return;
-						}
-
-						pathForOpenFile = sfd.FileName;
-					}
-
-					aw.OpenFile(pathForOpenFile);
-				}
-
-				// commit the avi writing last, in case there were any errors earlier
-				_currAviWriter = aw;
-				AddOnScreenMessage("A/V capture started");
-				AVIStatusLabel.Image = Properties.Resources.Avi;
-				AVIStatusLabel.ToolTipText = "A/V capture in progress";
-				AVIStatusLabel.Visible = true;
-			}
-			catch
-			{
-				AddOnScreenMessage("A/V capture failed!");
-				aw.Dispose();
-				throw;
-			}
-
-			if (_dumpaudiosync)
-			{
-				_currentSoundProvider.SetSyncMode(SyncSoundMode.Sync);
-			}
-			else
-			{
-				if (_currentSoundProvider.CanProvideAsync)
-				{
-					_currentSoundProvider.SetSyncMode(SyncSoundMode.Async);
-					_aviSoundInputAsync = _currentSoundProvider;
-				}
-				else
-				{
-					_currentSoundProvider.SetSyncMode(SyncSoundMode.Sync);
-					_aviSoundInputAsync = new SyncToAsyncProvider(() => Emulator.VsyncRate(), _currentSoundProvider);
-				}
-			}
-
-			_dumpProxy = new SimpleSyncSoundProvider();
-			RewireSound();
-		}
-
-		private void AbortAv()
-		{
-			if (_currAviWriter == null)
-			{
-				_dumpProxy = null;
-				RewireSound();
-				return;
-			}
-
-			_currAviWriter.Dispose();
-			_currAviWriter = null;
-			AddOnScreenMessage("A/V capture aborted");
-			AVIStatusLabel.Image = Properties.Resources.Blank;
-			AVIStatusLabel.ToolTipText = "";
-			AVIStatusLabel.Visible = false;
-			_aviSoundInputAsync = null;
-			_dumpProxy = null; // return to normal sound output
-			RewireSound();
-		}
-
-		private void StopAv()
-		{
-			if (_currAviWriter == null)
-			{
-				_dumpProxy = null;
-				RewireSound();
-				return;
-			}
-
-			_currAviWriter.CloseFile();
-			_currAviWriter.Dispose();
-			_currAviWriter = null;
-			AddOnScreenMessage("A/V capture stopped");
-			AVIStatusLabel.Image = Properties.Resources.Blank;
-			AVIStatusLabel.ToolTipText = "";
-			AVIStatusLabel.Visible = false;
-			_aviSoundInputAsync = null;
-			_dumpProxy = null; // return to normal sound output
-			RewireSound();
-		}
-
-		private void AvFrameAdvance()
-		{
-			if (_currAviWriter == null) return;
-
-			// is this the best time to handle this? or deeper inside?
-			if (_argParser._currAviWriterFrameList?.Contains(Emulator.Frame) != false)
-			{
-				// TODO ZERO - this code is pretty jacked. we'll want to frugalize buffers better for speedier dumping, and we might want to rely on the GL layer for padding
-				try
-				{
-					IVideoProvider output;
-					IDisposable disposableOutput = null;
-					if (_avwriterResizew > 0 && _avwriterResizeh > 0)
-					{
-						BitmapBuffer bbIn = null;
-						Bitmap bmpIn = null;
-						try
-						{
-							bbIn = Config.AviCaptureOsd
-								? CaptureOSD()
-								: new BitmapBuffer(_emuVideoProvider.BufferWidth, _emuVideoProvider.BufferHeight, _emuVideoProvider.GetVideoBuffer());
-
-							bbIn.DiscardAlpha();
-
-							var bmpOut = new Bitmap(_avwriterResizew, _avwriterResizeh, PixelFormat.Format32bppArgb);
-							bmpIn = bbIn.ToSysdrawingBitmap();
-							using (var g = Graphics.FromImage(bmpOut))
-							{
-								if (_avwriterpad)
-								{
-									g.Clear(Color.FromArgb(_emuVideoProvider.BackgroundColor));
-									g.DrawImageUnscaled(bmpIn, (bmpOut.Width - bmpIn.Width) / 2, (bmpOut.Height - bmpIn.Height) / 2);
-								}
-								else
-								{
-									g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-									g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
-									g.DrawImage(bmpIn, new Rectangle(0, 0, bmpOut.Width, bmpOut.Height));
-								}
-							}
-
-							output = new BmpVideoProvider(bmpOut, _emuVideoProvider.VsyncNumerator, _emuVideoProvider.VsyncDenominator);
-							disposableOutput = (IDisposable) output;
-						}
-						finally
-						{
-							bbIn?.Dispose();
-							bmpIn?.Dispose();
-						}
-					}
-					else
-					{
-						if (Config.AviCaptureOsd)
-						{
-							output = new BitmapBufferVideoProvider(CaptureOSD());
-							disposableOutput = (IDisposable) output;
-						}
-						else if (Config.AviCaptureLua)
-						{
-							output = new BitmapBufferVideoProvider(CaptureLua());
-							disposableOutput = (IDisposable) output;
-						}
-						else
-						{
-							output = _emuVideoProvider;
-						}
-					}
-
-					_currAviWriter.SetFrame(Emulator.Frame);
-
-					short[] samp;
-					int nsamp;
-					if (_dumpaudiosync)
-					{
-						((VideoStretcher) _currAviWriter).DumpAV(output, _currentSoundProvider, out samp, out nsamp);
-					}
-					else
-					{
-						((AudioStretcher) _currAviWriter).DumpAV(output, _aviSoundInputAsync, out samp, out nsamp);
-					}
-
-					disposableOutput?.Dispose();
-
-					_dumpProxy.PutSamples(samp, nsamp);
-				}
-				catch (Exception e)
-				{
-					ShowMessageBox(owner: null, $"Video dumping died:\n\n{e}");
-					AbortAv();
-				}
-			}
-
-			if (_autoDumpLength > 0) //TODO this is probably not necessary because of the call to StopAv --yoshi
-			{
-				_autoDumpLength--;
-				if (_autoDumpLength == 0) // finish
-				{
-					StopAv();
-					if (_argParser._autoCloseOnDump)
-					{
-						_exitRequestPending = true;
-					}
-				}
-			}
 		}
 
 		private int? LoadArchiveChooser(HawkFile file)
@@ -3731,8 +3292,6 @@ namespace Pixtro.Client.Editor
 				}
 			}
 
-			StopAv();
-
 			CommitCoreSettingsToConfig();
 
 			if (MovieSession.Movie.IsActive()) // Note: this must be called after CommitCoreSettingsToConfig()
@@ -3970,32 +3529,6 @@ namespace Pixtro.Client.Editor
 
 		public bool EnsureCoreIsAccurate()
 		{
-			bool PromptToSwitchCore(string currentCore, string recommendedCore, Action disableCurrentCore)
-			{
-				using var box = new MsgBox(
-					$"While the {currentCore} core is faster, it is not nearly as accurate as {recommendedCore}.{Environment.NewLine}It is recommended that you switch to the {recommendedCore} core for movie recording.{Environment.NewLine}Switch to {recommendedCore}?",
-					"Accuracy Warning",
-					MessageBoxIcon.Warning);
-
-				box.SetButtons(
-					new[] { "Switch", "Continue" },
-					new[] { DialogResult.Yes, DialogResult.Cancel });
-
-				box.MaximumSize = UIHelper.Scale(new Size(575, 175));
-				box.SetMessageToAutoSize();
-
-				var result = box.ShowDialog();
-
-				if (result != DialogResult.Yes)
-				{
-					return false;
-				}
-
-				disableCurrentCore();
-				RebootCore();
-				return true;
-			}
-
 			return true;
 		}
 
