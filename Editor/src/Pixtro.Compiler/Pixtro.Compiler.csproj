@@ -57,13 +57,16 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
+    <Reference Include="YamlDotNet, Version=11.0.0.0, Culture=neutral, PublicKeyToken=ec19458f3c15af5e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\YamlDotNet.11.2.1\lib\net45\YamlDotNet.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AsepriteReader.cs" />
     <Compile Include="Compilers\CompileToC.cs" />
-    <Compile Include="CompressedLevel.cs" />
+    <Compile Include="CompiledLevel.cs" />
     <Compile Include="DataParser.cs" />
-    <Compile Include="ExtMethods.cs" />
+    <Compile Include="ExtentionMethods.cs" />
     <Compile Include="FullCompiler.cs" />
     <Compile Include="GBAImage.cs" />
     <Compile Include="LevelBinReader.cs" />

@@ -6,6 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using Newtonsoft.Json;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
+using System.Reflection;
 
 namespace Pixtro.Compiler
 {
@@ -85,6 +88,8 @@ namespace Pixtro.Compiler
 	internal static class Settings
 	{
 		public static bool Clean { get; set; }
+		public static bool Debug { get; set; }
+		public static bool OptimizedCode { get; set; }
 
 		public static string ProjectPath { get; set; }
 		public static string EnginePath { get; set; }
@@ -96,6 +101,7 @@ namespace Pixtro.Compiler
 		{
 			BrickTileSize = 1;
 			Clean = false;
+
 
 			for (int i = 0; i < args.Length; ++i)
 			{
@@ -115,7 +121,7 @@ namespace Pixtro.Compiler
 			{
 				string[] arg = args[i].Split('=');
 
-				string exArg () => arg.Length > 1 ? arg[1] : args[++i];
+				string exArg() => arg.Length > 1 ? arg[1] : args[++i];
 
 				switch (arg[0])
 				{
@@ -159,23 +165,87 @@ namespace Pixtro.Compiler
 				GamePath = ProjectPath.Substring(0, GamePath.Length - 1);
 		}
 	}
-	public class PointConverter : JsonConverter<Point> {
-		public override Point ReadJson(JsonReader reader, Type objectType, Point existingValue, bool hasExistingValue, JsonSerializer serializer) {
-			
+	public class PointConverter : JsonConverter<Point>
+	{
+		public override Point ReadJson(JsonReader reader, Type objectType, Point existingValue, bool hasExistingValue, JsonSerializer serializer)
+		{
+
 			var points = (reader.Value as string).Split(',');
 
 			return new Point(int.Parse(points[0].Trim()), int.Parse(points[1].Trim()));
 		}
 
-		public override void WriteJson(JsonWriter writer, Point value, JsonSerializer serializer) {
+		public override void WriteJson(JsonWriter writer, Point value, JsonSerializer serializer)
+		{
 		}
 	}
-	public static class Compiler {
+	public static class Compiler
+	{
+
+		static Compiler()
+		{
+			yamlParse = new DeserializerBuilder().WithNamingConvention(UnderscoredNamingConvention.Instance).Build();
+		}
 
 		private static bool Error;
+		private readonly static IDeserializer yamlParse;
 
 
-		public static void Main(string[] _args) {
+		public static T ParseMeta<T>(string yamlData)
+		{
+			T retval = yamlParse.Deserialize<T>(yamlData);
+			return retval;
+		}
+
+		private static void CopyMakefile()
+		{
+			string exeFolder = Settings.EnginePath; //Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+			if (File.Exists(Path.ChangeExtension(Settings.GamePath, ".elf")))
+				File.Delete(Path.ChangeExtension(Settings.GamePath, ".elf"));
+			if (File.Exists(Settings.GamePath))
+				File.Delete(Settings.GamePath);
+
+
+			string[] replacements = new string[]
+			{
+				exeFolder,
+				Settings.GamePath,
+				!Settings.Debug ? "-D __DEBUG__ " : "" + (Settings.OptimizedCode ? "-O3 " : ""),
+				!Settings.Debug ? ".release" : "",
+			};
+
+			for (int i = 0; i < replacements.Length; ++i)
+			{
+				replacements[i] = replacements[i].Replace('\\', '/');
+				if (replacements[i].EndsWith("/"))
+					replacements[i] = replacements[i].Substring(0, replacements[i].Length - 1);
+			}
+
+			using (var makeRead = new StreamReader(File.Open(Path.Combine(exeFolder, "Makefile.txt"), FileMode.Open)))
+			{
+				using (var makeWrite = new StreamWriter(File.Create(Path.Combine(exeFolder, "Makefile"))))
+				{
+					while (!makeRead.EndOfStream)
+					{
+						string input = makeRead.ReadLine();
+						if (input.Contains('{'))
+						{
+							for (int i = 0; i < replacements.Length; ++i)
+							{
+								input = input.Replace($"{{{i}}}", replacements[i]);
+							}
+						}
+						makeWrite.WriteLine(input);
+					}
+				}
+			}
+
+		}
+
+
+		public static void Main(string[] _args)
+		{
 			Compile(Directory.GetCurrentDirectory(), _args);
 		}
 
@@ -186,15 +256,17 @@ namespace Pixtro.Compiler
 			Compile(projectPath, argSplit);
 		}
 
-		public static void Compile(string projectPath, string[] args) {
-
-
+		public static bool Compile(string projectPath, string[] args)
+		{
 			Console.Clear();
 
 			Settings.SetInitialArguments(args);
 			Settings.ProjectPath = Settings.GamePath = projectPath.Replace('/', '\\');
-			Settings.EnginePath = Path.Combine(Settings.ProjectPath, "");
-			Settings.GamePath = Path.Combine(Settings.GamePath, Path.GetFileName(Settings.GamePath) + ".gba");
+			Settings.EnginePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			Settings.GamePath =
+				Settings.Debug ?
+					Path.Combine(Settings.EnginePath, "dll", "output") :
+					Path.Combine(Settings.ProjectPath, Path.GetDirectoryName(projectPath));
 
 			// Check the engine.h header file for information on how to compile level (and other data maybe in the future idk)
 			foreach (string s in File.ReadAllLines(Path.Combine(Settings.ProjectPath, @"source\engine.h")))
@@ -239,27 +311,32 @@ namespace Pixtro.Compiler
 			}
 
 			if (Error)
-				return;
+				return false;
+
+			CopyMakefile();
 
 			Process cmd = new Process();
 			ProcessStartInfo info = new ProcessStartInfo();
 			info.FileName = "cmd.exe";
+
 			info.RedirectStandardInput = true;
 			info.UseShellExecute = false;
 
 			cmd.StartInfo = info;
 			cmd.Start();
 
-			using (StreamWriter sw = cmd.StandardInput) {
-
+			using (StreamWriter sw = cmd.StandardInput)
+			{
 				sw.WriteLine($"make -C {Settings.ProjectPath} -f {Settings.EnginePath}/Makefile {(Settings.Clean ? "clean" : "")}");
-
 			}
 
 			cmd.WaitForExit();
+
+			return File.Exists(Settings.GamePath + ".gba");
 		}
 
-		public static void ErrorLog(object log) {
+		public static void ErrorLog(object log)
+		{
 			Console.ForegroundColor = ConsoleColor.Red;
 			Console.Write("ERROR -- ");
 			Console.ForegroundColor = ConsoleColor.Gray;
@@ -267,18 +344,21 @@ namespace Pixtro.Compiler
 
 			Error = true;
 		}
-		public static void WarningLog(object log) {
+		public static void WarningLog(object log)
+		{
 			Console.ForegroundColor = ConsoleColor.Yellow;
 			Console.Write("WARNING -- ");
 			Console.ForegroundColor = ConsoleColor.Gray;
 			Console.WriteLine(log.ToString());
 		}
-		public static void Log(object log) {
+		public static void Log(object log)
+		{
 			Console.ForegroundColor = ConsoleColor.Gray;
 			Console.WriteLine(log.ToString());
-			
+
 		}
-		public static void DebugLog(object log) {
+		public static void DebugLog(object log)
+		{
 			//if (HasArgument("-log")) {
 			//	Console.ForegroundColor = ConsoleColor.White;
 			//	Console.WriteLine(log.ToString());

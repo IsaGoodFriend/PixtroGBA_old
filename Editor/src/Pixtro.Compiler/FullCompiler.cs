@@ -1,31 +1,69 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
-using System.Text;
+using YamlDotNet.Serialization;
 using System.Drawing;
+using System.Xml;
 
 namespace Pixtro.Compiler
 {
+#pragma warning disable CS0649
+	struct BackgroundMeta
+	{
+		public string[] ImportPalettes;
+		public string[] Backgrounds;
+	}
+	class ImageMeta
+	{
+		public class AseMeta
+		{
+			public bool SeparateTags = false;
+			public bool SeparateLayers = false;
+		}
+		public class PNGMeta
+		{
+
+		}
+
+		public bool Animated = false;
+		public int AnimatedWidth = 0, AnimatedHeight = 0;
+
+		public AseMeta Ase;
+		public PNGMeta PNG;
+
+		[YamlIgnore]
+		public AsepriteReader.Tag[] SeparatedTags;
+
+		public ImageMeta()
+		{
+			Ase = new AseMeta();
+			PNG = new PNGMeta();
+		}
+	}
+#pragma warning restore CS0649
+
 	internal static class FullCompiler
 	{
-		static void ClearDictionaries()
+		private static string GetLocalPath(string file, string folder)
 		{
-			ArtTilesets.Clear();
-			palettesFromSprites.Clear();
-			tilesets.Clear();
-			backgroundsCompiled.Clear();
-			compiledLevels.Clear();
-			levelPacks.Clear();
-			usedLevels.Clear();
+			file = file.Replace('\\', '/');
 
-			entLocalCount = 0;
-			entGlobalCount = 0;
-			entSectionCount = 0;
-			typeLocalCount.Clear();
-			typeGlobalCount.Clear();
-			typeSectionCount.Clear();
+			file = file.Replace(Path.Combine(Settings.ProjectPath, folder).Replace('\\', '/') + "/", "");
+
+			return file;
+		}
+		private static string GetCompileName(string file, string folder)
+		{
+			file = GetLocalPath(file, folder);
+
+			folder = Path.GetExtension(file);
+
+			file = file.Replace(folder, "").Replace('/', '_');
+
+			return file;
 		}
 
 		private const string
@@ -39,16 +77,16 @@ namespace Pixtro.Compiler
 							 LevelPackPath = LevelPath + "/_packs",
 							 BuildToPath = "build/source";
 
+		private static Dictionary<string, GBAImage[]> CompiledImages = new Dictionary<string, GBAImage[]>();
+		private static Dictionary<string, Color[][]> CompiledPalettes = new Dictionary<string, Color[][]>();
+		private static Dictionary<string, ImageMeta> CompiledMetadata = new Dictionary<string, ImageMeta>();
+		private static Dictionary<string, List<string>> CompiledByFolder = new Dictionary<string, List<string>>();
+
+		public static IReadOnlyDictionary<string, GBAImage[]> Sprites => CompiledImages;
+
 		private static Dictionary<string, Color[]> palettesFromSprites = new Dictionary<string, Color[]>();
 
-		public static Dictionary<string, Tileset> ArtTilesets = new Dictionary<string, Tileset>();
-
-		private static Dictionary<string, GBAImage[]> CompiledImages = new Dictionary<string, GBAImage[]>();
-
-		private static Dictionary<string, BackgroundTiles> tilesets = new Dictionary<string, BackgroundTiles>();
-		private static List<string> backgroundsCompiled = new List<string>();
-
-		static Dictionary<string, CompressedLevel> compiledLevels = new Dictionary<string, CompressedLevel>();
+		static Dictionary<string, CompiledLevel> compiledLevels = new Dictionary<string, CompiledLevel>();
 		static Dictionary<string, List<string>> levelPacks = new Dictionary<string, List<string>>();
 		static List<string> usedLevels = new List<string>();
 
@@ -61,29 +99,103 @@ namespace Pixtro.Compiler
 			typeSectionCount = new Dictionary<string, int>(),
 			typeLocalCount = new Dictionary<string, int>();
 
-
-		public static void Compile()
+		static void ClearDictionaries()
 		{
-			ClearDictionaries();
+			CompiledByFolder.Clear();
+			palettesFromSprites.Clear();
+			//tilesets.Clear();
+			//backgroundsCompiled.Clear();
+			compiledLevels.Clear();
+			levelPacks.Clear();
+			usedLevels.Clear();
+
+			CompiledImages.Clear();
+			CompiledPalettes.Clear();
+
+			entLocalCount = 0;
+			entGlobalCount = 0;
+			entSectionCount = 0;
+			typeLocalCount.Clear();
+			typeGlobalCount.Clear();
+			typeSectionCount.Clear();
+		}
+
+		static void CompileAllImages()
+		{
+			void AddImageRange(string localPath, string name, GBAImage[] images)
+			{
+				CompiledByFolder.AddToList(localPath.Split('/')[0], name);
+				CompiledImages.Add(name, images);
+			}
 
 			void AddFile(string file)
 			{
 				string ext = Path.GetExtension(file);
 
-				string localPath = file.Replace(Path.Combine(Settings.ProjectPath, ArtPath) + "/", "").Replace('\\', '/');
-				string name = Path.ChangeExtension(localPath, "").Replace('/', '_').Replace(".", "");
+				string localPath = GetLocalPath(file, ArtPath);
+				string name = GetCompileName(file, ArtPath);
 
 				try
 				{
+					ImageMeta meta = null;
+
+					if (File.Exists(Path.ChangeExtension(file, ".meta.yaml")))
+						meta = Compiler.ParseMeta<ImageMeta>(File.ReadAllText(Path.ChangeExtension(file, ".meta.yaml")));
+					if (meta == null && File.Exists(Path.ChangeExtension(file, ".meta.yml")))
+						meta = Compiler.ParseMeta<ImageMeta>(File.ReadAllText(Path.ChangeExtension(file, ".meta.yml")));
+
+					if (meta == null)
+					{
+						meta = new ImageMeta();
+					}
+
+					switch (localPath.Split('/')[0])
+					{
+						case "particles":
+							meta.Animated = true;
+							meta.AnimatedWidth = 8;
+							meta.AnimatedHeight = 8;
+							break;
+					}
+
+					CompiledMetadata.Add(name, meta);
+
 					switch (ext)
 					{
-						case ".bmp":
-							throw new Exception(); // BMP no longer supported
 						case ".ase":
-							CompiledImages.Add(name, GBAImage.FromAsepriteProject(file));
+							using (AsepriteReader reader = new AsepriteReader(file))
+							{
+								if (meta.Ase.SeparateTags)
+								{
+									foreach (var tag in reader.TagNames)
+									{
+										AddImageRange(localPath, $"{name}_{tag}", GBAImage.FromAsepriteProject(reader, tag: tag));
+									}
+								}
+								else if (meta.Ase.SeparateLayers && reader.LayerNames.Length > 1)
+								{
+									foreach (var layer in reader.LayerNames.Distinct())
+									{
+										AddImageRange(localPath, $"{name}_{layer}", GBAImage.FromAsepriteProject(reader));
+									}
+								}
+								else
+								{
+									AddImageRange(localPath, name, GBAImage.FromAsepriteProject(reader));
+
+									meta.SeparatedTags = reader.Tags;
+								}
+							}
 							break;
 						case ".png":
-							CompiledImages.Add(name, new GBAImage[] { GBAImage.FromFile(file) });
+							if (meta.Animated)
+							{
+								AddImageRange(localPath, name, GBAImage.AnimateFromFile(file, meta.AnimatedWidth, meta.AnimatedHeight));
+							}
+							else
+							{
+								AddImageRange(localPath, name, new GBAImage[] { GBAImage.FromFile(file) });
+							}
 							break;
 					}
 				}
@@ -103,21 +215,35 @@ namespace Pixtro.Compiler
 				AddFile(file);
 			foreach (var file in Directory.GetFiles(Path.Combine(Settings.ProjectPath, TitleCardPath), "*", SearchOption.AllDirectories))
 				AddFile(file);
+		}
 
+		public static void Compile()
+		{
+			ClearDictionaries();
 
-			string levelPath = Path.Combine(Settings.ProjectPath, LevelPath),
-			tilesetPath =  Path.Combine(Settings.ProjectPath, TilesetPath);
-			
-			string toSavePath = Path.Combine(Settings.ProjectPath, BuildToPath);
-
-			Compiler.Log("Compiling levels");
 			var levelCompiler = new CompileToC();
 			var artCompiler = new CompileToC();
+
+			string
+				artPath = Path.Combine(Settings.ProjectPath, ArtPath),
+				levelPath = Path.Combine(Settings.ProjectPath, LevelPath),
+				tilesetPath =  Path.Combine(Settings.ProjectPath, TilesetPath);
+
+			Compiler.Log("Compiling palettes");
+			// Compile palettes first to be used if needed when importing images
+			CompilePalettes(artCompiler);
+
+			Compiler.Log("Reading art assets");
+			CompileAllImages();
+
+
+			string toSavePath = Path.Combine(Settings.ProjectPath, BuildToPath);
+
 
 			Dictionary<string, VisualPackMetadata> parseData = JsonConvert.DeserializeObject<Dictionary<string, VisualPackMetadata>>(File.ReadAllText(levelPath + "\\meta_level.json"));
 
 			// Get all the art from the tilesets and compile them into C# code for ease of access
-			CompileTilesets(tilesetPath);
+			//CompileTilesets(tilesetPath);
 
 			// Finalize tile mapping
 			foreach (var p in parseData)
@@ -143,7 +269,7 @@ namespace Pixtro.Compiler
 			}
 
 			// Todo: allow custom seeds to get consistent result
-			CompressedLevel.Randomizer = new Random();
+			CompiledLevel.Randomizer = new Random();
 
 			// Go through each level pack and figure out which levels are used and where
 			foreach (var pack in Directory.GetFiles(Path.Combine(Settings.ProjectPath, LevelPackPath)))
@@ -181,14 +307,120 @@ namespace Pixtro.Compiler
 
 
 			// Compile levels
-			// Foreach Visual Pack
-			foreach (var parse in parseData.Values)
+			foreach (var pair in parseData)
 			{
+				var parse = pair.Value;
+				// Compile the visual pack's brickset before compiling levels
+				Compiler.Log($"Compiling Visual Pack {pair.Key}");
+
+				// Clear out section's entity count
 				typeSectionCount.Clear();
 				entSectionCount = 0;
 
-				CompressedLevel.DataParse = parse;
+				LevelBrickset fullTileset = new LevelBrickset();
 
+				List<string> found = new List<string>();
+
+				foreach (var key in parse.Wrapping.Keys)
+				{
+					var wrap = parse.Wrapping[key];
+
+					int collType = wrap.CollisionType;
+
+					// Compile the tiles using the visual tileset desired
+					if (Sprites.ContainsKey("tilesets_" + wrap.Tileset))
+					{
+						var usedTiles = wrap.TileMapping.Values.SelectMany(item => item).Distinct();
+
+						var tiles = parse.tilesetFound.ContainsKey(wrap.Tileset) ? parse.tilesetFound[ wrap.Tileset] : Sprites["tilesets_" + wrap.Tileset][0].GetLargeTileSet(Settings.BrickTileSize);
+
+						parse.tilesetFound[wrap.Tileset] = tiles;
+
+						// Iterate over the tilemapping points instead of the entire tileset so that the compiler only adds tiles that will likely be used.
+						foreach (var point in usedTiles)
+						{
+							var tile = tiles.GetTile(point.X, point.Y);
+
+							if (tile.IsAir && collType == 0)
+								continue;
+
+							var brick = new Brick(tile);
+							brick.collisionType = collType;
+							brick.collisionChar = key;
+
+							if (!fullTileset.Contains(brick))
+								fullTileset.AddNewBrick(brick);
+						}
+					}
+					else // If the tileset doesn't exist, add an empty tile for the wrapping character
+					{
+						Compiler.WarningLog($"Tileset {wrap.Tileset} does not exist.");
+
+						var brick = new Brick(Settings.BrickTileSize);
+						brick.collisionType = collType;
+						brick.collisionChar = key;
+
+						if (!fullTileset.Contains(brick))
+							fullTileset.AddNewBrick(brick);
+					}
+				}
+				int length = fullTileset.RawTiles.Count;
+
+				List<Tile> rawTiles = new List<Tile>(fullTileset.RawTiles);
+				// Compile all the raw visual tiles used by the brickset
+				levelCompiler.BeginArray(CompileToC.ArrayType.UInt, "TILESET_" + parse.Name);
+
+				foreach (var tile in rawTiles)
+				{
+					levelCompiler.AddRange(tile.RawData);
+				}
+				levelCompiler.EndArray();
+
+				// Compile the collision types of each brick
+				levelCompiler.BeginArray(CompileToC.ArrayType.UInt, "TILECOLL_" + parse.Name);
+				foreach (var tile in fullTileset)
+				{
+					levelCompiler.AddValue((tile.collisionType << 8) | tile.collisionShape);
+				}
+				levelCompiler.AddValue(0xFFFF);
+				levelCompiler.EndArray();
+
+				// Compile each brick's "uv" mapping, aka how each raw tile fits into this tileset
+				levelCompiler.BeginArray(CompileToC.ArrayType.UShort, "TILE_MAPPING_" + parse.Name);
+				int size = Settings.BrickTileSize;
+				foreach (var tile in fullTileset)
+				{
+					for (int i = 0; i < size * size; ++i)
+					{
+						var mappedTile = tile.tiles[i % size, i / size];
+
+						Tile rawTile = null;
+
+						foreach (var rt in rawTiles)
+						{
+							if (mappedTile.EqualTo(rt, FlipStyle.Both))
+							{
+								rawTile = rt;
+								break;
+							}
+						}
+
+						ushort value = (ushort)(rawTiles.IndexOf(rawTile, new CompareFlippable<Tile>()) + 1);
+						if (rawTile != null)
+							value |= (ushort)(mappedTile.GetFlipOffset(rawTile) << 10);
+						levelCompiler.AddValue(value);
+					}
+				}
+				levelCompiler.EndArray();
+
+				// Define how many tiles are in the compiled tileset
+				levelCompiler.AddValueDefine($"TILESET_{parse.Name}_len", length);
+
+				parse.fullTileset = fullTileset;
+
+				CompiledLevel.DataParse = parse;
+
+				// Compile all the levels
 				foreach (var level in parse.levelsIncluded)
 				{
 					var localPath = Path.Combine(Settings.ProjectPath, LevelPath, level);
@@ -198,6 +430,8 @@ namespace Pixtro.Compiler
 						ext = ".bin";
 					else if (File.Exists(localPath + ".json"))
 						ext = ".json";
+					else if (File.Exists(localPath + ".tmx"))
+						ext = ".tmx";
 					else if (File.Exists(localPath + ".txt"))
 						ext = ".txt";
 
@@ -207,23 +441,26 @@ namespace Pixtro.Compiler
 
 					localPath = localPath.Replace('\\', '/') + ext;
 
-					CompressedLevel compressed = null;
+					CompiledLevel compressed = null;
 
 					entLocalCount = 0;
 					typeLocalCount.Clear();
 
-					CompressedLevel.RNGSeed = (uint)new Random(localPath.GetHashCode()).Next(0x800, 0xFFFFFF);
+					CompiledLevel.RNGSeed = (uint)new Random(localPath.GetHashCode()).Next(0x800, 0xFFFFFF);
 
 
 					switch (ext)
 					{
 						case ".txt":
-							compressed = CompileLevelTxt(level + ".txt");
+							compressed = CompileLevelTxt(level + ext);
 							break;
 						case ".json":
 							throw new NotImplementedException();
-						default: // Compressed Binary File
-							CompileLevelBin(level, levelCompiler);
+						case ".tmx":
+							compressed = CompileLevelTiled(level + ext);
+							break;
+						default:
+							compressed = CompileLevelBin(level + ext);
 							break;
 					}
 
@@ -240,67 +477,10 @@ namespace Pixtro.Compiler
 					levelCompiler.EndArray();
 				}
 
-				if (parse.fullTileset == null)
-					continue;
-
-				int length = parse.fullTileset.RawTiles.Count;
-
-				levelCompiler.BeginArray(CompileToC.ArrayType.UInt, "TILESET_" + parse.Name);
-
-				List<Tile> rawTiles = new List<Tile>(parse.fullTileset.RawTiles);
-
-				foreach (var tile in rawTiles)
-				{
-					levelCompiler.AddRange(tile.RawData);
-				}
-
-				levelCompiler.EndArray();
-
-				levelCompiler.BeginArray(CompileToC.ArrayType.UInt, "TILECOLL_" + parse.Name);
-
-				foreach (var tile in parse.fullTileset)
-				{
-					levelCompiler.AddValue((tile.collisionType << 8) | tile.collisionShape);
-				}
-				levelCompiler.AddValue(0xFFFF);
-
-				levelCompiler.EndArray();
-
-				List<Tile> tileset = new List<Tile>(parse.fullTileset.RawTiles);
-
-				levelCompiler.BeginArray(CompileToC.ArrayType.UShort, "TILE_MAPPING_" + parse.Name);
-
-				int size = parse.fullTileset.First().sizeOfTile / 8;
-
-				foreach (var tile in parse.fullTileset)
-				{
-					for (int i = 0; i < size * size; ++i)
-					{
-						var mappedTile = new Tile(8);
-						mappedTile.LoadInData(tile.RawData, i * 8);
-
-						Tile rawTile = null;
-
-						foreach (var rt in rawTiles)
-						{
-							if (mappedTile.EqualTo(rt, Tile.FlipStyle.Both))
-							{
-								rawTile = rt;
-								break;
-							}
-						}
-
-						ushort value = (ushort)(rawTiles.IndexOf(rawTile, new Tileset.CompareTiles()) + 1);
-						if (rawTile != null)
-							value |= (ushort)(mappedTile.GetFlipOffset(rawTile) << 10);
-						levelCompiler.AddValue(value);
-					}
-				}
-				levelCompiler.EndArray();
-
-				levelCompiler.AddValueDefine($"TILESET_{parse.Name}_len", length);
+				
 			}
 
+			Compiler.Log("Compiling Level Packs");
 			// Compile Level Packs
 			foreach (var pack in levelPacks)
 			{
@@ -323,7 +503,7 @@ namespace Pixtro.Compiler
 					}
 					levelCompiler.AddValue("&" + levelList[i]);
 
-					CompressedLevel level = compiledLevels[levelList[i]];
+					CompiledLevel level = compiledLevels[levelList[i]];
 
 					for (int j = 0; j < level.Layers; ++j)
 					{
@@ -337,61 +517,54 @@ namespace Pixtro.Compiler
 				levelCompiler.EndArray();
 			}
 
+
+
+
+//#if !DEBUG
+//			bool needsRecompile = false;
+
+//			long editTime = File.GetLastWriteTime(toSavePath + "\\sprites.c").Ticks;
+
+//			string[] folders = new string[]{ "backgrounds", "palettes", "particles", "sprites", "titlecards" };
+
+//			foreach (var folder in folders)
+//			{
+//				if (!Directory.Exists(Path.Combine(artPath, folder)))
+//					continue;
+//				foreach (var file in Directory.GetFiles(Path.Combine(artPath, folder), "*", SearchOption.AllDirectories))
+//				{
+//					if (File.GetLastWriteTime(file).Ticks > editTime)
+//					{
+//						needsRecompile = true;
+//						break;
+//					}
+//				}
+//				if (needsRecompile)
+//					break;
+//			}
+//			if (!needsRecompile)
+//			{
+//				Compiler.Log("Skipping art compiling");
+//				return;
+//			}
+//#endif
+
+			Compiler.Log("Compiling Backgrounds");
+			CompileBackgrounds(artCompiler);
+
+			Compiler.Log("Compiling sprites");
+			CompileSprites(artCompiler);
+
+			Compiler.Log("Compiling particles");
+			CompileParticles(artCompiler);
+
+			//Compiler.DebugLog("Compiling backgrounds");
+
+			Compiler.Log("Compiling title cards");
+			CompileTitleCards(artCompiler);
+
+			Compiler.Log("Saving source files");
 			levelCompiler.SaveTo(toSavePath, "levels");
-
-			string artPath = Path.Combine(Settings.ProjectPath, ArtPath);
-
-#if !DEBUG
-			bool needsRecompile = false;
-
-			long editTime = File.GetLastWriteTime(toSavePath + "\\sprites.c").Ticks;
-
-			string[] folders = new string[]{ "backgrounds", "palettes", "particles", "sprites", "titlecards" };
-
-			foreach (var folder in folders)
-			{
-				if (!Directory.Exists(Path.Combine(artPath, folder)))
-					continue;
-				foreach (var file in Directory.GetFiles(Path.Combine(artPath, folder), "*", SearchOption.AllDirectories))
-				{
-					if (File.GetLastWriteTime(file).Ticks > editTime)
-					{
-						needsRecompile = true;
-						break;
-					}
-				}
-				if (needsRecompile)
-					break;
-			}
-			if (!needsRecompile)
-			{
-				Compiler.Log("Skipping art compiling");
-				return;
-			}
-#endif
-			Compiler.Log("Compiling art assets");
-
-			tilesets = new Dictionary<string, BackgroundTiles>();
-			backgroundsCompiled = new List<string>();
-
-			Compiler.DebugLog("Compiling sprites");
-			CompileSprites(Path.Combine(artPath, "sprites"), artCompiler);
-
-			Compiler.DebugLog("Compiling palettes");
-			CompilePalettes(Path.Combine(artPath, "palettes"), artCompiler);
-
-			Compiler.DebugLog("Compiling particles");
-			artCompiler.options |= CompileToC.CompileOptions.CompileEmptyArrays;
-			CompileParticles(Path.Combine(artPath, "particles"), artCompiler);
-			artCompiler.options &= ~CompileToC.CompileOptions.CompileEmptyArrays;
-
-			Compiler.DebugLog("Compiling backgrounds");
-			CompileBackgrounds(Path.Combine(artPath, "backgrounds"), artCompiler);
-
-			Compiler.DebugLog("Compiling title cards");
-			CompileTitleCards(Path.Combine(artPath, "titlecards"), artCompiler);
-
-			Compiler.DebugLog("Saving art to file");
 			artCompiler.SaveTo(toSavePath, "sprites");
 		}
 
@@ -478,14 +651,16 @@ namespace Pixtro.Compiler
 
 			return DataParser.EvaluateByte(algorithm, getvals);
 		}
-		private static CompressedLevel CompileLevelBin(string _path, CompileToC _compiler)
+
+		private static CompiledLevel CompileLevelBin(string path)
 		{
+			path = Path.Combine(Settings.ProjectPath, LevelPath, path);
 
 			// TODO: Add support for this at some point.
 
-			var reader = new BinaryFileParser(_path, "PIXTRO_LVL");
+			var reader = new BinaryFileParser(path, "PIXTRO_LVL");
 
-			string baseName = Path.GetFileNameWithoutExtension(_path);
+			string baseName = Path.GetFileNameWithoutExtension(path);
 
 			foreach (var node in reader.Nodes)
 			{
@@ -495,7 +670,7 @@ namespace Pixtro.Compiler
 						if (node.Children[0].Name != "meta")
 							continue;
 
-						CompressedLevel level = new CompressedLevel();
+						CompiledLevel level = new CompiledLevel();
 						string levelName = null;
 
 						foreach (var child in node.Children)
@@ -519,13 +694,13 @@ namespace Pixtro.Compiler
 									break;
 								case "entity":
 
-									var ent = new CompressedLevel.Entity();
+									var ent = new CompiledLevel.Entity();
 
 									ent.x = child.GetInteger("x");
 									ent.y = child.GetInteger("y");
 									if (child.Attributes["type"] is string)
 									{
-										ent.type = CompressedLevel.DataParse.EntityIndex[child.Attributes["type"] as string];
+										ent.type = CompiledLevel.DataParse.EntityIndex[child.Attributes["type"] as string];
 									}
 									else
 									{
@@ -579,12 +754,6 @@ namespace Pixtro.Compiler
 							}
 						}
 
-						_compiler.BeginArray(CompileToC.ArrayType.Char, $"LVL_{baseName}_{levelName}");
-
-						_compiler.AddRange(level.BinaryData());
-
-						_compiler.EndArray();
-
 						break;
 
 					case "meta":
@@ -594,11 +763,11 @@ namespace Pixtro.Compiler
 
 			return null;
 		}
-		private static CompressedLevel CompileLevelTxt(string levelLocalPath)
+		private static CompiledLevel CompileLevelTxt(string levelLocalPath)
 		{
 			levelLocalPath = Path.Combine(Settings.ProjectPath, LevelPath, levelLocalPath);
 
-			CompressedLevel retval = new CompressedLevel();
+			CompiledLevel retval = new CompiledLevel();
 
 			using (StreamReader reader = new StreamReader(File.Open(levelLocalPath, FileMode.Open)))
 			{
@@ -637,7 +806,7 @@ namespace Pixtro.Compiler
 
 								split = SplitWithTrim(ent, ';');
 
-								var entity = new CompressedLevel.Entity();
+								var entity = new CompiledLevel.Entity();
 
 								entity.x = int.Parse(split[1]);
 								entity.y = int.Parse(split[2]);
@@ -650,7 +819,7 @@ namespace Pixtro.Compiler
 								byte type;
 								if (!byte.TryParse(split[0], out type))
 								{
-									entity.type = CompressedLevel.DataParse.EntityIndex[split[0]];
+									entity.type = CompiledLevel.DataParse.EntityIndex[split[0]];
 								}
 
 								retval.entities.Add(entity);
@@ -704,195 +873,72 @@ namespace Pixtro.Compiler
 
 			return retval;
 		}
-
-		/// <summary>
-		/// Get all the art from the tilesets and compile them into C# code for ease of access
-		/// </summary>
-		/// <param name="_path"></param>
-		private static void CompileTilesets(string _path)
+		private static CompiledLevel CompileLevelTiled(string path)
 		{
-			string[] getFiles = Directory.GetFiles(_path);
+			path = Path.Combine(Settings.ProjectPath, LevelPath, path);
 
-			foreach (string s in getFiles)
-			{
-				string ext = Path.GetExtension(s);
+			CompiledLevel retval = new CompiledLevel();
 
-				string name = "TILE_" + Path.GetFileNameWithoutExtension(s);
+			XmlDocument doc = new XmlDocument();
+			doc.Load(path);
 
-				switch (ext)
-				{
-					case ".bmp":
-						throw new Exception(); // BMP no longer supported
-					case ".png":
-					{
-						Bitmap map = new Bitmap(s);
+			
 
-						List<Color> palette = new List<Color>(map.Palette.Entries);
-
-						palettesFromSprites.Add(name, palette.ToArray());
-
-						Tileset tileset = new Tileset(map.Width >> (3 + Settings.BrickTileSize), map.Height >> (3 + Settings.BrickTileSize));
-
-
-						uint getValueSmall(int x, int y)
-						{
-							string n = name;
-							return (uint)palette.IndexOf(map.GetPixel(x, y));
-						};
-
-						// Todo: Move to a new system
-						tileset.AddTiles(
-							GetArrayFromSprite(map.Width, map.Height, Settings.BrickTileSize > 1).GetEnumerator());
-
-						ArtTilesets.Add(name, tileset);
-
-						map.Dispose();
-
-						break;
-					}
-					case ".ase":
-
-						using (AsepriteReader read = new AsepriteReader(s))
-						{
-
-							int index = 0;
-
-							//foreach (var array in read.GetSprites(_largeTiles: Settings.BrickTileSize > 1))
-							//{
-							//	string tName =  $"{name}_{index++}";
-
-							//	var tileset = new Tileset(read.Width >> 3, read.Height >> 3);
-							//	tileset.AddTiles(array.Cast<uint>().GetEnumerator());
-
-							//}
-						}
-						break;
-				}
-
-
-			}
+			return retval;
 		}
-		private static void CompileSprites(string _path, CompileToC _compiler)
+
+		private static void CompilePalettes(CompileToC compiler)
 		{
-			string[] getFiles = Directory.GetFiles(_path);
-
-			foreach (string s in getFiles)
-			{
-				string ext = Path.GetExtension(s);
-
-				string name = "SPR_" + Path.GetFileNameWithoutExtension(s);
-
-				switch (ext)
-				{
-					case ".bmp":
-						throw new Exception(); // BMP no longer supported
-					case ".png":
-						{
-						Bitmap map = new Bitmap(s);
-
-						List<Color> palette = new List<Color>(map.Palette.Entries);
-
-						palettesFromSprites.Add(name, palette.ToArray());
-
-						_compiler.BeginArray(CompileToC.ArrayType.UInt, name);
-
-
-						_compiler.AddRange(Enumerable.ToArray(GetArrayFromSprite(map.Width, map.Height)));
-
-						_compiler.EndArray();
-
-						map.Dispose();
-
-						break;
-					}
-					case ".ase":
-						bool separateTags = true;
-						using (AsepriteReader read = new AsepriteReader(s))
-						{
-
-							if (separateTags && read.TagNames.Length > 0)
-							{
-								foreach (var tag in read.Tags)
-								{
-									_compiler.BeginArray(CompileToC.ArrayType.UInt, $"{name}_{tag.name}");
-
-									//foreach (var array in read.GetSprites(tag.name))
-									//{
-									//	_compiler.AddRange(array);
-									//}
-
-									_compiler.AddValueDefine($"{name}_{tag.name}_len", tag.end - tag.start + 1);
-									_compiler.EndArray();
-								}
-							}
-							else
-							{
-								_compiler.BeginArray(CompileToC.ArrayType.UInt, $"{name}");
-
-								//foreach (var array in read.GetSprites())
-								//{
-								//	_compiler.AddRange(array);
-								//}
-
-								foreach (var tag in read.Tags)
-								{
-									_compiler.AddValueDefine($"{name}_{tag.name}_size", tag.start * ((read.Width * read.Height) >> 2));
-									_compiler.AddValueDefine($"{name}_{tag.name}_len", tag.end - tag.start + 1);
-								}
-
-								_compiler.EndArray();
-
-							}
-						}
-						break;
-				}
-
-
-			}
-
-		}
-		private static void CompilePalettes(string _path, CompileToC _compiler)
-		{
-			string[] getFiles = Directory.GetFiles(_path);
+			string[] getFiles = Directory.GetFiles(Path.Combine(Settings.ProjectPath, ParticlePath));
 
 			List<string> addedIn = new List<string>();
 
-			foreach (string s in getFiles)
+			foreach (string file in getFiles)
 			{
-				string ext = Path.GetExtension(s);
+				string ext = Path.GetExtension(file);
 
-				string name = "PAL_" + Path.GetFileNameWithoutExtension(s);
+				string localPath = GetCompileName(file, ArtPath);
+				string cName = Regex.Replace(localPath, "^palettes_", "PAL_");
 
-				if (addedIn.Contains(name))
+				// Only compile one version of the palette
+				if (addedIn.Contains(localPath))
 					continue;
 
-				addedIn.Add(name);
+				List<Color> fullPalette = new List<Color>();
 
 				switch (ext)
 				{
 					case ".bmp": // Palettes are okay with .bmp
 					case ".png":
-					{
-						Bitmap map = new Bitmap(s);
-
-						List<Color> palette = new List<Color>(map.Palette.Entries);
-
-						for (int i = 0; i < map.Height; ++i)
+						unsafe
 						{
-							_compiler.BeginArray(CompileToC.ArrayType.UShort, name + (map.Height == 1 ? "" : "_" + i.ToString()));
+							using (Bitmap map = new Bitmap(file))
+							{
+								if (map.Width % 16 != 0)
+									throw new Exception();
 
-							for (int j = 0; j < 16; ++j)
-								_compiler.AddValue(map.GetPixel(j, i).ToGBA(0));
+								var bits = map.LockBits(new Rectangle(0, 0, map.Width, map.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
-							_compiler.EndArray();
+								byte* bytes = (byte*) bits.Scan0;
+
+								for (int i = 0; i < map.Height * bits.Stride; i += 4)
+								{
+									if (i % 16 == 0)
+										fullPalette.Add(Color.FromArgb(0, 0, 0, 0));
+									else
+									{
+										fullPalette.Add(Color.FromArgb(255, bytes[i + 2], bytes[i + 1], bytes[i + 0]));
+									}
+								}
+
+								map.UnlockBits(bits);
+
+
+								break;
+							}
 						}
-
-						map.Dispose();
-
-						break;
-					}
 					case ".pal":
-						using (var sr = new StreamReader(File.Open(s, FileMode.Open)))
+						using (var sr = new StreamReader(File.Open(file, FileMode.Open)))
 						{
 							sr.ReadLine();
 							sr.ReadLine();
@@ -901,9 +947,11 @@ namespace Pixtro.Compiler
 
 							for (int i = 0; i < count / 16; ++i)
 							{
-								_compiler.BeginArray(CompileToC.ArrayType.UShort, name + (count == 16 ? "" : "_" + i.ToString()));
+								sr.ReadLine();
 
-								for (int j = 0; j < 16; ++j)
+								fullPalette.Add(Color.FromArgb(0, 0, 0, 0));
+
+								for (int j = 1; j < 16; ++j)
 								{
 									string[] read = sr.ReadLine().Split(' ');
 
@@ -911,263 +959,313 @@ namespace Pixtro.Compiler
 									byte g = (byte)((int.Parse(read[1]) & 0xF8) >> 3);
 									byte b = (byte)((int.Parse(read[2]) & 0xF8) >> 3);
 
-									_compiler.AddValue((ushort)(r | (g << 5) | (b << 10)));
+									fullPalette.Add(Color.FromArgb(255, r, g, b));
 								}
 
-								_compiler.EndArray();
 							}
 						}
 						break;
 				}
+
+				List<Color[]> exported = new List<Color[]>();
+
+				// Put the found colors into individual palettes
+				for (int p = 0; p < fullPalette.Count; p += 16)
+				{
+					List<Color> pal = new List<Color>();
+					for (int c = 0; c < 16; ++c)
+						pal.Add(fullPalette[p + c]);
+
+					exported.Add(pal.ToArray());
+				}
+
+				// Add the compiled palettes
+				CompiledPalettes.Add(GetCompileName(file, ArtPath), exported.ToArray());
+
+				addedIn.Add(localPath);
+
+				// Ignore any folders that start with an underscore
+				if (localPath.Contains("palettes__"))
+					continue;
+
+				// Compile the palettes 
+				for (int i = 0; i < exported.Count; ++i)
+				{
+					if (exported.Count > 1)
+						compiler.BeginArray(CompileToC.ArrayType.UShort, $"{cName}_{i}");
+					else
+						compiler.BeginArray(CompileToC.ArrayType.UShort, cName);
+
+					for (int c = 0; c < 16; ++c)
+					{
+						if (c == 0)
+							compiler.AddValue(0);
+						else
+						{
+							var color = exported[i][c];
+							byte r = (byte)(color.R >> 3);
+							byte g = (byte)(color.G >> 3);
+							byte b = (byte)(color.B >> 3);
+
+							compiler.AddValue((ushort)(r | (g << 5) | (b << 10)));
+						}
+					}
+
+					compiler.EndArray();
+				}
 			}
 		}
-		private static void CompileParticles(string _path, CompileToC _compiler)
+		private static void CompileSprites(CompileToC compiler)
 		{
-			string[] getFiles = Directory.GetFiles(_path);
+			foreach (string localPath in CompiledByFolder["sprites"])
+			{
+				GBAImage[] images = CompiledImages[localPath];
 
+				int height = images[0].Height;
+
+				switch (images[0].Width)
+				{
+					case 8:
+					case 16:
+						if (height != 8 && height != 16 && height != 32)
+							throw new Exception();
+						break;
+					case 32:
+						if (height != 8 && height != 16 && height != 32 && height != 64)
+							throw new Exception();
+						break;
+					case 64:
+						if (height != 64)
+							throw new Exception();
+						break;
+
+					default:
+						throw new Exception();
+				}
+
+				string cName = Regex.Replace(localPath, "^sprites_", "SPR_");
+
+				compiler.BeginArray(CompileToC.ArrayType.UInt, cName);
+
+				for (int i = 0; i < images.Length; ++i)
+				{
+					compiler.AddRange(images[i].GetSpriteData().ToArray());
+				}
+
+				compiler.EndArray();
+			}
+		}
+		private static void CompileParticles(CompileToC compiler)
+		{
 			int index = 0;
 
-			void add_particle(string name, int length)
-			{
-				length = Math.Min(length, 16) - 1;
+			compiler.BeginArray(CompileToC.ArrayType.UInt, "particles");
 
-				_compiler.AddValueDefine($"PART_{name}", index | (length << 12));
+			foreach (string str in CompiledByFolder["particles"])
+			{
+				GBAImage[] images = CompiledImages[str];
+
+				string cName = Regex.Replace(str, "^palettes_", "PAL_");
+				int length = Math.Min(CompiledImages[str].Length, 16) - 1;
+
+				compiler.AddValueDefine($"PART_{cName}", index | (length << 12));
+
+				for (int i = length; i >= 0; --i)
+				{
+					GBAImage img = images[i];
+
+					compiler.AddRange(img.GetTile().RawData);
+				}
 
 				index += length;
 			}
 
-			_compiler.BeginArray(CompileToC.ArrayType.UInt, "particles");
-
-			foreach (string s in getFiles)
+			compiler.EndArray();
+		}
+		private static void CompileBackgrounds(CompileToC compiler)
+		{
+			void CompileBG(string name, GBAImage image, List<Tile> tiles, List<Color[]> palettes)
 			{
-				string ext = Path.GetExtension(s);
+				if (tiles == null)
+					tiles = new List<Tile>(image.GetTiles());
+				if (palettes == null)
+					palettes = image.Palettes.ToList();
 
-				string name = Path.GetFileNameWithoutExtension(s);
+				compiler.BeginArray(CompileToC.ArrayType.UInt, $"BG_{name}");
 
 
-				switch (ext)
+				//	var array = tilesets[str].Data(str).ToArray();
+
+				//	_compiler.AddValueDefine(str + "_len", array.Length >> 3);
+
+				//	_compiler.BeginArray(CompileToC.ArrayType.UInt, str);
+				//	_compiler.AddRange(array);
+
+				compiler.EndArray();
+			}
+			void CompileBGPack(string name, GBAImage[] images)
+			{
+				List<Tile> tiles = new List<Tile>();
+				List<Color[]> colors = new List<Color[]>();
+
+				foreach (var img in images)
 				{
-					case ".bmp":
-						throw new Exception(); // BMP no longer supported
-					case ".png":
+					tiles.AddRange(img.GetTiles());
+
+					foreach (var palette in img.Palettes)
 					{
-						Bitmap map = new Bitmap(s);
+						int paletteIndex = 0;
+						List<Color> found = new List<Color>(palette);
 
-						List<Color> palette = new List<Color>(map.Palette.Entries);
-
-						uint getIdx(int x, int y)
+						// Check if any palette contains all the colors used
+						foreach (var pal in colors)
 						{
-							x = (x & 7) | (map.Width  - (x & ~0x7) - 8);
-							y = (y & 7) | (map.Height - (y & ~0x7) - 8);
+							var foundPalette = pal;
 
-							return (uint)palette.IndexOf(map.GetPixel(x, y));
-						}
-
-						_compiler.AddRange(Enumerable.ToArray(GetArrayFromSprite(map.Width, map.Height)));
-
-
-						add_particle(name, (map.Width * map.Height) >> 6);
-
-
-						map.Dispose();
-
-						break;
-					}
-					case ".ase":
-						using (AsepriteReader read = new AsepriteReader(s))
-						{
-							foreach (var tag in read.Tags)
+							foreach (var col in palette)
 							{
-								//foreach (var array in read.GetSprites(tag.name, _readFramesBackwards: true))
-								//{
-								//	_compiler.AddRange(array);
-								//}
-
-								add_particle(tag.name, tag.end - tag.start + 1);
+								if (!pal.Contains(col))
+								{
+									foundPalette = null;
+									break;
+								}
 							}
 
-							break;
+							if (foundPalette != null)
+							{
+								found = new List<Color>(foundPalette.Where(value => value != null).Select(value => (Color)value));
+								break;
+							}
+							paletteIndex++;
 						}
+
+						// If there's no palette that would fit in, try and find a palette to blend with
+						if (paletteIndex == colors.Count)
+						{
+							paletteIndex = 0;
+
+							bool selectedPalette = false;
+							foreach (var pal in colors)
+							{
+								int nullCount = 0;
+								// Count how many null slots are in current palette
+								for (int i = 0; i < 16; ++i)
+								{
+									if (pal[i] == null)
+										nullCount++;
+								}
+								// Find and count every color current palette doesn't have
+								List<Color> toAdd = new List<Color>();
+								foreach (var color in palette)
+								{
+									if (!pal.Contains(color))
+									{
+										nullCount--;
+										toAdd.Add(color);
+									}
+								}
+
+								// If there's enough null slots to add, then add them and stop checking palettes
+								if (nullCount >= 0)
+								{
+									for (int i = 0; i < 16 && toAdd.Count > 0; ++i)
+									{
+										if (pal[i] == null)
+										{
+											pal[i] = toAdd[0];
+											toAdd.RemoveAt(0);
+										}
+									}
+									selectedPalette = true;
+
+									found = new List<Color>(pal.Where(value => value != null).Select(value => (Color)value));
+									break;
+								}
+
+								paletteIndex++;
+							}
+
+							// If there's no palette to blend with, then just add the new palette
+							if (!selectedPalette)
+							{
+								colors.Add(palette);
+							}
+
+						}
+
+					}
+				}
+
+				// Recompile images to better fit palettes
+				foreach (var img in images)
+					img.RecompileColors(colors);
+
+				compiler.BeginArray(CompileToC.ArrayType.UInt, $"BGTILE_{name}");
+
+				foreach (var tile in tiles.Distinct(new CompareFlippable<Tile>() { flipStyle = FlipStyle.Both }))
+				{
+					compiler.AddRange(tile.RawData);
+				}
+
+				compiler.EndArray();
+
+				if (images.Length > 1)
+				{
+					for (int i = 0; i < images.Length; ++i)
+						CompileBG($"{name}_{i}", images[i], tiles, colors);
+					
+					compiler.BeginArray(CompileToC.ArrayType.UInt, $"BGPACK_{name}");
+
+					for (int i = 0; i < images.Length; ++i)
+						compiler.AddValue($"&BG_{name}_{i}");
+				}
+				else
+				{
+					CompileBG(name, images[0], tiles, colors);
+
+					compiler.BeginArray(CompileToC.ArrayType.UInt, $"BGPACK_{name}");
+
+					compiler.AddValue($"&BG_{name}");
+				}
+
+				compiler.AddValue($"&BGTILE_{name}");
+				compiler.EndArray();
+			}
+
+			// Start of the actual code
+			if (File.Exists(Path.Combine(Settings.ProjectPath, BackgroundPath, "backgrounds.yaml")))
+			{
+				var backgrounds = Compiler.ParseMeta<Dictionary<string, string[]>>(File.ReadAllText(Path.Combine(Settings.ProjectPath, BackgroundPath, "backgrounds.yaml")));
+
+				foreach (var key in backgrounds.Keys)
+				{
+					List<GBAImage> images = new List<GBAImage>();
+					foreach (var str in backgrounds[key])
+					{
+						string safeName = str.Replace('/', '_').Replace('\\', '_');
+
+						images.Add(CompiledImages[$"backgrounds_{safeName}"][0]);
+					}
+
+					CompileBGPack(key, images.ToArray());
+				}
+			}
+			else
+			{
+				foreach (var key in CompiledByFolder["backgrounds"])
+				{
+					CompileBG(key, CompiledImages[key][0], null, null);
 				}
 
 			}
-
-			_compiler.EndArray();
-
 		}
-		private static void CompileBackgrounds(string _path, CompileToC _compiler)
+		private static void CompileTitleCards(CompileToC _compiler)
 		{
-			string[] getFiles = Directory.GetDirectories(_path);
-
-			foreach (string s in getFiles)
-			{
-				CompileBackground(s, _compiler, true);
-			}
-
-			List<BackgroundTiles> unique = new List<BackgroundTiles>();
-
-			foreach (var str in tilesets.Keys)
-			{
-				if (unique.Contains(tilesets[str]))
-					continue;
-
-				unique.Add(tilesets[str]);
-
-				var array = tilesets[str].Data(str).ToArray();
-
-				_compiler.AddValueDefine(str + "_len", array.Length >> 3);
-
-				_compiler.BeginArray(CompileToC.ArrayType.UInt, str);
-				_compiler.AddRange(array);
-				_compiler.EndArray();
-			}
-		}
-		private static void CompileBackground(string _path, CompileToC _compiler, bool _saveTiles)
-		{
-			string name = Path.GetFileName(_path);
-
-			if (backgroundsCompiled.Contains(name)) // prevent backgrounds from being recompiled
-				return;
-
-			string dataPath = null;
-			string ext = null;
-
-			foreach (var s in Directory.GetFiles(_path))
-			{
-				ext = Path.GetExtension(s);
-
-				dataPath = s;
-				break;
-			}
-
-			if (dataPath == null)
-				return;
-
-			string otherTileset = null;
-
-			BackgroundTiles tiles = null;
-			if (otherTileset == null && tilesets.ContainsKey(name))
-				otherTileset = name;
-
-			if (otherTileset != null)
-			{
-				if (otherTileset != name)
-					CompileBackground(Path.Combine(_path, otherTileset), _compiler, false);
-
-				tiles = tilesets[otherTileset];
-			}
-
-			switch (ext)
-			{
-				case ".bmp":
-					throw new Exception(); // BMP no longer supported
-				case ".png":
-					{
-					// Only mark a background 
-					if (_saveTiles)
-						backgroundsCompiled.Add(name);
-
-					Bitmap map = new Bitmap(dataPath);
-					if (map.Width % 256 != 0 || map.Height % 256 != 0)
-					{
-						map.Dispose();
-						break;
-					}
-
-					Background bg = new Background(map, tiles);
-
-					string tileName = $"BGT_{name}";
-
-					if (otherTileset != null && otherTileset != name)
-					{
-						_compiler.AddValueDefine(tileName, otherTileset);
-					}
-
-					tilesets.Add(tileName, bg.tileset);
-
-					if (_saveTiles)
-					{
-						_compiler.BeginArray(CompileToC.ArrayType.UShort, "BG_" + name);
-
-						_compiler.AddRange(Enumerable.ToArray(bg.Data()));
-
-						_compiler.EndArray();
-
-						_compiler.AddValueDefine($"BG_{name}_size", ((map.Width * map.Height) >> 16) - 1);
-					}
-
-					map.Dispose();
-
-					break;
-				}
-				case ".ase":
-					using (AsepriteReader read = new AsepriteReader(dataPath))
-					{
-						if (read.Width % 256 != 0 || read.Height % 256 != 0)
-							break;
-
-						// Only mark a background 
-						if (_saveTiles)
-							backgroundsCompiled.Add(name);
-
-						List<FloatColor> palette = new List<FloatColor>(read.ColorPalette);
-
-						if (otherTileset == null)
-						{
-							otherTileset = $"BGT_{name}";
-
-							if (read.LayerNames.Length > 1)
-								otherTileset += "_" + read.LayerNames[0];
-						}
-
-						BackgroundTiles tileset = null;
-
-						foreach (var layer in read.LayerNames)
-						{
-							string tileName = $"BGT_{name}";
-
-							if (read.LayerNames.Length > 1)
-								tileName += "_" + layer.Replace(" ", "");
-
-							Background bg = new Background(read, tiles, layer);
-							tileset = bg.tileset;
-
-							if (otherTileset != name)
-							{
-								_compiler.AddValueDefine(tileName, otherTileset);
-							}
-
-							if (_saveTiles)
-							{
-								string exName = $"BG_{name}";
-								if (read.LayerNames.Length > 1)
-									exName += "_" + layer.Replace(" ", "");
-
-								_compiler.BeginArray(CompileToC.ArrayType.UShort, exName);
-
-								_compiler.AddRange(Enumerable.ToArray(bg.Data()));
-
-								_compiler.AddValueDefine($"BG_{name}_size", ((read.Width * read.Height) >> 16) - 1);
-
-								_compiler.EndArray();
-							}
-						}
-
-						tilesets.Add(otherTileset, tileset);
-
-						break;
-
-					}
-			}
-		}
-
-		private static void CompileTitleCards(string _path, CompileToC _compiler)
-		{
-			if (!Directory.Exists(_path))
+			if (!Directory.Exists(Path.Combine(Settings.ProjectPath, TitleCardPath)))
 				return;
 
 			// Get all the cards that the user wants to use, and compile only those.
-			string[] allCards = File.ReadAllLines(Path.Combine(_path, "order.txt"));
+			string[] allCards = File.ReadAllLines(Path.Combine(Settings.ProjectPath, TitleCardPath, "order.txt"));
 
 			List<string> addedCards = new List<string>();
 
@@ -1186,16 +1284,16 @@ namespace Pixtro.Compiler
 				else
 					name = cardName;
 
-				foreach (string s in Directory.GetFiles(_path))
-				{
-					// Found card, now compile it and stop searching for others of the same name
-					if (Path.GetFileNameWithoutExtension(s) == name)
-					{
-						addedCards.Add(name);
-						CompileTitleCard(s, _compiler, tag);
-						break;
-					}
-				}
+				//foreach (string s in Directory.GetFiles(_path))
+				//{
+				//	// Found card, now compile it and stop searching for others of the same name
+				//	if (Path.GetFileNameWithoutExtension(s) == name)
+				//	{
+				//		addedCards.Add(name);
+				//		CompileTitleCard(s, _compiler);
+				//		break;
+				//	}
+				//}
 			}
 
 			_compiler.BeginArray(CompileToC.ArrayType.UShortPtr, "INTRO_CARDS");
@@ -1209,137 +1307,24 @@ namespace Pixtro.Compiler
 
 			_compiler.EndArray();
 		}
-		private static void CompileTitleCard(string _path, CompileToC _compiler, string _aseLayer = null)
+		private static void CompileTitleCard(string name, CompileToC _compiler)
 		{
-			string name = Path.GetFileNameWithoutExtension(_path);
+			string localName = GetCompileName(name, ArtPath),
+				compileName = GetCompileName(name, TitleCardPath);
 
-			BackgroundTiles tiles = null;
-			Background bg = null;
+			var images = CompiledImages[localName];
 
-			switch (Path.GetExtension(_path))
-			{
-				case ".bmp":
-					throw new Exception(); // BMP no longer supported
-				case ".png":
-					{
-					if (_aseLayer != null)
-						break;
+			_compiler.BeginArray(CompileToC.ArrayType.UShort, "CARD_" + compileName);
 
-					Bitmap map = new Bitmap(_path);
-					if (map.Width != 240 || map.Height != 160)
-					{
-						map.Dispose();
-						break;
-					}
-
-					bg = new Background(map, tiles);
-
-					map.Dispose();
-
-					break;
-				}
-				case ".ase":
-					using (AsepriteReader read = new AsepriteReader(_path))
-					{
-						if (read.Width != 240 || read.Height != 160)
-							break;
-
-						List<FloatColor> palette = new List<FloatColor>(read.ColorPalette);
-
-						if (_aseLayer != null && read.LayerNames.Contains(_aseLayer))
-						{
-							bg = new Background(read, tiles, _aseLayer);
-						}
-						else
-						{
-							bg = new Background(read, tiles, read.LayerNames[0]);
-						}
-
-						break;
-
-					}
-			}
-			if (bg == null)
-				return;
-
-			_compiler.BeginArray(CompileToC.ArrayType.UShort, "CARD_" + name);
-
-			_compiler.AddRange(Enumerable.ToArray(bg.Data()));
+			//_compiler.AddRange(Enumerable.ToArray(bg.Data()));
 
 			_compiler.EndArray();
 
-			_compiler.BeginArray(CompileToC.ArrayType.UShort, "CARDTILE_" + name);
+			_compiler.BeginArray(CompileToC.ArrayType.UShort, "CARDTILE_" + compileName);
 
-			_compiler.AddRange(Enumerable.ToArray(bg.tileset.Data(name)));
+			//_compiler.AddRange(Enumerable.ToArray(bg.tileset.Data(compileName)));
 
 			_compiler.EndArray();
 		}
-
-		public static IEnumerable<uint> GetArrayFromSprite(int _width, int _height, bool _largeTiles = false, bool _background = false)
-		{
-			yield break;
-			if (_largeTiles)
-			{
-				for (int yL = 0; yL < _height >> 3; yL += 2)
-				{
-					for (int xL = 0; xL < _width >> 3; ++xL)
-					{
-						for (int y = 0; y < 16; ++y)
-						{
-							uint tempValue = 0;
-
-							//for (int i = 7; i >= 0; --i)
-							//	tempValue = (tempValue << 4) | _values((xL << 3) + i, (yL << 3) + y);
-
-							//yield return tempValue;
-						}
-					}
-				}
-			}
-			else if (_background)
-			{
-				for (int yW = 0; yW < _height >> 3; yW += 32)
-				{
-					for (int xW = 0; xW < _width >> 3; xW += 32)
-					{
-						for (int yL = 0; yL < 32; ++yL)
-						{
-							for (int xL = 0; xL < 32; ++xL)
-							{
-								for (int y = 0; y < 8; ++y)
-								{
-									//uint tempValue = 0;
-
-									//for (int i = 7; i >= 0; --i)
-									//	tempValue = (tempValue << 4) | _values(((xL + xW) << 3) + i, ((yL + yW) << 3) + y);
-
-									//yield return tempValue;
-								}
-							}
-						}
-					}
-				}
-			}
-			else
-			{
-				for (int yL = 0; yL < _height >> 3; ++yL)
-				{
-					for (int xL = 0; xL < _width >> 3; ++xL)
-					{
-						for (int y = 0; y < 8; ++y)
-						{
-							//uint tempValue = 0;
-
-							//for (int i = 7; i >= 0; --i)
-							//	tempValue = (tempValue << 4) | _values((xL << 3) + i, (yL << 3) + y);
-
-							//yield return tempValue;
-						}
-					}
-				}
-			}
-
-		}
-
 	}
 }

@@ -8,7 +8,7 @@ using System.Drawing;
 using Newtonsoft.Json;
 
 namespace Pixtro.Compiler {
-    public static class ExtMethods
+    public static class ExtentionMethods
 	{
 		// Get all variables and methods
 		// (?<=0x0{8})0(3|8)[0-9a-f]{6} +(?!(_start|__boot_method|__slave_number|_init))[A-Za-z_][0-9A-Za-z_]+(?=\n)
@@ -16,17 +16,26 @@ namespace Pixtro.Compiler {
 		//
 		// (?<=0x0{9}MEMORY_BUS[0-9a-f]{6} +0x[0-9a-f]+ [A-Za-z][0-9A-Za-z_]*.o\n[\n 0-9A-Za-z_]+0x0{9}MEMORY_BUS)[0-9a-f]{6} +VARIABLE_NAME\n
 
-		public static T GetXY<T>(this T[] _array, int x, int y, int width) {
-			return _array[x + (y * width)];
+		public static void AddToList<K, T>(this Dictionary<K, List<T>> dictionary, K key, T value)
+		{
+			if (!dictionary.ContainsKey(key))
+			{
+				dictionary[key] = new List<T>();
+			}
+			dictionary[key].Add(value);
 		}
-		public static void SetXY<T>(this T[] _array, int x, int y, int width, T value) {
-			_array[x + (y * width)] = value;
+
+		public static T GetXY<T>(this T[] array, int x, int y, int width) {
+			return array[x + (y * width)];
 		}
-		public static void Flip<T>(this T[] _array, bool X, int width) {
-			int height = _array.Length / width;
+		public static void SetXY<T>(this T[] array, int x, int y, int width, T value) {
+			array[x + (y * width)] = value;
+		}
+		public static void Flip<T>(this T[] array, bool X, int width) {
+			int height = array.Length / width;
 			
 			// Only flip if array is rectangular based on width variable
-			if (height * width != _array.Length)
+			if (height * width != array.Length)
 				return;
 
 			if (X) {
@@ -34,11 +43,11 @@ namespace Pixtro.Compiler {
 					int otherX = (width - x) - 1;
 					for (int y = 0; y < height; ++y) {
 
-						T temp = _array.GetXY(x, y, width);
+						T temp = array.GetXY(x, y, width);
 
-						_array.SetXY(x, y, width, _array.GetXY(otherX, y, width));
+						array.SetXY(x, y, width, array.GetXY(otherX, y, width));
 
-						_array.SetXY(otherX, y, width, temp);
+						array.SetXY(otherX, y, width, temp);
 					}
 				}
 			}
@@ -47,16 +56,56 @@ namespace Pixtro.Compiler {
 					int otherY = (height - y) - 1;
 					for (int x = 0; x < width; ++x) {
 
-						T temp = _array.GetXY(x, y, width);
+						T temp = array.GetXY(x, y, width);
 
-						_array.SetXY(x, y, width, _array.GetXY(x, otherY, width));
+						array.SetXY(x, y, width, array.GetXY(x, otherY, width));
 
-						_array.SetXY(x, otherY, width, temp);
+						array.SetXY(x, otherY, width, temp);
 					}
 				}
 			}
 		}
-        public static uint GetWrapping<T>(this T[,] array, int x, int y, T[] check, params Point[] points) {
+		public static void Flip<T>(this T[,] array, bool X)
+		{
+			int width = array.GetLength(0);
+			int height = array.GetLength(1);
+
+			// Only flip if array is rectangular based on width variable
+			if (height * width != array.Length)
+				return;
+
+			if (X)
+			{
+				for (int x = 0; x < width / 2; ++x)
+				{
+					int otherX = (width - x) - 1;
+					for (int y = 0; y < height; ++y)
+					{
+						T temp = array[x, y];
+
+						array[x, y] = array[otherX, y];
+
+						array[otherX, y] = temp;
+					}
+				}
+			}
+			else
+			{
+				for (int y = 0; y < height / 2; ++y)
+				{
+					int otherY = (height - y) - 1;
+					for (int x = 0; x < width; ++x)
+					{
+						T temp = array[x, y];
+
+						array[x, y] = array[x, otherY];
+
+						array[x, otherY] = temp;
+					}
+				}
+			}
+		}
+		public static uint GetWrapping<T>(this T[,] array, int x, int y, T[] check, params Point[] points) {
 
 			int width = array.GetLength(0);
 			int height = array.GetLength(1);

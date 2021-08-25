@@ -8,213 +8,8 @@ using System.Threading.Tasks;
 
 namespace Pixtro.Compiler
 {
-	public class BackgroundTiles : Tileset
-	{
-		public BackgroundTiles(int width, int height) : base(width, height)
-		{
-
-		}
-
-		public override IEnumerable<uint> Data(string _name)
-		{
-			if (tiles.Count > 192)
-				throw new Exception();
-			if (tiles.Count > 128)
-				Compiler.WarningLog($"Background {_name} has a lot of tiles ({tiles.Count}).  It's recommended that you lower tile count");
-
-			return base.Data(_name);
-		}
-	}
-
-	public class Background
-	{
-		public BackgroundTiles tileset { get; private set; }
-
-		private int width, height;
-		private Tile[,] tiles;
-
-		private ushort[,] rawData;
-
-		private List<ushort[]> palettesBase;
-		private int[,] paletteIdx;
-
-		public Background(Bitmap _map, BackgroundTiles _tiles)
-		{
-			width = _map.Width >> 3;
-			height = _map.Height >> 3;
-
-			tiles = new Tile[width, height];
-
-			rawData = new ushort[_map.Width, _map.Height];
-
-			for (int y = 0; y < _map.Height; ++y)
-				for (int x = 0; x < _map.Width; ++x)
-					rawData[x, y] = _map.GetPixel(x, y).ToGBA();
-
-			palettesBase = new List<ushort[]>();
-			List<Color> palette = new List<Color>(_map.Palette.Entries);
-
-			for (int i = 0; i < palette.Count; i += 16)
-			{
-				List<ushort> pal = new List<ushort>();
-
-				bool hasColor = false;
-
-				for (int j = 0; j < 16; ++j)
-				{
-					ushort color = palette[i + j].ToGBA();
-					pal.Add(color);
-
-					hasColor |= color != 0;
-				}
-
-				if (!hasColor)
-					break;
-
-				palettesBase.Add(pal.ToArray());
-			}
-
-			tileset = _tiles??new BackgroundTiles(width, height);
-
-			SetTiles();
-		}
-		public Background(AsepriteReader _read, BackgroundTiles _tiles, string _layer)
-		{
-			width = _read.Width >> 3;
-			height = _read.Height >> 3;
-
-			tiles = new Tile[width, height];
-
-			rawData = new ushort[_read.Width, _read.Height];
-
-			for (int y = 0; y < _read.Height; ++y)
-				for (int x = 0; x < _read.Width; ++x)
-					rawData[x, y] = _read.ReadColor(x, y, _layer: _layer).ToGBA();
-
-			palettesBase = new List<ushort[]>();
-			List<FloatColor> palette = new List<FloatColor>(_read.ColorPalette);
-
-			for (int i = 0; i < palette.Count; i += 16)
-			{
-				List<ushort> pal = new List<ushort>();
-
-				bool hasColor = false;
-
-				for (int j = 0; j < 16; ++j)
-				{
-					ushort color = palette[i + j].ToGBA();
-					pal.Add(color);
-
-					hasColor |= color != 0;
-				}
-
-				if (!hasColor)
-					break;
-
-				palettesBase.Add(pal.ToArray());
-			}
-
-			tileset = _tiles ?? new BackgroundTiles(width, height);
-
-			SetTiles();
-		}
-
-
-		private void SetTiles()
-		{
-			paletteIdx = new int[width, height];
-
-			for (int yL = 0; yL < height; yL += 8)
-			{
-				for (int xL = 0; xL < width; xL += 8)
-				{
-					int p;
-
-					for (p = 0; p < palettesBase.Count; ++p)
-					{
-						bool safe = true;
-						for (int y = 0; y < 8; ++y)
-						{
-							for (int x = 0; x < 8; ++x)
-							{
-								if (rawData[xL + x, yL + y] != 0x8000 && !palettesBase[p].Contains(rawData[xL + x, yL + y]))
-								{
-									safe = false;
-									break;
-								}
-							}
-							if (!safe)
-								break;
-						}
-
-						if (safe)
-							break;
-					}
-
-					if (p == palettesBase.Count)
-						throw new Exception();
-				}
-			}
-
-			uint getOffset(int x, int y)
-			{
-				return (uint)Array.IndexOf(palettesBase[paletteIdx[x >> 3, y >> 3]], rawData[x, y]);
-			};
-
-			AddTiles(FullCompiler.GetArrayFromSprite(width << 3, height << 3, _background: true).GetEnumerator());
-		}
-
-		public void AddTiles(IEnumerator<uint> _tileData)
-		{
-			int x = 0, y = 0;
-			do
-			{
-				List<uint> tileRaw = new List<uint>();
-
-				for (int i = 0; i < 8 && _tileData.MoveNext(); ++i)
-				{
-					tileRaw.Add(_tileData.Current);
-				}
-
-				if (tileRaw.Count < 8)
-					break;
-
-				var tile = new Tile(8);
-				tile.LoadInData(tileRaw.ToArray(), 0);
-
-				tileset.SetTile(tile, x, y);
-
-				tiles[x, y] = tile;
-
-				x = (++x) % width;
-				if (x == 0)
-					++y;
-
-			} while (true);
-		}
-
-		public IEnumerable<ushort> Data()
-		{
-			for (int y = 0; y < height; ++y)
-			{
-				for (int x = 0; x < width; ++x)
-				{
-					var tile = tiles[x, y];
-					var ogTile = tileset.GetUniqueTile(tile);
-
-					ushort value = (ushort)((paletteIdx[x, y] << 12) | (tile.GetFlipOffset(ogTile) << 10) | tileset.GetIndex(tile));
-
-					yield return value;
-				}
-			}
-
-			yield break;
-		}
-	}
-
 	public class GBAImage
 	{
-
 		private unsafe static GBAImage FromBitmap(Bitmap map, Rectangle section)
 		{
 			FloatColor[,] values = new FloatColor[section.Width, section.Height];
@@ -273,60 +68,79 @@ namespace Pixtro.Compiler
 
 			return images.ToArray();
 		}
-		public static GBAImage[] FromAsepriteProject(string path)
+		public static GBAImage[] FromAsepriteProject(string path, string tag = null, string layer = null)
 		{
 			using (AsepriteReader reader = new AsepriteReader(path))
 			{
-				List<Color[]> palettes = null;
-				if (reader.IndexedColors)
-				{
-					var colors = reader.ColorPalette;
-
-					palettes = new List<Color[]>();
-
-					string test = colors[0].ToString();
-
-					int paletteCount = (colors.Length + 14) >> 4;
-					
-					for (int i = 0; i < paletteCount << 4; i += 16)
-					{
-						Color[] pal = new Color[16];
-
-						pal[0] = Color.FromArgb(0, 0, 0, 0);
-						int index;
-						for (index = 1; index < 16 && (index + i) < colors.Length; ++index)
-						{
-							pal[index] = colors[index + i].ToGBAColor();
-						}
-						for (; index < 16; ++index)
-						{
-							pal[index] = Color.FromArgb(0, 0, 0, 0);
-						}
-
-						palettes.Add(pal);
-					}
-				}
-
-				// Angry.  You didn't feed me a properly formatted image
-				if (reader.Width % 8 != 0 || reader.Height % 8 != 0)
-					throw new Exception();
-
-				GBAImage[] retval = new GBAImage[reader.FrameCount];
-
-				for (int i = 0; i < reader.FrameCount; ++i)
-				{
-					retval[i] = new GBAImage(reader.GetFrameValue(i, true), palettes);
-				}
-
-				return retval;
+				return FromAsepriteProject(reader, tag, layer);
 			}
+		}
+		public static GBAImage[] FromAsepriteProject(AsepriteReader reader, string tag = null, string layer = null)
+		{
+			List<Color[]> palettes = null;
+			if (reader.IndexedColors)
+			{
+				var colors = reader.ColorPalette;
+
+				palettes = new List<Color[]>();
+
+				int paletteCount = (colors.Length + 14) >> 4;
+
+				for (int i = 0; i < paletteCount << 4; i += 16)
+				{
+					Color[] pal = new Color[16];
+
+					pal[0] = Color.FromArgb(0, 0, 0, 0);
+					int index;
+					for (index = 1; index < 16 && (index + i) < colors.Length; ++index)
+					{
+						pal[index] = colors[index + i].ToGBAColor();
+					}
+					for (; index < 16; ++index)
+					{
+						pal[index] = Color.FromArgb(0, 0, 0, 0);
+					}
+
+					palettes.Add(pal);
+				}
+			}
+
+			// Angry.  You didn't feed me a properly formatted image
+			if (reader.Width % 8 != 0 || reader.Height % 8 != 0)
+				throw new Exception();
+
+
+			int start = 0, end = reader.FrameCount;
+
+			if (tag != null && reader.TagNames.Contains(tag))
+			{
+				var t = reader.GetTag(tag);
+				start = t.start;
+				end = t.end + 1;
+			}
+
+			GBAImage[] retval = new GBAImage[end - start];
+
+			for (int i = start; i < end; ++i)
+			{
+				if (layer != null)
+					retval[i - start] = new GBAImage(reader.GetFrameValue(i, true, layer), palettes);
+				else
+					retval[i - start] = new GBAImage(reader.GetFrameValue(i, true), palettes);
+			}
+
+			return retval;
+			
 		}
 
 		public int Width { get; private set; }
 		public int Height { get; private set; }
 
-		private int[,] baseValues;
+		private uint[,] baseValues;
 		private List<Color[]> finalPalettes;
+		private FloatColor[,] originalData;
+
+		public IReadOnlyList<Color[]> Palettes => finalPalettes;
 
 		private bool palettesLocked;
 
@@ -334,8 +148,15 @@ namespace Pixtro.Compiler
 		{
 			Width = colors.GetLength(0);
 			Height = colors.GetLength(1);
-			baseValues = new int[Width, Height];
+			baseValues = new uint[Width, Height];
 
+			originalData = colors;
+
+			RecompileColors(exportPalettes);
+		}
+
+		public void RecompileColors(List<Color[]> exportPalettes = null)
+		{
 			List<Color?[]> palettes = new List<Color?[]>();
 
 			if (exportPalettes != null)
@@ -359,7 +180,7 @@ namespace Pixtro.Compiler
 					{
 						for (int x = 0; x < 8; ++x)
 						{
-							rawData[x, y] = colors[x + tx, y + ty].ToGBAColor();
+							rawData[x, y] = originalData[x + tx, y + ty].ToGBAColor();
 							if (!palette.Contains(rawData[x, y]))
 								palette.Add(rawData[x, y]);
 						}
@@ -380,13 +201,14 @@ namespace Pixtro.Compiler
 							}
 						}
 
-						if (foundPalette != null) {
+						if (foundPalette != null)
+						{
 							palette = new List<Color>(foundPalette.Where(value => value != null).Select(value => (Color)value));
 							break;
 						}
-						paletteIndex += 16;
+						paletteIndex++;
 					}
-					if (paletteIndex >> 4 == palettes.Count)
+					if (paletteIndex == palettes.Count)
 					{
 						if (palettesLocked)
 							throw new Exception();
@@ -431,7 +253,7 @@ namespace Pixtro.Compiler
 								break;
 							}
 
-							paletteIndex += 16;
+							paletteIndex++;
 						}
 
 						if (!selectedPalette)
@@ -445,11 +267,12 @@ namespace Pixtro.Compiler
 
 					}
 
+					paletteIndex <<= 12;
 					for (int y = 0; y < 8; ++y)
 					{
 						for (int x = 0; x < 8; ++x)
 						{
-							baseValues[x + tx, y + ty] = palette.IndexOf(rawData[x, y]) | paletteIndex;
+							baseValues[x + tx, y + ty] = (uint)(palette.IndexOf(rawData[x, y]) | paletteIndex);
 						}
 					}
 				}
@@ -460,7 +283,110 @@ namespace Pixtro.Compiler
 			{
 				finalPalettes.Add(pal.Where(value => value != null).Select(val => (Color)val).ToArray());
 			}
+			palettesLocked = true;
+		}
 
+		public FlippableLayout<LargeTile> GetLargeTileSet(int widthInTiles)
+		{
+			return new FlippableLayout<LargeTile>(Width / widthInTiles, Height / widthInTiles, GetLargeTiles(widthInTiles).GetEnumerator());
+
+		}
+		public Tile GetTile()
+		{
+			return GetTiles().First();
+		}
+
+		public IEnumerable<Tile> GetTiles()
+		{
+			uint[] array = GetTileData().ToArray();
+
+			int size = Width * Height / 64;
+
+			for (int i = 0; i < size; ++i)
+			{
+				var tile = new Tile();
+
+				tile.LoadInData(array, i * 8);
+
+				yield return tile;
+			}
+		}
+		public IEnumerable<LargeTile> GetLargeTiles(int widthInTiles)
+		{
+			Tile[] array = GetTiles().ToArray();
+
+			int tileWidth = Width / 8, tileHeight = Height / 8;
+
+			for (int y = 0; y < tileHeight; y += widthInTiles)
+			{
+				for (int x = 0; x < tileWidth; x += widthInTiles)
+				{
+					List<Tile> tileList = new List<Tile>();
+					for (int ly = 0; ly < widthInTiles; ++ly)
+					{
+						for (int lx = 0; lx < widthInTiles; ++lx)
+						{
+							tileList.Add(array[lx + x + (ly + y) * tileWidth]);
+						}
+					}
+
+					yield return new LargeTile(tileList.ToArray(), widthInTiles * 8);
+				}
+			}
+		}
+		public IEnumerable<uint> GetTileData()
+		{
+			const int tileSize = 8;
+
+			uint dumpValue = 0;
+
+			for (int ty = 0; ty < Height; ty += tileSize)
+			{
+				for (int tx = 0; tx < Width; tx += tileSize)
+				{
+					for (int y = 0; y < tileSize; ++y)
+					{
+						for (int x = 0; x < tileSize; ++x)
+						{
+							dumpValue <<= 4;
+							dumpValue |= baseValues[tx + x, ty + y] & 0xF;
+
+						}
+						yield return dumpValue;
+					}
+				}
+			}
+
+			yield break;
+		}
+		public IEnumerable<uint> GetSpriteData()
+		{
+			const int tileSize = 8;
+
+			// Can't have sprites that have multiple palettes
+			if (finalPalettes.Count > 1)
+				throw new Exception();
+
+			uint dumpValue = 0;
+
+			for (int ty = 0; ty < Height; ty += tileSize)
+			{
+				for (int tx = 0; tx < Width; tx += tileSize)
+				{
+					for (int y = 0; y < tileSize; ++y)
+					{
+						for (int x = 0; x < tileSize; ++x)
+						{
+							dumpValue <<= 4;
+							dumpValue |= baseValues[tx + x, ty + y] & 0xF;
+							
+						}
+						yield return dumpValue;
+					}
+				}
+			}
+
+			yield break;
 		}
 	}
 }

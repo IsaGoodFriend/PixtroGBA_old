@@ -228,6 +228,9 @@ namespace Pixtro.Compiler {
 					width = reader.ReadInt16();
 					height = reader.ReadInt16();
 
+					Width = width;
+					Height = height;
+
 					int colorSize = width * height;
 
 					byte[] bits = null;
@@ -291,7 +294,7 @@ namespace Pixtro.Compiler {
 				foreach (var tag in tags)
 					t.Add(tag.name);
 
-				return t.ToArray();
+				return t.Distinct().ToArray();
 			}
 		}
 		public Tag[] Tags => tags.ToArray();
@@ -536,9 +539,9 @@ namespace Pixtro.Compiler {
 
 				FloatColor[,] celColor = cel.ColorValues;
 
-				for (int y = 0; y < cel.Height; ++y)
+				for (int y = Math.Max(-cel.Y, 0); y < cel.Height && (cel.Y + y) < Height; ++y)
 				{
-					for (int x = 0; x < cel.Height; ++x)
+					for (int x = Math.Max(-cel.X, 0); x < cel.Width && (cel.X + x) < Width; ++x)
 					{
 						retval[cel.X + x, cel.Y + y] = FloatColor.FlattenColor(retval[cel.X + x, cel.Y + y], celColor[x, y], layer.blending);
 					}
@@ -565,6 +568,16 @@ namespace Pixtro.Compiler {
 
 
 			return retval;
+		}
+
+		public Tag GetTag(string name)
+		{
+			foreach (var tag in tags)
+			{
+				if (tag.name == name)
+					return tag;
+			}
+			return null;
 		}
 	}
 }

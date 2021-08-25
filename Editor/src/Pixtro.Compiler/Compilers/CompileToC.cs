@@ -361,12 +361,9 @@ namespace Pixtro.Compiler {
 					break;
 			}
 
-			bool integerArray = true;
-
 			if (arrayType.ToString().StartsWith("U"))
 				valueType = "unsigned " + valueType;
 			if (arrayType.ToString().EndsWith("Ptr")){
-				integerArray = false;
 				valueType += "*";
 			}
 

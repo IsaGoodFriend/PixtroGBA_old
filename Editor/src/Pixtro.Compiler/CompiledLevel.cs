@@ -52,8 +52,10 @@ namespace Pixtro.Compiler {
 
 		[JsonIgnore]
 		public LevelBrickset fullTileset = null;
+		public Dictionary<string, FlippableLayout<LargeTile>> tilesetFound = new Dictionary<string, FlippableLayout<LargeTile>>();
 
 		public Dictionary<string, int> EntityIndex;
+
 
 		public string[] LevelPacks;
 
@@ -61,106 +63,6 @@ namespace Pixtro.Compiler {
 		public List<string> levelsIncluded = new List<string>();
 
 		public string Name;
-
-		//private static bool TestString(string path, string test) {
-
-		//	if (test == "*")
-		//		return true;
-		//	else if (!test.Contains("*")) {
-		//		return test == path;
-		//	}
-		//	else {
-		//		string[] split = test.Split(new char[]{ '*' }, StringSplitOptions.RemoveEmptyEntries);
-
-		//		int index = 0;
-
-		//		if (!test.StartsWith("*") && !path.StartsWith(split[0])) {
-		//			return false;
-		//		}
-		//		if (!test.EndsWith("*") && !path.EndsWith(split[split.Length - 1])) {
-		//			return false;
-		//		}
-
-		//		for (int i = test.StartsWith("*") ? 0 : 1; i < split.Length - (test.EndsWith("*") ? 0 : 1); ++i) {
-		//			int found = path.IndexOf(split[i]);
-
-		//			if (found < index)
-		//				return false;
-
-		//			index = found;
-		//		}
-
-		//		return true;
-		//	}
-		//}
-
-		//public bool Matches(string _path) {
-
-		//	bool test = false;
-
-		//	if (Include != null) {
-		//		string[] split = Include.Split(',');
-
-		//		foreach (string s in split)
-		//			test |= TestString(_path, s);
-		//	}
-		//	if (IncludeRegex != null) {
-		//		test |= Regex.IsMatch(_path, IncludeRegex);
-		//	}
-
-		//	if (!test)
-		//		return false;
-
-		//	if (Exclude != null) {
-		//		string[] split = Exclude.Split(',');
-
-		//		foreach (string s in split)
-		//			test &= !TestString(_path, s);
-		//	}
-		//	if (!test)
-		//		return false;
-
-		//	if (ExcludeRegex != null) {
-		//		test &= !Regex.IsMatch(_path, ExcludeRegex);
-		//	}
-
-		//	return test;
-		//}
-	}
-	public class Brick : Tile
-	{
-		public char collisionChar;
-		public int collisionType, collisionShape, palette;
-
-		public class CompareBricks : IEqualityComparer<Brick>
-		{
-			public bool Equals(Brick x, Brick y)
-			{
-				if (!x.EqualTo(y, Tile.FlipStyle.Both))
-					return false;
-
-				if (x.collisionChar != y.collisionChar && x.collisionShape != y.collisionShape && x.collisionType != y.collisionType && x.palette != y.palette)
-					return false;
-
-				return true;
-			}
-
-			public int GetHashCode(Brick obj)
-			{
-				return obj.GetHashCode();
-			}
-		}
-
-		public Brick(int pixelSize) : base(pixelSize) { }
-		public Brick(Tile tileCopy) : base(tileCopy.sizeOfTile)
-		{
-			LoadInData(tileCopy.RawData, 0);
-		}
-
-		public override string ToString()
-		{
-			return (IsAir ? "Air" : "Solid") + " " + collisionChar;
-		}
 	}
 	public class LevelBrickset : IEnumerable<Brick>
 	{
@@ -176,43 +78,39 @@ namespace Pixtro.Compiler {
 
 		public bool Contains(Brick brick)
 		{
-			return bricks.Contains(brick, new Brick.CompareBricks());
+			return bricks.Contains(brick, new CompareFlippable<Brick>());
 		}
 		public void AddNewBrick(Brick brick)
 		{
-			if (!Contains(brick))
+			bricks.Add(brick);
+			int size = brick.SizeOfTile / 8;
+
+			for (int i = 0; i < size * size; ++i)
 			{
-				bricks.Add(brick);
-				int size = brick.sizeOfTile / 8;
-				size *= size;
+				var tile = brick.tiles[i % size, i / size];
 
-				for (int i = 0; i < size; ++i)
+				if (!tile.IsAir && !rawTiles.Contains(tile, new CompareFlippable<Tile>()))
 				{
-					var tile = new Tile(8);
-					tile.LoadInData(brick.RawData, i * 8);
-
-					if (!tile.IsAir && !rawTiles.Contains(tile, new Tileset.CompareTiles()))
-					{
-						rawTiles.Add(tile);
-					}
+					rawTiles.Add(tile);
 				}
 			}
+			
 		}
 
-		public ushort GetIndex(Tile tile, char type) => GetIndex(GetBrick(tile, type));
+		public ushort GetIndex(LargeTile tile, char type) => GetIndex(GetBrick(tile, type));
 
 		public ushort GetIndex(Brick brick)
 		{
 			return (ushort)bricks.IndexOf(brick);
 		}
-		public Brick GetBrick(Tile tile, char type)
+		public Brick GetBrick(LargeTile tile, char type)
 		{
 			foreach (var b in bricks)
 			{
 				if (b.collisionChar != type)
 					continue;
 
-				if (b.EqualTo(tile, Tile.FlipStyle.Both))
+				if (b.EqualTo(tile, FlipStyle.Both))
 					return b;
 			}
 			return null;
@@ -227,7 +125,7 @@ namespace Pixtro.Compiler {
 			return (IEnumerator<Brick>)bricks;
 		}
 	}
-	public class CompressedLevel {
+	public class CompiledLevel {
 
 		private const int multValue = 57047;
 
@@ -355,50 +253,52 @@ namespace Pixtro.Compiler {
 			
 			List<char> characters = new List<char>(DataParse.Wrapping.Keys);
 			Dictionary<char, uint[]> connect = new Dictionary<char, uint[]>();
-			LevelBrickset fullTileset;
+			LevelBrickset fullTileset = DataParse.fullTileset;
 
-			if (DataParse.fullTileset != null)
-				fullTileset = DataParse.fullTileset;
+			//if (DataParse.fullTileset != null)
+			//	fullTileset = DataParse.fullTileset;
 
-			// If there isn't a brickset created, make a new one
-			else {
-				fullTileset = new LevelBrickset();
+			//// If there isn't a brickset created, make a new one
+			//else {
+			//	fullTileset = new LevelBrickset();
 
-				List<string> found = new List<string>();
+			//	List<string> found = new List<string>();
 
-				// Foreach tile type ('M', 'N' or whatever)
-				foreach (var key in DataParse.Wrapping.Keys) {
+			//	// Foreach tile type ('M', 'N' or whatever)
+			//	foreach (var key in DataParse.Wrapping.Keys) {
 
-					int collType = DataParse.Wrapping[key].CollisionType;
+			//		int collType = DataParse.Wrapping[key].CollisionType;
 
-					if (FullCompiler.ArtTilesets.ContainsKey("TILE_" + DataParse.Wrapping[key].Tileset))
-					{
-						foreach (var tile in FullCompiler.ArtTilesets["TILE_" + DataParse.Wrapping[key].Tileset].tiles)
-						{
-							if (tile.tile.IsAir && collType == 0)
-								continue;
+			//		if (FullCompiler.Sprites.ContainsKey("tilesets_" + DataParse.Wrapping[key].Tileset))
+			//		{
+			//			var tileset = FullCompiler.Sprites["tilesets_" + DataParse.Wrapping[key].Tileset][0].CreateTileset(Settings.BrickTileSize);
 
-							var brick = new Brick(tile);
-							brick.collisionType = collType;
-							brick.collisionChar = key;
+			//			foreach (var tile in tileset.tiles)
+			//			{
+			//				if (tile.tile.IsAir && collType == 0)
+			//					continue;
 
-							fullTileset.AddNewBrick(brick);
-						}
-					}
-					else
-					{
-						var brick = new Brick(Settings.BrickTileSize * 8);
-						brick.collisionType = collType;
-						brick.collisionChar = key;
+			//				var brick = new Brick(tile);
+			//				brick.collisionType = collType;
+			//				brick.collisionChar = key;
 
-						fullTileset.AddNewBrick(brick);
-					}
+			//				fullTileset.AddNewBrick(brick);
+			//			}
+			//		}
+			//		else
+			//		{
+			//			var brick = new Brick(Settings.BrickTileSize * 8);
+			//			brick.collisionType = collType;
+			//			brick.collisionChar = key;
+
+			//			fullTileset.AddNewBrick(brick);
+			//		}
 						
-					found.Add(DataParse.Wrapping[key].Tileset);
-				}
+			//		found.Add(DataParse.Wrapping[key].Tileset);
+			//	}
 
-				DataParse.fullTileset = fullTileset;
-			}
+			//	DataParse.fullTileset = fullTileset;
+			//}
 
 			foreach (var tile in DataParse.Wrapping.Keys) {
 
@@ -421,31 +321,7 @@ namespace Pixtro.Compiler {
 				}
 			}
 
-			ushort last = 0x1234;
 			int count = 0;
-
-			float getvalue(string _s) {
-
-				string[] split = _s.Split('.');
-
-				switch (split[0]) {
-					case "x":
-						return x;
-					case "y":
-						return y;
-					case "width":
-						return width;
-					case "height":
-						return height;
-					case "random":
-						if (split.Length == 2)
-							return Randomizer.Next(int.Parse(split[1]));
-						else
-							return Randomizer.Next(int.Parse(split[1]), int.Parse(split[2]));
-				}
-
-				return 0;
-			}
 
 			byte[] retvalArray = new byte[width * height * 2];
 
@@ -464,12 +340,13 @@ namespace Pixtro.Compiler {
 					else
 					{
 						var wrapping = DataParse.Wrapping[currentTile];
-						Tile mappedTile;
-						Tile tile = null;
+						LargeTile mappedTile;
+						LargeTile tile = null;
 
-						if (FullCompiler.ArtTilesets.ContainsKey("TILE_" + wrapping.Tileset))
+						if (DataParse.tilesetFound.ContainsKey(wrapping.Tileset))
 						{
-							Tileset tileset = FullCompiler.ArtTilesets["TILE_" + wrapping.Tileset];
+							var tileset = DataParse.tilesetFound[wrapping.Tileset];
+
 							uint value = data.GetWrapping(x, y, connect[currentTile], wrapping.Mapping),
 								testValue;
 
@@ -515,16 +392,16 @@ namespace Pixtro.Compiler {
 											point = new Point(point.X + exPoint.X, point.Y + exPoint.Y);
 									}
 
-								tile = tileset.GetOriginalTile(point.X, point.Y);
+								tile = tileset.GetTile(point.X, point.Y);
 								break;
 							}
 
-							mappedTile = tileset.GetUniqueTile(tile??tileset.GetOriginalTile(0, 0));
+							mappedTile = tileset.GetUniqueTile(tile??tileset.GetTile(0, 0));
 						}
 						else
 						{
-							mappedTile = new Tile(Settings.BrickTileSize * 8);
-							tile = new Tile(Settings.BrickTileSize * 8);
+							mappedTile = new LargeTile(Settings.BrickTileSize * 8);
+							tile = new LargeTile(Settings.BrickTileSize * 8);
 						}
 						
 
