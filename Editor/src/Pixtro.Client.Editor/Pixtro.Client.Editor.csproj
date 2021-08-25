@@ -50,19 +50,6 @@
 		<Compile Update="ArchiveChooser.cs" SubType="Form" />
 		<Compile Update="ArchiveChooser.Designer.cs" DependentUpon="ArchiveChooser.cs" />
 		<EmbeddedResource Update="ArchiveChooser.resx" DependentUpon="ArchiveChooser.cs" SubType="Designer" />
-		<Compile Update="AVOut/GifWriterForm.cs" SubType="Form" />
-		<Compile Update="AVOut/GifWriterForm.Designer.cs" DependentUpon="GifWriterForm.cs" />
-		<EmbeddedResource Update="AVOut/GifWriterForm.resx" DependentUpon="GifWriterForm.cs" />
-		<Compile Update="AVOut/JMDForm.cs" SubType="Form" />
-		<Compile Update="AVOut/JMDForm.Designer.cs" DependentUpon="JMDForm.cs" />
-		<EmbeddedResource Update="AVOut/JMDForm.resx" DependentUpon="JMDForm.cs" />
-		<Compile Update="AVOut/NumericTextBox.cs" SubType="Component" />
-		<Compile Update="AVOut/SynclessRecordingTools.cs" SubType="Form" />
-		<Compile Update="AVOut/SynclessRecordingTools.Designer.cs" DependentUpon="SynclessRecordingTools.cs" />
-		<EmbeddedResource Update="AVOut/SynclessRecordingTools.resx" DependentUpon="SynclessRecordingTools.cs" />
-		<Compile Update="AVOut/VideoWriterChooserForm.cs" SubType="Form" />
-		<Compile Update="AVOut/VideoWriterChooserForm.Designer.cs" DependentUpon="VideoWriterChooserForm.cs" />
-		<EmbeddedResource Update="AVOut/VideoWriterChooserForm.resx" DependentUpon="VideoWriterChooserForm.cs" />
 		<Compile Update="BizBox.cs" SubType="Form" />
 		<Compile Update="BizBox.Designer.cs" DependentUpon="BizBox.cs" />
 		<EmbeddedResource Update="BizBox.resx" DependentUpon="BizBox.cs" />
@@ -567,7 +554,7 @@
 	  </Reference>
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Projects\Editors\" />
+	  <Folder Include="AVOut\" />
 	</ItemGroup>
 	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
 	  <Exec Command="xcopy &quot;$(ProjectDir)..\..\..\Engine\source\engine\&quot; &quot;$(TargetDir)engineSource\&quot; /D /s /y&#xD;&#xA;xcopy &quot;$(ProjectDir)..\..\Assets\templates&quot; &quot;$(TargetDir)templates\&quot; /D /e /y&#xD;&#xA;xcopy &quot;$(ProjectDir)..\..\Assets\Makefile.txt&quot; &quot;$(TargetDir)&quot; /D /y&#xD;&#xA;for /r &quot;$(TargetDir)templates\&quot; %25%25f in (&quot;*.gitempty&quot;) do del %25%25f&#xD;&#xA;" />

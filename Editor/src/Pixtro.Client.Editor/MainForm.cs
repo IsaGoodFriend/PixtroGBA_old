@@ -30,6 +30,7 @@ using Pixtro.Common.PathExtensions;
 using Pixtro.Common.StringExtensions;
 using Pixtro.Emulation.Common.Base_Implementations;
 using Pixtro.Emulation.Cores;
+using Pixtro.Client.Editor.Projects.Editors;
 
 namespace Pixtro.Client.Editor
 {
@@ -262,7 +263,7 @@ namespace Pixtro.Client.Editor
 				PauseEmulator,
 				SetMainformMovieInfo);
 
-			MouseClick += MainForm_MouseClick;
+			MouseDown += MainForm_MouseDown;
 			MouseMove += MainForm_MouseMove;
 			MouseUp += MainForm_MouseUp;
 
@@ -273,6 +274,7 @@ namespace Pixtro.Client.Editor
 			Game = GameInfo.NullInstance;
 			_throttle = new Throttle();
 			Emulator = new NullEmulator();
+			LayoutManager = new EditorLayoutManager(this);
 
 			UpdateStatusSlots();
 			UpdateKeyPriorityIcon();
@@ -288,7 +290,7 @@ namespace Pixtro.Client.Editor
 
 			InitEditorLayout();
 
-			Tools = new ToolManager(this, Config, _displayManagers[0], InputManager, Emulator, Game);
+			Tools = new ToolManager(this, Config, _displayManagers.Get(EMULATOR_DISPLAY), InputManager, Emulator, Game);
 			ExtToolManager = new ExternalToolManager(Config.PathEntries, () => (EmuClientApi.SystemIdConverter.Convert(Emulator.SystemId), Game.Hash));
 
 			ProjectTemplate.LoadTemplates();
@@ -398,6 +400,10 @@ namespace Pixtro.Client.Editor
 			{
 				Location = new Point(Config.MainWndx, Config.MainWndy);
 			}
+			if (Config.MainWndW != -1 && Config.MainWndH != -1)
+				Size = new Size(Config.MainWndW, Config.MainWndH);
+
+			WindowState = Config.MainWndMax ? FormWindowState.Maximized : FormWindowState.Normal;
 
 			if (_argParser.cmdRom != null)
 			{
@@ -642,10 +648,7 @@ namespace Pixtro.Client.Editor
 				StepRunLoop_Core();
 				StepRunLoop_Throttle();
 
-				for (int i = 0; i < _displayManagers.Count; ++i)
-				{
-					Render(i);
-				}
+				Render();
 
 				CheckMessages();
 
@@ -736,39 +739,7 @@ namespace Pixtro.Client.Editor
 
 		public event Action<bool> OnPauseChanged;
 
-		private List<(string name, EditorLayout layout)> currentLayouts = new List<(string name, EditorLayout layout)>();
-		private int layoutIndex;
-		public int CurrentLayoutIndex
-		{
-			get => layoutIndex;
-			set
-			{
-				if (layoutIndex != value)
-				{
-					ChangeLayout(value);
-				}
-			}
-		}
-		public string CurrentLayoutName
-		{
-			get => currentLayouts[layoutIndex].name;
-			set
-			{
-				if (currentLayouts[layoutIndex].name != value)
-				{
-					int index;
-					for (index = 0; index < currentLayouts.Count; ++index)
-						if (currentLayouts[index].name == value)
-							break;
-
-					if (index == currentLayouts.Count)
-						return;
-
-					CurrentLayoutIndex = index;
-				}
-			}
-		}
-		public EditorLayout CurrentLayout => currentLayouts[layoutIndex].layout;
+		public readonly EditorLayoutManager LayoutManager;
 
 		public Rectangle EditorBounds => new Rectangle(0, MainformMenu.Bottom, ClientSize.Width, ClientSize.Height - (MainformMenu.Height + MainStatusBar.Height));
 
@@ -860,7 +831,8 @@ namespace Pixtro.Client.Editor
 			private set
 			{
 				_emulator = value;
-				_emuVideoProvider = value.AsVideoProviderOrDefault();
+				if (_displayManagers.Count > 0)
+					_displayManagers.Get(EMULATOR_DISPLAY).VideoProvider = value.AsVideoProviderOrDefault();
 				_currentSoundProvider = value.AsSoundProviderOrDefault();
 			}
 		}
@@ -868,8 +840,6 @@ namespace Pixtro.Client.Editor
 		public EmuClientApi EmuClient { get; set; }
 
 		private readonly InputManager InputManager;
-
-		private IVideoProvider _emuVideoProvider = NullVideo.Instance;
 
 		private ISoundProvider _currentSoundProvider = new NullSound(44100 / 60); // Reasonable default until we have a core instance
 
@@ -888,6 +858,7 @@ namespace Pixtro.Client.Editor
 
 		public readonly ToolManager Tools;
 
+		public const string EMULATOR_DISPLAY = "emulator";
 		private readonly List<DisplayManager> _displayManagers = new List<DisplayManager>();
 
 		private OSDManager OSD => null;
@@ -1142,7 +1113,7 @@ namespace Pixtro.Client.Editor
 
 		private void TakeScreenshotClientToClipboard()
 		{
-			using var bb = _displayManagers[0].RenderOffscreen(_emuVideoProvider, Config.ScreenshotCaptureOsd);
+			using var bb = _displayManagers.Get(EMULATOR_DISPLAY).RenderOffscreen(_displayManagers.Get(EMULATOR_DISPLAY).VideoProvider, Config.ScreenshotCaptureOsd);
 			bb.ToSysdrawingBitmap().ToClipBoard();
 			AddOnScreenMessage("Screenshot (client) saved to clipboard.");
 		}
@@ -1446,8 +1417,6 @@ namespace Pixtro.Client.Editor
 		// public static ControllerInputCoalescer ControllerInputCoalescer = new ControllerInputCoalescer();
 		// input state which has been destined for client hotkey consumption are colesced here
 		private readonly InputCoalescer _hotkeyCoalescer = new InputCoalescer();
-
-		private readonly List<PresentationPanel> _presentationPanels = new List<PresentationPanel>();
 
 		// countdown for saveram autoflushing
 		public int AutoFlushSaveRamIn { get; set; }
@@ -1771,44 +1740,40 @@ namespace Pixtro.Client.Editor
 
 		private void InitEditorLayout()
 		{
-			var panel = new PresentationPanel(
-		 		Config,
-		 		GL,
-		 		MainForm_MouseClick,
-		 		PresentationPanel_MouseMove,
-		 		MainForm_MouseWheel);
+			DisplayManager emu, tile;
 
-			_presentationPanels.Add(panel);
+			_displayManagers.Add(emu = new DisplayManager(
+				EMULATOR_DISPLAY,
+				this,
+				Emulator,
+				InputManager,
+				MovieSession,
+				GL,
+				null,
+				() => DisableSecondaryThrottling));
+
+			_displayManagers.Add(tile = new DisplayManager(
+				TileMapEditor.TILEMAP_DISPLAY,
+				this,
+				Emulator,
+				InputManager,
+				MovieSession,
+				GL,
+				new TileMapEditor(),
+				() => DisableSecondaryThrottling));
 
 			var tempLayout = new EditorLayout(this);
 
-			tempLayout.layout = new EditorLayout.LayoutWindow(panel);
-			
-			currentLayouts.Add(("tempLayout", tempLayout));
+			tempLayout.layout = new EditorLayout.LayoutSplit()
+			{
+				Item1 = new EditorLayout.LayoutWindow(emu),
+				Item2 = new EditorLayout.LayoutWindow(tile),
+				Direction = EditorLayout.SplitDirection.Horizontal
+			};
+			LayoutManager.Add("tempLayout", tempLayout);
 
-			_displayManagers.Add(new DisplayManager(Config, Emulator, InputManager, MovieSession, GL,
-				panel, () => DisableSecondaryThrottling));
 
-			Controls.Add(panel);
-			Controls.SetChildIndex(panel, 0);
-
-			tempLayout.layout.ResizeWindow(EditorBounds);
-
-			ChangeLayout(0);
-		}
-
-		private void ChangeLayout(int index)
-		{
-			layoutIndex = index;
-
-			var minSize = CurrentLayout.layout.MinimumSize();
-			minSize += new Size(Width - EditorBounds.Width, Height - EditorBounds.Height);
-
-			CurrentLayout.layout.ResizeWindow(EditorBounds);
-
-			MinimumSize = new Size(
-				Math.Max(minSize.Width, 475),
-				Math.Max(minSize.Height, 125));
+			//ChangeLayout(0);
 		}
 
 		private void LoadMoviesFromRecent(string path)
@@ -1920,25 +1885,24 @@ namespace Pixtro.Client.Editor
 
 		public BitmapBuffer MakeScreenshotImage()
 		{
-			return _displayManagers[0].RenderVideoProvider(_emuVideoProvider);
+			return _displayManagers.Get(EMULATOR_DISPLAY).RenderVideoProvider(_displayManagers.Get(EMULATOR_DISPLAY).VideoProvider);
 		}
 
 		public void Render()
 		{
-			for (int i = 0; i < _displayManagers.Count; ++i)
+			foreach (var display in _displayManagers)
 			{
-				Render(i);
+				Render(display);
 			}
 		}
-		public void Render(int index)
+		public void Render(DisplayManager display)
 		{
-			if (Config.DispSpeedupFeatures == 0)
-			{
+			if (display.VideoProvider == null)
 				return;
-			}
-
-			var video = _emuVideoProvider;
-			var display = _displayManagers[index];
+			if (Config.DispSpeedupFeatures == 0)
+				return;
+			
+			var video = display.VideoProvider;
 
 			Size currVideoSize = new Size(video.BufferWidth, video.BufferHeight);
 			Size currVirtualSize = new Size(video.VirtualWidth, video.VirtualHeight);
@@ -2208,22 +2172,17 @@ namespace Pixtro.Client.Editor
 
 		private void SaveConfig(string path = "")
 		{
-			if (Config.SaveWindowPosition)
+			if (WindowState == FormWindowState.Normal)
 			{
-				if (Config.MainWndx != -32000) // When minimized location is -32000, don't save this into the config file!
-				{
-					Config.MainWndx = Location.X;
-				}
-
-				if (Config.MainWndy != -32000)
-				{
-					Config.MainWndy = Location.Y;
-				}
+				Config.MainWndx = Location.X;
+				Config.MainWndy = Location.Y;
+				Config.MainWndW = Size.Width;
+				Config.MainWndH = Size.Height;
 			}
-			else
+			
+			if (WindowState != FormWindowState.Minimized)
 			{
-				Config.MainWndx = -1;
-				Config.MainWndy = -1;
+				Config.MainWndMax = WindowState == FormWindowState.Maximized;
 			}
 
 			Config.LastWrittenFrom = VersionInfo.MainVersion;
@@ -2315,13 +2274,7 @@ namespace Pixtro.Client.Editor
 
 		public BitmapBuffer CaptureOSD()
 		{
-			var bb = _displayManagers[0].RenderOffscreen(_emuVideoProvider, true);
-			bb.DiscardAlpha();
-			return bb;
-		}
-		public BitmapBuffer CaptureLua()
-		{
-			var bb = _displayManagers[0].RenderOffscreenLua(_emuVideoProvider);
+			var bb = _displayManagers.Get(EMULATOR_DISPLAY).RenderOffscreen(_displayManagers.Get(EMULATOR_DISPLAY).VideoProvider, true);
 			bb.DiscardAlpha();
 			return bb;
 		}
@@ -3726,45 +3679,73 @@ namespace Pixtro.Client.Editor
 			LoadRom(args[0]);
 		}
 
-		private void MainForm_MouseClick(object sender, MouseEventArgs e)
-		{
-			if (e.Button == MouseButtons.Left)
-				CurrentLayout.OnLeftMouseDown(e);
-
-			if (Config.ShowContextMenu && e.Button == MouseButtons.Right)
-			{
-				MainFormContextMenu.Show(PointToScreen(new Point(e.X, e.Y + MainformMenu.Height)));
-			}
-
-		}
-		private void MainForm_MouseUp(object sender, MouseEventArgs e)
-		{
-			if (e.Button == MouseButtons.Left)
-				CurrentLayout.OnLeftMouseUp(e);
-		}
-		private void MainForm_MouseMove(object sender, MouseEventArgs e)
-		{
-			CurrentLayout.OnMouseMove(e);
-
-			var point = new Point(0, 0);//_presentationPanel.Control.Location;
-
-			point.X = e.X;
-
-			if (point.Y < MainformMenu.Bottom)
-			{
-				point.Y = MainformMenu.Bottom;
-			}
-
-			//_presentationPanel.Control.Location = point;
-		}
-
-		private void MainForm_MouseWheel(object sender, MouseEventArgs e) => MouseWheelTracker += e.Delta;
-
-		private void PresentationPanel_MouseMove(object sender, MouseEventArgs e)
+		public void MainForm_MouseUp(object sender, MouseEventArgs e)
 		{
 			Control c = sender as Control;
 
-			MainForm_MouseMove(sender, new MouseEventArgs(e.Button, e.Clicks, e.X + c.Location.X, e.Y + c.Location.Y, e.Delta));
+			var type = sender.GetType();
+
+			Point point = new Point(e.X, e.Y);
+
+			if (!(sender is Form))
+			{
+				point.X += c.Location.X;
+				point.Y += c.Location.Y;
+			}
+
+			e = new MouseEventArgs(e.Button, e.Clicks, point.X, point.Y, e.Delta);
+	
+			if (e.Button == MouseButtons.Left)
+				LayoutManager.Current.OnLeftMouseUp(e);
+
+			//if (Config.ShowContextMenu && e.Button == MouseButtons.Right)
+			//{
+			//	MainFormContextMenu.Show(PointToScreen(new Point(e.X, e.Y + MainformMenu.Height)));
+			//}
+		}
+		public void MainForm_MouseDown(object sender, MouseEventArgs e)
+		{
+			Control c = sender as Control;
+
+			var type = sender.GetType();
+
+			Point point = new Point(e.X, e.Y);
+
+			if (!(sender is Form))
+			{
+				point.X += c.Location.X;
+				point.Y += c.Location.Y;
+			}
+
+			e = new MouseEventArgs(e.Button, e.Clicks, point.X, point.Y, e.Delta);
+
+			if (e.Button == MouseButtons.Left)
+				LayoutManager.Current.OnLeftMouseDown(e);
+		}
+		public void MainForm_MouseMove(object sender, MouseEventArgs e)
+		{
+			Control c = sender as Control;
+
+			var type = sender.GetType();
+
+			Point point = new Point(e.X, e.Y);
+
+			if (!(sender is Form))
+			{
+				point.X += c.Location.X;
+				point.Y += c.Location.Y;
+			}
+
+			e = new MouseEventArgs(e.Button, e.Clicks, point.X, point.Y, e.Delta);
+
+			LayoutManager.Current.OnMouseMove(e);
+		}
+
+		public void MainForm_MouseWheel(object sender, MouseEventArgs e) => MouseWheelTracker += e.Delta;
+
+		private void MainForm_MouseHover(object sender, EventArgs e)
+		{
+
 		}
 
 		public IQuickBmpFile QuickBmpFile { get; } = new QuickBmpFile();

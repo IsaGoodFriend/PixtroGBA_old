@@ -18,9 +18,7 @@ namespace Pixtro.Client.Editor
 		public PresentationPanel(
 			Config config,
 			IGL gl,
-			MouseEventHandler onClick,
-			MouseEventHandler onMove,
-			MouseEventHandler onWheel)
+			MainForm form)
 		{
 			_config = config;
 
@@ -33,9 +31,10 @@ namespace Pixtro.Client.Editor
 
 			// pass through these events to the form. we might need a more scalable solution for mousedown etc. for zapper and whatnot.
 			// http://stackoverflow.com/questions/547172/pass-through-mouse-events-to-parent-control (HTTRANSPARENT)
-			GraphicsControl.MouseClick += onClick;
-			GraphicsControl.MouseMove += onMove;
-			GraphicsControl.MouseWheel += onWheel;
+			GraphicsControl.MouseDown += form.MainForm_MouseDown;
+			GraphicsControl.MouseUp += form.MainForm_MouseUp;
+			GraphicsControl.MouseMove += form.MainForm_MouseMove;
+			GraphicsControl.MouseWheel += form.MainForm_MouseWheel;
 		}
 
 		private bool _isDisposed;

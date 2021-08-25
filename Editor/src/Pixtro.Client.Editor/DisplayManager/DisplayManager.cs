@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 
@@ -9,6 +10,17 @@ using Pixtro.Emulation.Common;
 
 namespace Pixtro.Client.Editor
 {
+	public static class DisplayManagerEXT
+	{
+		public static DisplayManager Get(this List<DisplayManager> list, string name)
+		{
+			foreach (var disp in list)
+				if (disp.Name == name)
+					return disp;
+
+			return null;
+		}
+	}
 	public class DisplayManager : DisplayManagerBase
 	{
 		private readonly Func<bool> _getIsSecondaryThrottlingDisabled;
@@ -19,24 +31,30 @@ namespace Pixtro.Client.Editor
 
 		// layer resources
 
-		private readonly PresentationPanel _presentationPanel; // well, its the final layer's target, at least
+		public readonly PresentationPanel Panel; // well, its the final layer's target, at least
+		public IVideoProvider VideoProvider;
+		public readonly string Name;
 
 		private readonly GLManager.ContextRef _crGraphicsControl;
 
-		private GraphicsControl _graphicsControl => _presentationPanel.GraphicsControl;
+		private GraphicsControl _graphicsControl => Panel.GraphicsControl;
 
 		public DisplayManager(
-			Config config,
+			string name,
+			MainForm form,
 			IEmulator emulator,
 			InputManager inputManager,
 			IMovieSession movieSession,
 			IGL gl,
-			PresentationPanel presentationPanel,
+			IVideoProvider video,
 			Func<bool> getIsSecondaryThrottlingDisabled)
-				: base(config, emulator, inputManager, movieSession, gl.DispMethodEnum(), gl, gl.CreateRenderer())
+				: base(MainForm.Config, emulator, inputManager, movieSession, gl.DispMethodEnum(), gl, gl.CreateRenderer())
 		{
-			_presentationPanel = presentationPanel;
+			Panel = new PresentationPanel(MainForm.Config, gl, form);
+
+			VideoProvider = video;
 			_getIsSecondaryThrottlingDisabled = getIsSecondaryThrottlingDisabled;
+			Name = name;
 
 			// setup the GL context manager, needed for coping with multiple opengl cores vs opengl display method
 			// but is it tho? --yoshi
@@ -48,7 +66,7 @@ namespace Pixtro.Client.Editor
 
 		protected override Size GetGraphicsControlSize() => _graphicsControl.Size;
 
-		public override Size GetPanelNativeSize() => _presentationPanel.NativeSize;
+		public override Size GetPanelNativeSize() => Panel.NativeSize;
 
 		protected override Point GraphicsControlPointToClient(Point p) => _graphicsControl.PointToClient(p);
 

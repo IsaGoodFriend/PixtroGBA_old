@@ -785,7 +785,7 @@ namespace Pixtro.Client.Editor
             this.ProfileFirstBootLabel,
             this.LinkConnectStatusBarButton,
             this.UpdateNotification});
-			this.MainStatusBar.Location = new System.Drawing.Point(0, 435);
+			this.MainStatusBar.Location = new System.Drawing.Point(0, 385);
 			this.MainStatusBar.Name = "MainStatusBar";
 			this.MainStatusBar.ShowItemToolTips = true;
 			this.MainStatusBar.SizingGrip = false;
@@ -895,7 +895,7 @@ namespace Pixtro.Client.Editor
             this.ShowMenuContextMenuItem,
             this.UndoSavestateContextMenuItem});
 			this.MainFormContextMenu.Name = "contextMenuStrip1";
-			this.MainFormContextMenu.Size = new System.Drawing.Size(192, 214);
+			this.MainFormContextMenu.Size = new System.Drawing.Size(192, 192);
 			this.MainFormContextMenu.Closing += new System.Windows.Forms.ToolStripDropDownClosingEventHandler(this.MainFormContextMenu_Closing);
 			this.MainFormContextMenu.Opening += new System.ComponentModel.CancelEventHandler(this.MainFormContextMenu_Opening);
 			// 
@@ -1016,13 +1016,13 @@ namespace Pixtro.Client.Editor
 			// MainForm
 			// 
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-			this.ClientSize = new System.Drawing.Size(650, 457);
+			this.ClientSize = new System.Drawing.Size(550, 407);
 			this.Controls.Add(this.MainStatusBar);
 			this.Controls.Add(this.MainformMenu);
 			this.Font = new System.Drawing.Font("Arial", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.MainMenuStrip = this.MainformMenu;
-			this.MinimumSize = new System.Drawing.Size(475, 300);
+			this.MinimumSize = new System.Drawing.Size(475, 100);
 			this.Name = "MainForm";
 			this.Activated += new System.EventHandler(this.MainForm_Activated);
 			this.Deactivate += new System.EventHandler(this.MainForm_Deactivate);
@@ -1030,6 +1030,7 @@ namespace Pixtro.Client.Editor
 			this.Load += new System.EventHandler(this.MainForm_Load);
 			this.Shown += new System.EventHandler(this.MainForm_Shown);
 			this.Enter += new System.EventHandler(this.MainForm_Enter);
+			this.MouseHover += new System.EventHandler(this.MainForm_MouseHover);
 			this.Resize += new System.EventHandler(this.MainForm_Resize);
 			this.MainformMenu.ResumeLayout(false);
 			this.MainformMenu.PerformLayout();

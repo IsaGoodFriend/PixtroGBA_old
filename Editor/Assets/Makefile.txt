@@ -31,9 +31,8 @@ MUSIC		:= audio
 # options for code generation
 #---------------------------------------------------------------------------------
 ARCH	:=	-marm -mthumb-interwork
-# ARCH_T	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O2 {2}\
+CFLAGS	:=	-g -Wall {2}\
 		-mcpu=arm7tdmi -mtune=arm7tdmi \
 		$(ARCH)
 
